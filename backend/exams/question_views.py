@@ -30,6 +30,8 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return exam
 
     def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return Question.objects.none()
         exam = self.get_exam()
         return exam.questions.all()
 
@@ -57,9 +59,17 @@ class QuestionViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        # Reassign order via a temporary large offset to avoid unique
+        # collisions on intermediate values, then compact to 1..N.
+        offset = (exam.questions.count() + 1) * 1000
+        for index, qid in enumerate(ordered_ids, start=offset):
+            q = questions[str(qid)]
+            q.order = index
+            q.save(update_fields=["order", "updated_at"])
         for index, qid in enumerate(ordered_ids, start=1):
-            questions[str(qid)].order = index
-            questions[str(qid)].save(update_fields=["order", "updated_at"])
+            q = questions[str(qid)]
+            q.order = index
+            q.save(update_fields=["order", "updated_at"])
         return Response(QuestionSerializer(exam.questions.all(), many=True).data)
 
     @transaction.atomic
