@@ -24,9 +24,25 @@ export function UserProfile() {
         setIsOpen(false)
       }
     }
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false)
+        buttonRef.current?.focus()
+      }
+    }
     document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [])
+    document.addEventListener("keydown", handleEscape)
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside)
+      document.removeEventListener("keydown", handleEscape)
+    }
+  }, [isOpen])
+
+  useEffect(() => {
+    if (isOpen) {
+      menuRef.current?.focus()
+    }
+  }, [isOpen])
 
   function handleLogout() {
     setIsOpen(false)
@@ -59,6 +75,8 @@ export function UserProfile() {
       {isOpen && (
         <div
           ref={menuRef}
+          tabIndex={-1}
+          role="menu"
           className="absolute right-0 top-full z-50 mt-2 w-56 animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <div className="overflow-hidden rounded-2xl border border-border-primary bg-white shadow-dropdown">
@@ -70,6 +88,7 @@ export function UserProfile() {
             <div className="p-1.5">
               <Link
                 href="/dashboard/profile"
+                role="menuitem"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-content-primary transition-colors hover:bg-surface-secondary"
               >
@@ -78,6 +97,7 @@ export function UserProfile() {
               </Link>
               <Link
                 href="/dashboard/settings"
+                role="menuitem"
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-content-primary transition-colors hover:bg-surface-secondary"
               >
@@ -89,6 +109,7 @@ export function UserProfile() {
             <div className="border-t border-border-primary p-1.5">
               <button
                 type="button"
+                role="menuitem"
                 onClick={handleLogout}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm text-danger transition-colors hover:bg-danger-light"
               >

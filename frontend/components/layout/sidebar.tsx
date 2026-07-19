@@ -65,6 +65,7 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               onClick={() => isMobile && onClose()}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                 isActive
@@ -72,7 +73,9 @@ export function Sidebar() {
                   : "text-content-muted hover:bg-surface-secondary hover:text-content-primary",
               )}
             >
-              <span className="shrink-0">{iconMap[item.icon]}</span>
+              <span className={cn("shrink-0 transition-transform duration-150", isActive && "scale-110")}>
+                {iconMap[item.icon]}
+              </span>
               <span>{item.label}</span>
               {item.badge != null && (
                 <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
