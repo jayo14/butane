@@ -34,6 +34,9 @@ if DEBUG:
 if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
     raise RuntimeError("DJANGO_SECRET_KEY must be set to a secure value in production.")
 
+# Base site URL used to build shareable public exam links.
+SITE_URL = env("SITE_URL", default="")
+
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
 
 INSTALLED_APPS = [
@@ -48,6 +51,7 @@ INSTALLED_APPS = [
     "django_filters",
     "corsheaders",
     "drf_spectacular",
+    "rest_framework_simplejwt.token_blacklist",
     # Local apps
     "accounts",
     "exams",
