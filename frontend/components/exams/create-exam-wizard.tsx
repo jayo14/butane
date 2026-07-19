@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useRef } from "react"
+import { useState, useCallback, useRef, useEffect } from "react"
 import { useForm, FormProvider, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -103,6 +103,11 @@ export function CreateExamWizard() {
   const [isPublishing, setIsPublishing] = useState(false)
   const [published, setPublished] = useState(false)
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }, [currentStep])
 
   const form = useForm<BasicInfoValues>({
     resolver: zodResolver(basicInfoSchema) as unknown as Resolver<BasicInfoValues>,
@@ -230,7 +235,7 @@ export function CreateExamWizard() {
       </div>
 
       {/* Step Content */}
-      <div className="rounded-2xl border border-border-primary bg-white p-6 md:p-8">
+      <div ref={contentRef} className="rounded-2xl border border-border-primary bg-white p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <FormProvider {...form}>
           {currentStep === 0 && (
             <BasicInfoStep subjects={subjects} classes={classes} terms={terms} />
@@ -258,16 +263,33 @@ export function CreateExamWizard() {
         </FormProvider>
       </div>
 
+      {/* Progress bar */}
+      <div className="mt-4 h-1 w-full rounded-full bg-surface-secondary overflow-hidden">
+        <div
+          className="h-full rounded-full bg-primary transition-all duration-500"
+          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
+        />
+      </div>
+
       {/* Footer Buttons */}
       <div className="mt-6 flex items-center justify-between">
-        <div>
+        <div className="flex items-center gap-3">
           {currentStep > 0 && (
             <Button variant="outline" onClick={handleBack} leftIcon={<ChevronLeft size={18} />}>
               Back
             </Button>
           )}
+          <span className="text-xs text-content-muted">
+            Step {currentStep + 1} of {steps.length}
+          </span>
         </div>
-        <div className="flex gap-3">
+        <div className="flex items-center gap-3">
+          <span className="hidden text-xs text-content-muted md:block">
+            <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">Ctrl</kbd>
+            {" + "}
+            <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">→</kbd>
+            {" "}next
+          </span>
           {currentStep < steps.length - 1 ? (
             <Button onClick={handleNext} rightIcon={<ChevronRight size={18} />}>
               Continue
