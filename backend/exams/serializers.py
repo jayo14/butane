@@ -102,7 +102,7 @@ class AttemptSerializer(serializers.ModelSerializer):
 
 
 class ResultSerializer(serializers.ModelSerializer):
-    student_name = serializers.CharField(source="student.user.full_name", read_only=True)
+    student_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Result
@@ -112,3 +112,12 @@ class ResultSerializer(serializers.ModelSerializer):
             "incorrect_count", "unanswered_count", "graded_at", "created_at",
         ]
         read_only_fields = fields
+
+    def get_student_name(self, obj):
+        if obj.student and obj.student.user_id:
+            return obj.student.user.full_name
+        # Anonymous public attempt: fall back to the attempt's captured name.
+        if obj.attempt_id:
+            return obj.attempt.student_name or ""
+        return ""
+

@@ -35,7 +35,12 @@ class AttemptFilter(django_filters.FilterSet):
 class ResultFilter(django_filters.FilterSet):
     exam = django_filters.UUIDFilter(field_name="exam__id")
     student = django_filters.UUIDFilter(field_name="student__user__id")
+    student_profile = django_filters.UUIDFilter(field_name="student__id")
     passed = django_filters.BooleanFilter(field_name="passed")
+    min_percentage = django_filters.NumberFilter(field_name="percentage", lookup_expr="gte")
+    max_percentage = django_filters.NumberFilter(field_name="percentage", lookup_expr="lte")
+    graded_after = django_filters.IsoDateTimeFilter(field_name="graded_at", lookup_expr="gte")
+    graded_before = django_filters.IsoDateTimeFilter(field_name="graded_at", lookup_expr="lte")
 
     class Meta:
         model = Result

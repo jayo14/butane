@@ -13,6 +13,7 @@ from .public_views import (
     SaveAttemptView,
     SubmitAttemptView,
 )
+from .reports import ExamStatisticsView, QuestionStatisticsView, StudentHistoryView
 
 app_name = "exams"
 
@@ -35,8 +36,16 @@ public_urlpatterns = [
     path("attempts/<uuid:attempt_id>/submit/", SubmitAttemptView.as_view(), name="public-submit"),
 ]
 
+# Reporting (teacher-only analytics) under /api/reports/.
+report_urlpatterns = [
+    path("exams/<uuid:exam_id>/", ExamStatisticsView.as_view(), name="exam-statistics"),
+    path("exams/<uuid:exam_id>/questions/", QuestionStatisticsView.as_view(), name="question-statistics"),
+    path("students/<uuid:student_id>/", StudentHistoryView.as_view(), name="student-history"),
+]
+
 urlpatterns = [
     path("public/", include((public_urlpatterns, "public"))),
+    path("reports/", include((report_urlpatterns, "reports"))),
     path("", include(router.urls)),
     path("exams/<uuid:exam_id>/", include(question_router.urls)),
 ]
