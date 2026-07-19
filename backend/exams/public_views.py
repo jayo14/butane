@@ -28,7 +28,7 @@ from .serializers import ResultSerializer
 
 
 def _get_public_exam(token: str) -> Exam:
-    exam = Exam.objects.filter(public_token=token, is_deleted=False).first()
+    exam = Exam.verify_public_token(token)
     if exam is None:
         raise NotFound("Exam not found.")
     return exam
@@ -49,19 +49,68 @@ def _resolve_student(name: str, admission_number: str, exam: Exam) -> Student | 
     """Create a student account if one with this admission number does not exist."""
     if not admission_number:
         return None
-    user, _ = User.objects.get_or_create(
-        email__iexact=f"{admission_number}@exam.local",
-        defaults={
-            "email": f"{admission_number}@exam.local",
-            "first_name": name,
-            "role": "student",
-        },
-    )
+    email = f"{admission_number}@exam.local"
+    try:
+        user = User.objects.get(email__iexact=email)
+    except User.DoesNotExist:
+        from django.utils.crypto import get_random_string
+
+        password = get_random_string(24)
+        user = User.objects.create_user(
+            email=email,
+            password=password,
+            first_name=name,
+            role="student",
+        )
     student, _ = Student.objects.get_or_create(user=user, defaults={"grade": exam.class_group})
     return student
 
 
+def _persist_answers(attempt: Attempt, answers: list[dict]) -> None:
+    valid_questions = {str(q.id): q for q in attempt.exam.questions.select_related("exam").prefetch_related("choices").all()}
+    for ans in answers:
+        if not isinstance(ans, dict):
+            continue
+        question = valid_questions.get(str(ans.get("question")))
+        if not question:
+            continue
+        selected_id = ans.get("selected_choice")
+        choice = None
+        if selected_id:
+            choice = question.choices.filter(id=selected_id).first()
+        AttemptAnswer.objects.update_or_create(
+            attempt=attempt,
+            question=question,
+            defaults={"selected_choice": choice},
+        )
+
+
 def _result_response(attempt: Attempt, result: Result) -> Response:
+    """Build the submit response, honouring the exam's result-visibility settings.
+
+    - ``show_result=False`` → hidden results: only confirmation, no scores.
+    - ``show_result=True``  → instant results: full score breakdown.
+    - ``allow_review=True`` → include the per-question review (still no correct answer text).
+    """
+    if not attempt.exam.show_result:
+        return Response(
+            {"detail": "Exam submitted successfully.", "attempt_id": str(attempt.id), "show_result": False},
+            status=status.HTTP_201_CREATED,
+        )
+
+    data = ResultSerializer(result).data
+    data["show_result"] = True
+    data["allow_review"] = attempt.exam.allow_review
+    if attempt.exam.allow_review:
+        data["answers"] = [
+            {
+                "question": str(a.question_id),
+                "selected_choice": str(a.selected_choice_id) if a.selected_choice_id else None,
+                "is_correct": a.is_correct,
+            }
+            for a in attempt.answers.all()
+        ]
+    return Response(data, status=status.HTTP_201_CREATED)
     """Build the submit response, honouring the exam's result-visibility settings.
 
     - ``show_result=False`` → hidden results: only confirmation, no scores.
@@ -106,6 +155,7 @@ class StartAttemptView(APIView):
     """POST /api/public/exams/{token}/start/ — create student + attempt (resume if exists)."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     @transaction.atomic
     def post(self, request, token: str):
@@ -151,7 +201,7 @@ class ResumeAttemptView(APIView):
 
     def get(self, request, attempt_id: str):
         attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt.access_token or attempt.access_token != request.query_params.get("token"):
+        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.query_params.get("token"):
             raise PermissionDenied("Invalid attempt token.")
         return Response(PublicAttemptSerializer(attempt).data)
 
@@ -160,11 +210,12 @@ class SaveAttemptView(APIView):
     """POST /api/public/attempts/{attempt_id}/save/ — autosave answers."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     @transaction.atomic
     def post(self, request, attempt_id: str):
         attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt.access_token or attempt.access_token != request.data.get("token"):
+        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.data.get("token"):
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
@@ -173,20 +224,7 @@ class SaveAttemptView(APIView):
         serializer.is_valid(raise_exception=True)
         payload = serializer.validated_data
 
-        valid_questions = {str(q.id): q for q in attempt.exam.questions.all()}
-        for ans in payload["answers"]:
-            question = valid_questions.get(str(ans["question"]))
-            if not question:
-                continue
-            selected_id = ans.get("selected_choice")
-            choice = None
-            if selected_id:
-                choice = question.choices.filter(id=selected_id).first()
-            AttemptAnswer.objects.update_or_create(
-                attempt=attempt,
-                question=question,
-                defaults={"selected_choice": choice},
-            )
+        _persist_answers(attempt, payload["answers"])
 
         if payload.get("duration_seconds") is not None:
             attempt.duration_seconds = payload["duration_seconds"]
@@ -201,28 +239,19 @@ class SubmitAttemptView(APIView):
     """POST /api/public/attempts/{attempt_id}/submit/ — grade and finalize."""
 
     permission_classes = [AllowAny]
+    throttle_classes = [LoginRateThrottle]
 
     @transaction.atomic
     def post(self, request, attempt_id: str):
         attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt.access_token or attempt.access_token != request.data.get("token"):
+        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.data.get("token"):
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
 
         # Persist any final answers sent with the submission.
         answers = (request.data.get("answers") or []) if isinstance(request.data, dict) else []
-        valid_questions = {str(q.id): q for q in attempt.exam.questions.all()}
-        for ans in answers:
-            question = valid_questions.get(str(ans.get("question"))) if isinstance(ans, dict) else None
-            if not question:
-                continue
-            selected_id = ans.get("selected_choice")
-            choice = question.choices.filter(id=selected_id).first() if selected_id else None
-            AttemptAnswer.objects.update_or_create(
-                attempt=attempt, question=question,
-                defaults={"selected_choice": choice},
-            )
+        _persist_answers(attempt, answers)
 
         result = submit_and_grade(attempt)
         return _result_response(attempt, result)
