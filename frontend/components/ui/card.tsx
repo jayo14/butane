@@ -12,6 +12,7 @@ interface CardProps extends BaseComponentProps {
   padding?: keyof typeof paddingStyles
   bordered?: boolean
   shadow?: "none" | "sm" | "md" | "lg"
+  style?: React.CSSProperties
 }
 
 const shadowStyles = {
@@ -27,6 +28,7 @@ export function Card({
   padding = "md",
   bordered = true,
   shadow = "sm",
+  style,
 }: CardProps) {
   return (
     <div
@@ -37,6 +39,7 @@ export function Card({
         paddingStyles[padding],
         className,
       )}
+      style={style}
     >
       {children}
     </div>

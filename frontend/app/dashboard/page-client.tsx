@@ -89,16 +89,21 @@ export function DashboardPageClient({ data, isLoading }: { data: DashboardData |
 
       {/* Stats Row */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {data.stats.map((stat) => (
-          <Card key={stat.label} padding="lg" className="group transition-all duration-200 hover:shadow-dropdown">
+        {data.stats.map((stat, i) => (
+          <Card
+            key={stat.label}
+            padding="lg"
+            className="group transition-all duration-200 hover:shadow-dropdown hover:-translate-y-0.5"
+            style={{ animationDelay: `${i * 60}ms` }}
+          >
             <div className="flex items-center justify-between">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-200 group-hover:scale-110 group-hover:bg-primary/15">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary transition-all duration-300 group-hover:scale-110 group-hover:bg-primary/15 group-hover:rotate-[4deg]">
                 {statIconMap[stat.icon]}
               </div>
               {stat.change && (
                 <Badge variant={stat.trend === "up" ? "success" : "danger"} size="sm">
                   <span className="flex items-center gap-0.5">
-                    {stat.trend === "up" ? <TrendingUp size={10} /> : null}
+                    {stat.trend === "up" ? <TrendingUp size={10} /> : <TrendingUp size={10} className="rotate-180" />}
                     {stat.change}
                   </span>
                 </Badge>
@@ -112,7 +117,7 @@ export function DashboardPageClient({ data, isLoading }: { data: DashboardData |
         ))}
       </div>
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-3">
+      <div className="mt-8 grid gap-6 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
         {/* Upcoming Exams Column */}
         <div className="space-y-6 lg:col-span-2">
           <Card padding="lg">
@@ -182,8 +187,8 @@ export function DashboardPageClient({ data, isLoading }: { data: DashboardData |
           <Card padding="lg">
             <h2 className="mb-4 text-lg font-semibold text-content-primary">Quick Actions</h2>
             <div className="grid grid-cols-2 gap-3">
-              {data.quickActions.map((action) => {
-                const iconMap: Record<string, React.ReactNode> = {
+              {data.quickActions.map((action, i) => {
+                const actionIconMap: Record<string, React.ReactNode> = {
                   "plus": <Plus size={20} />,
                   "user-plus": <UserPlus size={20} />,
                   "file-text": <FileText size={20} />,
@@ -194,9 +199,10 @@ export function DashboardPageClient({ data, isLoading }: { data: DashboardData |
                     key={action.href}
                     href={action.href}
                     className="group flex flex-col items-center gap-2 rounded-xl border border-border-primary p-4 text-center transition-all duration-200 hover:border-primary/30 hover:bg-primary/[0.02] hover:shadow-card"
+                    style={{ animationDelay: `${i * 80}ms` }}
                   >
                     <div className="flex size-10 items-center justify-center rounded-lg bg-primary/5 text-primary transition-all duration-200 group-hover:scale-110 group-hover:bg-primary/10">
-                      {iconMap[action.icon]}
+                      {actionIconMap[action.icon]}
                     </div>
                     <div>
                       <p className="text-sm font-medium text-content-primary">{action.label}</p>
