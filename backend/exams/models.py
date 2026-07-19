@@ -138,10 +138,10 @@ class Exam(SoftDeleteModel):
             show_result=self.show_result,
             allow_review=self.allow_review,
         )
-        for question in self.questions.all():
+        for index, question in enumerate(self.questions.all().order_by("order"), start=1):
             new_q = Question.objects.create(
                 exam=new_exam,
-                order=question.order,
+                order=index,
                 text=question.text,
                 type=question.type,
                 marks=question.marks,

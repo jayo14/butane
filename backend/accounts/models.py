@@ -95,7 +95,7 @@ class Teacher(SoftDeleteModel):
         on_delete=models.CASCADE,
         related_name="teacher_profile",
     )
-    employee_id = models.CharField(max_length=64, unique=True, blank=True)
+    employee_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     department = models.CharField(max_length=120, blank=True)
     title = models.CharField(max_length=80, blank=True, help_text="e.g. Mr., Ms., Dr.")
     phone = models.CharField(max_length=32, blank=True)
@@ -108,6 +108,14 @@ class Teacher(SoftDeleteModel):
 
     def __str__(self) -> str:
         return self.user.full_name or self.employee_id or str(self.id)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
+        if not self.employee_id:
+            short = str(self.id).replace("-", "")[:12].upper()
+            self.employee_id = f"TCH-{short}"
+        super().save(*args, **kwargs)
 
 
 class Student(SoftDeleteModel):
@@ -129,7 +137,7 @@ class Student(SoftDeleteModel):
         on_delete=models.CASCADE,
         related_name="student_profile",
     )
-    student_id = models.CharField(max_length=64, unique=True, blank=True)
+    student_id = models.CharField(max_length=64, unique=True, null=True, blank=True)
     phone = models.CharField(max_length=32, blank=True)
     grade = models.CharField(max_length=32, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
@@ -142,3 +150,11 @@ class Student(SoftDeleteModel):
 
     def __str__(self) -> str:
         return self.user.full_name or self.student_id or str(self.id)
+
+    def save(self, *args, **kwargs):
+        if not self.pk:
+            super().save(*args, **kwargs)
+        if not self.student_id:
+            short = str(self.id).replace("-", "")[:12].upper()
+            self.student_id = f"STU-{short}"
+        super().save(*args, **kwargs)
