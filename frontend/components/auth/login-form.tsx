@@ -1,12 +1,12 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Eye, EyeOff, LogIn, AlertCircle, Loader2 } from "lucide-react"
+import { Eye, EyeOff, LogIn, AlertCircle, Loader2, Command } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const loginSchema = z.object({
@@ -21,11 +21,14 @@ export function LoginForm() {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [shakeKey, setShakeKey] = useState(0)
+  const errorRef = useRef<HTMLDivElement>(null)
 
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting, isValid },
+    setFocus,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: "onBlur",
@@ -36,6 +39,13 @@ export function LoginForm() {
     },
   })
 
+  useEffect(() => {
+    if (submitError) {
+      errorRef.current?.focus()
+      setShakeKey((k) => k + 1)
+    }
+  }, [submitError])
+
   async function onSubmit(data: LoginFormData) {
     setSubmitError(null)
     await new Promise((r) => setTimeout(r, 1500))
@@ -43,11 +53,12 @@ export function LoginForm() {
       router.push("/dashboard")
     } else {
       setSubmitError("Invalid email or password. Please try again.")
+      setFocus("email")
     }
   }
 
   return (
-    <div className="py-8">
+    <div className="py-6 md:py-8">
       <div className="mb-8 text-center lg:text-left">
         <h1 className="text-2xl font-bold text-content-primary">Welcome back</h1>
         <p className="mt-1.5 text-content-secondary">
@@ -58,7 +69,10 @@ export function LoginForm() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
         {submitError && (
           <div
-            className="animate-in fade-in slide-in-from-top-2 rounded-xl border border-danger/20 bg-danger-light p-3 text-sm text-danger"
+            key={shakeKey}
+            ref={errorRef}
+            tabIndex={-1}
+            className="animate-in fade-in slide-in-from-top-2 rounded-xl border border-danger/20 bg-danger-light p-3 text-sm text-danger shake-error"
             role="alert"
           >
             <div className="flex items-center gap-2">
@@ -80,7 +94,7 @@ export function LoginForm() {
               autoComplete="email"
               placeholder="you@example.com"
               className={cn(
-                "block w-full rounded-xl border bg-white px-4 py-2.5 pr-10 text-sm text-content-primary placeholder:text-content-secondary",
+                "block w-full rounded-xl border bg-white px-4 py-3 pr-10 text-sm text-content-primary placeholder:text-content-secondary md:py-2.5",
                 "transition-all duration-200",
                 "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
                 errors.email ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
@@ -96,7 +110,7 @@ export function LoginForm() {
             )}
           </div>
           {errors.email && (
-            <p id="email-error" className="mt-1.5 text-xs text-danger" role="alert">
+            <p id="email-error" className="mt-1.5 text-xs text-danger animate-in fade-in" role="alert">
               {errors.email.message}
             </p>
           )}
@@ -114,7 +128,7 @@ export function LoginForm() {
               autoComplete="current-password"
               placeholder="Enter your password"
               className={cn(
-                "block w-full rounded-xl border bg-white px-4 py-2.5 pr-10 text-sm text-content-primary placeholder:text-content-secondary",
+                "block w-full rounded-xl border bg-white px-4 py-3 pr-10 text-sm text-content-primary placeholder:text-content-secondary md:py-2.5",
                 "transition-all duration-200",
                 "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
                 errors.password ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
@@ -133,7 +147,7 @@ export function LoginForm() {
             </button>
           </div>
           {errors.password && (
-            <p id="password-error" className="mt-1.5 text-xs text-danger" role="alert">
+            <p id="password-error" className="mt-1.5 text-xs text-danger animate-in fade-in" role="alert">
               {errors.password.message}
             </p>
           )}
@@ -162,7 +176,7 @@ export function LoginForm() {
           className={cn(
             "relative flex h-12 w-full items-center justify-center gap-2.5 rounded-xl text-sm font-semibold text-white",
             "transition-all duration-200",
-            "bg-primary hover:bg-primary-hover",
+            "bg-primary hover:bg-primary-hover active:scale-[0.98]",
             "disabled:cursor-not-allowed disabled:opacity-60",
             "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
           )}
@@ -179,6 +193,10 @@ export function LoginForm() {
             </>
           )}
         </button>
+
+        <div className="text-center text-xs text-content-muted">
+          Press <kbd className="mx-0.5 rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">Enter</kbd> to submit
+        </div>
       </form>
 
       <p className="mt-6 text-center text-sm text-content-secondary">
