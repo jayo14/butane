@@ -103,6 +103,18 @@ body {
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
   }
+
+  .shake-error {
+    animation: none !important;
+  }
+
+  .group:hover .group-hover\:scale-110 {
+    transform: none !important;
+  }
+
+  .group:hover .group-hover\:rotate-\[4deg\] {
+    transform: none !important;
+  }
 }
 
 .scrollbar-thin {
