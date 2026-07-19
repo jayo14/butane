@@ -79,6 +79,30 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Passing marks cannot exceed total marks.")
         return attrs
 
+    def create(self, validated_data):
+        questions = validated_data.pop("questions")
+        exam = Exam.objects.create(**validated_data)
+        for question in questions:
+            choices = question.pop("choices")
+            q = Question.objects.create(exam=exam, **question)
+            for choice in choices:
+                Choice.objects.create(question=q, **choice)
+        return exam
+
+    def update(self, instance, validated_data):
+        questions = validated_data.pop("questions", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if questions is not None:
+            instance.questions.all().delete()
+            for question in questions:
+                choices = question.pop("choices")
+                q = Question.objects.create(exam=instance, **question)
+                for choice in choices:
+                    Choice.objects.create(question=q, **choice)
+        return instance
+
 
 class AttemptAnswerSerializer(serializers.ModelSerializer):
     class Meta:

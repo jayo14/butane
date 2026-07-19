@@ -1,5 +1,6 @@
 "use client"
 
+import { memo } from "react"
 import { X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BadgeVariant, Size } from "@/types"
@@ -29,7 +30,7 @@ interface ChipProps {
   icon?: React.ReactNode
 }
 
-export function Chip({
+export const Chip = memo(function Chip({
   variant = "primary",
   size = "md",
   children,
@@ -60,4 +61,4 @@ export function Chip({
       )}
     </span>
   )
-}
+})

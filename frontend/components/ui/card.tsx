@@ -1,3 +1,5 @@
+import { memo } from "react"
+import type { MemoExoticComponent } from "react"
 import { cn } from "@/lib/utils"
 import type { BaseComponentProps } from "@/types"
 
@@ -22,7 +24,12 @@ const shadowStyles = {
   lg: "shadow-card md:shadow-modal",
 }
 
-export function Card({
+interface CardComponent extends MemoExoticComponent<typeof CardInner> {
+  Header: typeof CardHeader
+  Content: typeof CardContent
+}
+
+function CardInner({
   children,
   className,
   padding = "md",
@@ -45,6 +52,8 @@ export function Card({
     </div>
   )
 }
+
+export const Card = memo(CardInner) as unknown as CardComponent
 
 interface CardHeaderProps extends BaseComponentProps {
   title?: string

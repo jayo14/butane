@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { cn } from "@/lib/utils"
 import type { ProgressVariant, Size } from "@/types"
 
@@ -26,7 +27,7 @@ interface ProgressProps {
   className?: string
 }
 
-export function Progress({
+export const Progress = memo(function Progress({
   value = 0,
   max = 100,
   variant = "primary",
@@ -72,4 +73,4 @@ export function Progress({
       </div>
     </div>
   )
-}
+})

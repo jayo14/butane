@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { cn } from "@/lib/utils"
 
 interface SkeletonProps {
@@ -15,7 +16,7 @@ const variantStyles = {
   card: "h-32 w-full rounded-xl",
 }
 
-export function Skeleton({
+export const Skeleton = memo(function Skeleton({
   className,
   variant = "text",
   width,
@@ -43,7 +44,7 @@ export function Skeleton({
       ))}
     </>
   )
-}
+})
 
 interface SkeletonGroupProps {
   children: React.ReactNode
@@ -51,9 +52,9 @@ interface SkeletonGroupProps {
   skeleton?: React.ReactNode
 }
 
-export function SkeletonGroup({ children, isLoading, skeleton }: SkeletonGroupProps) {
+export const SkeletonGroup = memo(function SkeletonGroup({ children, isLoading, skeleton }: SkeletonGroupProps) {
   if (isLoading) {
     return <>{skeleton || <Skeleton variant="card" />}</>
   }
   return <>{children}</>
-}
+})
