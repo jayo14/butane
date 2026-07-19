@@ -10,24 +10,16 @@ import {
   AlertTriangle,
   Eye,
   EyeOff,
-  Loader2,
   Check,
   Upload,
   Save,
   Trash2,
   LogOut,
   RefreshCw,
-  Globe,
-  Clock,
-  Calendar,
-  Mail,
-  Smartphone,
-  ChevronRight,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 
 type SettingsTab = "profile" | "school" | "password" | "preferences" | "notifications" | "danger"
 
@@ -296,7 +288,6 @@ export function SettingsClient() {
             </Button>
           </div>
 
-          {/* Profile Section */}
           {activeTab === "profile" && (
             <SectionCard title="Teacher Profile" description="Update your personal information and bio">
               <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start">
@@ -466,7 +457,7 @@ export function SettingsClient() {
                       onClick={() => setShowPassword(!showPassword)}
                       className="absolute right-3 top-1/2 -translate-y-1/2 text-content-muted hover:text-content-primary"
                       tabIndex={-1}
-                      aria-label={showPassword ? "Hide passwords" : "Show passwords"}
+                      aria-label={showPassword ? "Hide passwords" : "Show password"}
                     >
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>

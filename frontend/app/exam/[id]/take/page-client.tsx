@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -47,6 +47,12 @@ export function ExamTakeClient({ exam, questions }: ExamTakeClientProps) {
   const [timeLeft, setTimeLeft] = useState(exam.duration * 60)
   const [showSidebar, setShowSidebar] = useState(false)
   const mainRef = useRef<HTMLDivElement>(null)
+  const answersRef = useRef(answers)
+  const flaggedRef = useRef(flagged)
+  const timeLeftRef = useRef(timeLeft)
+  answersRef.current = answers
+  flaggedRef.current = flagged
+  timeLeftRef.current = timeLeft
 
   // Restore state from localStorage
   useEffect(() => {
@@ -72,46 +78,73 @@ export function ExamTakeClient({ exam, questions }: ExamTakeClientProps) {
     localStorage.setItem(storageKey, JSON.stringify(data))
   }, [answers, flagged, currentIndex, timeLeft, storageKey])
 
-  // Timer
+  // Timer using refs to avoid stale closure
   useEffect(() => {
-    if (timeLeft <= 0) { handleTimeout(); return }
-    const interval = setInterval(() => setTimeLeft((t) => t - 1), 1000)
+    if (timeLeftRef.current <= 0) {
+      handleTimeout()
+      return
+    }
+    const interval = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearInterval(interval)
+          handleTimeout()
+          return 0
+        }
+        return t - 1
+      })
+    }, 1000)
     return () => clearInterval(interval)
-  }, [timeLeft])
+  }, [])
 
-  // Keyboard shortcuts
+  // Keyboard shortcuts using refs
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
-      if (timeLeft <= 0) return
+      if (timeLeftRef.current <= 0) return
       const key = e.key
 
       if (["1", "2", "3", "4"].includes(key)) {
         const q = questions[currentIndex]
         if (q) {
           const opt = q.options[parseInt(key) - 1]
-          if (opt) setAnswer(q.id, opt.id)
+          if (opt) {
+            const qId = q.id
+            setAnswers((prev) => ({ ...prev, [qId]: opt.id }))
+          }
         }
       }
 
       if (key === "Enter" || key === "ArrowRight") {
         e.preventDefault()
-        goNext()
+        if (currentIndex < questions.length - 1) {
+          setCurrentIndex((i) => i + 1)
+        }
       }
 
       if (key === "ArrowLeft") {
         e.preventDefault()
-        goPrev()
+        if (currentIndex > 0) {
+          setCurrentIndex((i) => i - 1)
+        }
       }
 
       if (key.toLowerCase() === "f") {
         e.preventDefault()
-        toggleFlag(questions[currentIndex]?.id)
+        const qId = questions[currentIndex]?.id
+        if (qId) {
+          setFlagged((prev) => {
+            const next = new Set(prev)
+            if (next.has(qId)) next.delete(qId)
+            else next.add(qId)
+            return next
+          })
+        }
       }
     }
 
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [currentIndex, questions, answers])
+  }, [currentIndex, questions])
 
   useEffect(() => {
     mainRef.current?.focus()
@@ -121,7 +154,8 @@ export function ExamTakeClient({ exam, questions }: ExamTakeClientProps) {
     setAnswers((prev) => ({ ...prev, [questionId]: optionId }))
   }
 
-  function toggleFlag(questionId: string) {
+  function toggleFlag(questionId: string | undefined) {
+    if (!questionId) return
     setFlagged((prev) => {
       const next = new Set(prev)
       if (next.has(questionId)) next.delete(questionId)
@@ -148,13 +182,16 @@ export function ExamTakeClient({ exam, questions }: ExamTakeClientProps) {
   }
 
   function saveState() {
-    localStorage.setItem(storageKey, JSON.stringify({ answers, flagged: [...flagged], submitted: false }))
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({ answers: answersRef.current, flagged: [...flaggedRef.current], submitted: false }),
+    )
   }
 
-  function handleTimeout() {
+  const handleTimeout = useCallback(() => {
     saveState()
     router.push(`/exam/${exam.id}/review`)
-  }
+  }, [exam.id, router, storageKey])
 
   function goToReview() {
     saveState()

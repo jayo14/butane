@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import { Search, Command, ArrowRight, LayoutDashboard, Users, BookOpen, ClipboardList, BarChart3, Settings, FileText, GraduationCap } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Search, Command, ArrowRight, LayoutDashboard, Users, BookOpen, ClipboardList, BarChart3, Settings, GraduationCap } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { NAV_ITEMS } from "@/lib/constants"
 

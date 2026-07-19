@@ -11,7 +11,7 @@ from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
 
 from .filters import AttemptFilter, ExamFilter, ResultFilter
-from .models import Attempt, Exam, Question, Result
+from .models import Attempt, AttemptAnswer, Exam, Question, Result
 from .serializers import (
     AttemptSerializer,
     ExamDetailSerializer,
@@ -21,15 +21,16 @@ from .serializers import (
 
 
 class ExamViewSet(viewsets.ModelViewSet):
-    """CRUD for exams, including nested question/choice authoring.
+    """CRUD + lifecycle actions (publish, share, duplicate, archive) for exams.
 
-    Teachers manage exams; students may only read published ones.
+    Only the owning teacher (or an admin) may create/update/delete or perform
+    lifecycle actions. Listing and retrieval are restricted to teachers.
     """
 
     queryset = Exam.objects.filter(is_deleted=False).prefetch_related("questions__choices")
     filterset_class = ExamFilter
-    search_fields = ["title", "course", "course_code", "description"]
-    ordering_fields = ["created_at", "title", "total_marks", "duration_minutes"]
+    search_fields = ["title", "course", "course_code", "subject", "description"]
+    ordering_fields = ["created_at", "title", "total_marks", "duration_minutes", "published_at"]
     ordering = ["-created_at"]
 
     def get_serializer_class(self):
@@ -40,9 +41,77 @@ class ExamViewSet(viewsets.ModelViewSet):
             return [IsTeacher()]
         return [IsTeacher()]
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        user = self.request.user
+        # Teachers see only their own exams; admins see everything.
+        if getattr(user, "role", None) != "admin":
+            teacher = Teacher.objects.filter(user=user).first()
+            if teacher:
+                qs = qs.filter(created_by=teacher)
+        return qs
+
     def perform_create(self, serializer):
         teacher = get_object_or_404(Teacher, user=self.request.user)
         serializer.save(created_by=teacher)
+
+    def _own_exam(self, exam) -> None:
+        if exam.created_by.user_id != self.request.user.id and self.request.user.role != "admin":
+            self.permission_denied(self.request, message="You do not own this exam.")
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="publish")
+    def publish(self, request, pk=None):
+        """Publish the exam: set status to ongoing and enable its public link."""
+        exam = self.get_object()
+        self._own_exam(exam)
+        if not exam.questions.exists():
+            return Response(
+                {"detail": "Cannot publish an exam without questions."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        exam.publish()
+        return Response(ExamDetailSerializer(exam).data)
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="generate-public-token")
+    def generate_public_token(self, request, pk=None):
+        """Generate (or regenerate) the signed public token and return the link."""
+        exam = self.get_object()
+        self._own_exam(exam)
+        token = exam.generate_public_token()
+        exam.save(update_fields=["public_token", "is_public", "updated_at"])
+        return Response({"public_token": token, "public_url": exam.public_url, "is_public": exam.is_public})
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="revoke-public-token")
+    def revoke_public_token(self, request, pk=None):
+        """Disable public access by clearing the token."""
+        exam = self.get_object()
+        self._own_exam(exam)
+        exam.public_token = None
+        exam.is_public = False
+        exam.save(update_fields=["public_token", "is_public", "updated_at"])
+        return Response({"is_public": False, "public_token": None})
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="duplicate")
+    def duplicate(self, request, pk=None):
+        """Create a deep copy of the exam as a new draft owned by the teacher."""
+        exam = self.get_object()
+        self._own_exam(exam)
+        teacher = get_object_or_404(Teacher, user=request.user)
+        new_exam = exam.duplicate(created_by=teacher)
+        return Response(ExamDetailSerializer(new_exam).data, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="archive")
+    def archive(self, request, pk=None):
+        """Archive the exam and disable its public link."""
+        exam = self.get_object()
+        self._own_exam(exam)
+        exam.archive()
+        return Response(ExamDetailSerializer(exam).data)
 
 
 class AttemptViewSet(viewsets.ModelViewSet):

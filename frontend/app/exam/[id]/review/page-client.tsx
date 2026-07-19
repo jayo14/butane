@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
   CheckCircle2,
-  Circle,
   Flag,
   AlertTriangle,
   ChevronLeft,
@@ -48,6 +47,15 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
   const [showConfirm, setShowConfirm] = useState(false)
 
   useEffect(() => {
+    if (!showConfirm) return
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") setShowConfirm(false)
+    }
+    window.addEventListener("keydown", handleEscape)
+    return () => window.removeEventListener("keydown", handleEscape)
+  }, [showConfirm])
+
+  useEffect(() => {
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
@@ -84,7 +92,7 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
 
   if (showConfirm) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Confirm submission">
         <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-200 rounded-2xl border border-border-primary bg-white p-6 shadow-modal">
           <div className="text-center">
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-warning-light text-warning">

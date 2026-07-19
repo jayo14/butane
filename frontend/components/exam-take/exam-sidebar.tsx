@@ -1,6 +1,6 @@
 "use client"
 
-import { X, Clock, Flag, CheckCircle, Circle } from "lucide-react"
+import { X, Clock, Flag, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 

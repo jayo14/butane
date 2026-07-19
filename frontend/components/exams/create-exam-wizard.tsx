@@ -286,8 +286,7 @@ export function CreateExamWizard() {
         <div className="flex items-center gap-3">
           <span className="hidden text-xs text-content-muted md:block">
             <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">Ctrl</kbd>
-            {" + "}
-            <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">→</kbd>
+            + <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">→</kbd>
             {" "}next
           </span>
           {currentStep < steps.length - 1 ? (

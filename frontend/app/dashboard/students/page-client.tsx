@@ -8,22 +8,16 @@ import {
   X,
   Grid3X3,
   List,
-  ArrowUpDown,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
   Mail,
-  Phone,
   BookOpen,
-  Trophy,
-  TrendingUp,
-  Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { formatDate } from "@/lib/utils"
 import type { StudentWithResults } from "@/data/mock/student-results"
 
 const statusVariant: Record<string, "success" | "warning" | "danger"> = {

@@ -27,8 +27,14 @@ class Exam(SoftDeleteModel):
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
+    instructions = models.TextField(blank=True, help_text="Shown to students before the exam starts.")
     course = models.CharField(max_length=160, blank=True, help_text="Course name, e.g. Algebra I")
     course_code = models.CharField(max_length=32, blank=True, help_text="e.g. MATH-101")
+
+    # Frontend-aligned categorical fields used by the exam wizard.
+    subject = models.CharField(max_length=80, blank=True)
+    class_group = models.CharField(max_length=40, blank=True, help_text="e.g. Grade 10")
+    term = models.CharField(max_length=40, blank=True, help_text="e.g. First Term")
 
     created_by = models.ForeignKey(
         Teacher,
@@ -41,6 +47,9 @@ class Exam(SoftDeleteModel):
     duration_minutes = models.PositiveIntegerField(default=60, help_text="Time limit in minutes")
     total_marks = models.PositiveIntegerField(default=0, help_text="Sum of question marks")
     passing_marks = models.PositiveIntegerField(default=0, help_text="Minimum marks to pass")
+    passing_percentage = models.PositiveIntegerField(
+        default=50, help_text="Pass mark as a percentage of total marks (frontend passMark)."
+    )
 
     available_from = models.DateTimeField(null=True, blank=True)
     available_to = models.DateTimeField(null=True, blank=True)
@@ -49,13 +58,103 @@ class Exam(SoftDeleteModel):
     show_result = models.BooleanField(default=True, help_text="Reveal score to student after submission")
     allow_review = models.BooleanField(default=True, help_text="Allow student to review answers")
 
+    # Public sharing: a signed token lets students open the exam without auth.
+    public_token = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
+    is_public = models.BooleanField(default=False, help_text="Whether the exam is reachable via its public link.")
+    published_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was published.")
+    archived_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was archived.")
+
     class Meta:
         db_table = "exams_exam"
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["status", "created_at"])]
+        indexes = [
+            models.Index(fields=["status", "created_at"]),
+            models.Index(fields=["public_token"]),
+        ]
 
     def __str__(self) -> str:
         return self.title
+
+    @property
+    def public_url(self) -> str | None:
+        if not self.public_token:
+            return None
+        from django.conf import settings
+
+        site = settings.SITE_URL.rstrip("/") if getattr(settings, "SITE_URL", "") else ""
+        path = f"/exam/{self.id}?token={self.public_token}"
+        return f"{site}{path}" if site else path
+
+    def generate_public_token(self) -> str:
+        """Create (or regenerate) the signed public token and return it."""
+        from django.utils.crypto import get_random_string
+
+        self.public_token = get_random_string(48)
+        self.is_public = True
+        return self.public_token
+
+    def publish(self) -> None:
+        """Move a draft/scheduled exam to published (ongoing) state."""
+        from django.utils import timezone
+
+        self.status = "ongoing"
+        self.published_at = timezone.now()
+        if not self.public_token:
+            self.generate_public_token()
+        self.save(update_fields=["status", "published_at", "public_token", "is_public", "updated_at"])
+
+    def archive(self) -> None:
+        """Archive a published exam; archived exams are hidden from active lists."""
+        from django.utils import timezone
+
+        self.status = "completed"
+        self.archived_at = timezone.now()
+        self.is_public = False
+        self.save(update_fields=["status", "archived_at", "is_public", "updated_at"])
+
+    def duplicate(self, created_by: Teacher | None = None) -> "Exam":
+        """Return a deep copy of this exam (questions + choices), as a new draft."""
+        from django.utils import timezone
+
+        new_exam = Exam.objects.create(
+            title=f"{self.title} (Copy)",
+            description=self.description,
+            instructions=self.instructions,
+            course=self.course,
+            course_code=self.course_code,
+            subject=self.subject,
+            class_group=self.class_group,
+            term=self.term,
+            created_by=created_by or self.created_by,
+            status="draft",
+            duration_minutes=self.duration_minutes,
+            total_marks=self.total_marks,
+            passing_marks=self.passing_marks,
+            passing_percentage=self.passing_percentage,
+            available_from=self.available_from,
+            available_to=self.available_to,
+            shuffle_questions=self.shuffle_questions,
+            shuffle_answers=self.shuffle_answers,
+            show_result=self.show_result,
+            allow_review=self.allow_review,
+        )
+        for question in self.questions.all():
+            new_q = Question.objects.create(
+                exam=new_exam,
+                order=question.order,
+                text=question.text,
+                type=question.type,
+                marks=question.marks,
+                explanation=question.explanation,
+            )
+            for choice in question.choices.all():
+                Choice.objects.create(
+                    question=new_q,
+                    label=choice.label,
+                    text=choice.text,
+                    is_correct=choice.is_correct,
+                )
+        return new_exam
 
 
 class Question(TimestampedModel):

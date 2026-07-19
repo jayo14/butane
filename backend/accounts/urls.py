@@ -7,7 +7,9 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     CurrentUserView,
-    CustomTokenObtainPairView,
+    LoginView,
+    LogoutView,
+    ProfileView,
     StudentListView,
     TeacherListView,
 )
@@ -15,9 +17,14 @@ from .views import (
 app_name = "accounts"
 
 urlpatterns = [
-    path("auth/login/", CustomTokenObtainPairView.as_view(), name="login"),
+    # Authentication (teacher/admin only)
+    path("auth/login/", LoginView.as_view(), name="login"),
+    path("auth/logout/", LogoutView.as_view(), name="logout"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # Authenticated user
     path("me/", CurrentUserView.as_view(), name="current_user"),
+    path("profile/", ProfileView.as_view(), name="profile"),
+    # Directories
     path("teachers/", TeacherListView.as_view(), name="teacher_list"),
     path("students/", StudentListView.as_view(), name="student_list"),
 ]

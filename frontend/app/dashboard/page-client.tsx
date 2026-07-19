@@ -43,10 +43,8 @@ const activityIconMap: Record<string, React.ReactNode> = {
   grade_submitted: <TrendingUp size={16} className="text-primary" />,
 }
 
-export function DashboardPageClient({ data, isLoading }: { data: DashboardData | null; isLoading?: boolean }) {
+export function DashboardPageClient({ data }: { data: DashboardData | null }) {
   const [showAllActivity, setShowAllActivity] = useState(false)
-
-  if (isLoading) return null
 
   if (!data) {
     return (

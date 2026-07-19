@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
   Mail,
-  Phone,
   GraduationCap,
   Calendar,
   BookOpen,
@@ -13,8 +12,6 @@ import {
   TrendingUp,
   Target,
   BarChart3,
-  CheckCircle2,
-  XCircle,
   Clock,
   Search,
   ChevronLeft,

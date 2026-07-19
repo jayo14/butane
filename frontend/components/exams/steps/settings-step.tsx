@@ -1,7 +1,7 @@
 "use client"
 
 import { cn } from "@/lib/utils"
-import { AlertCircle, Shuffle, Percent, Calendar, Eye, Lock, Clock } from "lucide-react"
+import { Shuffle, Percent, Calendar, Eye, Lock, Clock } from "lucide-react"
 import type { ExamSettings } from "@/types/exam"
 
 interface SettingsStepProps {
