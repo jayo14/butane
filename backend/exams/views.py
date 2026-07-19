@@ -3,10 +3,11 @@ from __future__ import annotations
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, generics, status, viewsets
+from rest_framework import filters, generics, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
@@ -64,6 +65,11 @@ class ExamViewSet(viewsets.ModelViewSet):
             self.permission_denied(self.request, message="You do not own this exam.")
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=ExamDetailSerializer,
+        tags=["Exams"],
+    )
     @action(detail=True, methods=["post"], url_path="publish")
     def publish(self, request, pk=None):
         """Publish the exam: set status to ongoing and enable its public link."""
@@ -78,6 +84,18 @@ class ExamViewSet(viewsets.ModelViewSet):
         return Response(ExamDetailSerializer(exam).data)
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            "PublicTokenResponse",
+            fields={
+                "public_token": serializers.CharField(),
+                "public_url": serializers.URLField(),
+                "is_public": serializers.BooleanField(),
+            },
+        ),
+        tags=["Exams"],
+    )
     @action(detail=True, methods=["post"], url_path="generate-public-token")
     def generate_public_token(self, request, pk=None):
         """Generate (or regenerate) the signed public token and return the link."""
@@ -88,6 +106,17 @@ class ExamViewSet(viewsets.ModelViewSet):
         return Response({"public_token": token, "public_url": exam.public_url, "is_public": exam.is_public})
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=inline_serializer(
+            "RevokeTokenResponse",
+            fields={
+                "is_public": serializers.BooleanField(),
+                "public_token": serializers.CharField(allow_null=True),
+            },
+        ),
+        tags=["Exams"],
+    )
     @action(detail=True, methods=["post"], url_path="revoke-public-token")
     def revoke_public_token(self, request, pk=None):
         """Disable public access by clearing the token."""
@@ -99,6 +128,11 @@ class ExamViewSet(viewsets.ModelViewSet):
         return Response({"is_public": False, "public_token": None})
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=ExamDetailSerializer,
+        tags=["Exams"],
+    )
     @action(detail=True, methods=["post"], url_path="duplicate")
     def duplicate(self, request, pk=None):
         """Create a deep copy of the exam as a new draft owned by the teacher."""
@@ -109,6 +143,11 @@ class ExamViewSet(viewsets.ModelViewSet):
         return Response(ExamDetailSerializer(new_exam).data, status=status.HTTP_201_CREATED)
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=ExamDetailSerializer,
+        tags=["Exams"],
+    )
     @action(detail=True, methods=["post"], url_path="archive")
     def archive(self, request, pk=None):
         """Archive the exam and disable its public link."""
@@ -130,6 +169,54 @@ class AttemptViewSet(viewsets.ModelViewSet):
     permission_classes = [IsStudent]
 
     @transaction.atomic
+    @extend_schema(
+        request=inline_serializer(
+            "SubmitAnswersRequest",
+            fields={
+                "answers": serializers.ListField(
+                    required=False,
+                    child=inline_serializer(
+                        "SubmitAnswer",
+                        fields={
+                            "question": serializers.UUIDField(),
+                            "selected_choice": serializers.UUIDField(allow_null=True, required=False),
+                        },
+                    ),
+                )
+            },
+        ),
+        responses={
+            status.HTTP_201_CREATED: inline_serializer(
+                "SubmitResultResponse",
+                fields={
+                    "detail": serializers.CharField(required=False),
+                    "attempt_id": serializers.UUIDField(required=False),
+                    "show_result": serializers.BooleanField(),
+                    "allow_review": serializers.BooleanField(required=False),
+                    "score": serializers.FloatField(required=False),
+                    "total_marks": serializers.FloatField(required=False),
+                    "percentage": serializers.FloatField(required=False),
+                    "passed": serializers.BooleanField(required=False),
+                    "correct_count": serializers.IntegerField(required=False),
+                    "incorrect_count": serializers.IntegerField(required=False),
+                    "unanswered_count": serializers.IntegerField(required=False),
+                    "graded_at": serializers.DateTimeField(required=False),
+                    "answers": serializers.ListField(
+                        required=False,
+                        child=inline_serializer(
+                            "SubmitAnswerReview",
+                            fields={
+                                "question": serializers.UUIDField(),
+                                "selected_choice": serializers.UUIDField(allow_null=True),
+                                "is_correct": serializers.BooleanField(),
+                            },
+                        ),
+                    ),
+                },
+            )
+        },
+        tags=["Attempts"],
+    )
     @action(detail=True, methods=["post"], url_path="submit")
     def submit(self, request, pk=None):
         """Submit an attempt: persist answers, auto-grade, and store the Result."""
