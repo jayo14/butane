@@ -65,7 +65,7 @@ export function Alert({
         <button
           type="button"
           onClick={handleClose}
-          className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5"
+          className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/5 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           aria-label="Dismiss alert"
         >
           <X size={16} />

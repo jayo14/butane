@@ -60,6 +60,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             className={cn(
               "block w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-content-primary placeholder:text-content-secondary",
               "transition-colors duration-150",
+              "hover:border-content-muted",
               "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-surface-secondary",
               "read-only:cursor-default read-only:bg-surface-secondary",

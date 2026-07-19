@@ -52,7 +52,7 @@ export function Chip({
         <button
           type="button"
           onClick={onClose}
-          className="ml-0.5 inline-flex shrink-0 items-center justify-center rounded-full p-0.5 transition-colors hover:bg-black/10"
+          className="ml-0.5 inline-flex shrink-0 items-center justify-center rounded-full p-0.5 transition-colors hover:bg-black/10 focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
           aria-label="Remove"
         >
           <X size={size === "sm" ? 10 : size === "lg" ? 14 : 12} />

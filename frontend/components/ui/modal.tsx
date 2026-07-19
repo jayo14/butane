@@ -64,6 +64,7 @@ export function Modal({
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
+      aria-describedby={description ? "modal-description" : undefined}
     >
       <div
         ref={overlayRef}
@@ -88,14 +89,14 @@ export function Modal({
                 </h2>
               )}
               {description && (
-                <p className="mt-0.5 text-sm text-content-secondary">{description}</p>
+                <p id="modal-description" className="mt-0.5 text-sm text-content-secondary">{description}</p>
               )}
             </div>
             {showCloseButton && (
               <button
                 type="button"
                 onClick={onClose}
-                className="ml-4 flex size-8 items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+                className="ml-4 flex size-8 items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
                 aria-label="Close modal"
               >
                 <X size={18} />

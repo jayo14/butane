@@ -95,7 +95,7 @@ export function ToastProvider({ children }: ToastProviderProps) {
             <button
               type="button"
               onClick={() => removeToast(toast.id)}
-              className="shrink-0 rounded p-0.5 text-content-muted transition-colors hover:text-content-primary"
+              className="shrink-0 rounded p-0.5 text-content-muted transition-colors hover:text-content-primary focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2"
               aria-label="Dismiss notification"
             >
               <X size={14} />
