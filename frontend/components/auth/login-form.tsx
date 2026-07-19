@@ -82,7 +82,7 @@ export function LoginForm() {
               className={cn(
                 "block w-full rounded-xl border bg-white px-4 py-2.5 pr-10 text-sm text-content-primary placeholder:text-content-secondary",
                 "transition-all duration-200",
-                "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
                 errors.email ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
               )}
               aria-invalid={!!errors.email}
@@ -116,7 +116,7 @@ export function LoginForm() {
               className={cn(
                 "block w-full rounded-xl border bg-white px-4 py-2.5 pr-10 text-sm text-content-primary placeholder:text-content-secondary",
                 "transition-all duration-200",
-                "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
+                "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
                 errors.password ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
               )}
               aria-invalid={!!errors.password}
