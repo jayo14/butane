@@ -147,6 +147,27 @@ Base path: `/api/`
 - `GET  /api/results/` — aggregated results (read-only reporting)
 
 
+
+### Automatic grading
+
+On submission the attempt's answers are compared against the stored correct
+choices and a ``Result`` is created with score, percentage, correct/incorrect/
+unanswered counts, and pass/fail. Grading is idempotent. Result visibility
+follows the exam settings:
+
+- ``show_result=True`` → instant results returned to the student on submit.
+- ``show_result=False`` → hidden results; only a submission confirmation is returned.
+- ``allow_review=True`` → the per-question review (correct/incorrect, never the answer text) is included.
+
+### Reporting (teacher-only)
+
+- `GET /api/reports/exams/{exam_id}/` — exam statistics: average/highest/lowest score, pass rate, attempt counts, score distribution, per-question statistics, and top performers
+- `GET /api/reports/exams/{exam_id}/questions/` — per-question correct-rate analytics
+- `GET /api/reports/students/{student_id}/` — student attempt history + summary (average, highest, lowest, pass rate, rank)
+- `GET /api/results/` — paginated, filterable, sortable results (filter by `exam`, `student`, `passed`, `min_percentage`, `max_percentage`, `graded_after/before`; search by student/exam; sort by `percentage`, `score`, `graded_at`)
+- `POST /api/attempts/{id}/submit/` — grade an authenticated student attempt (instant/hidden per settings)
+
+
 ### Public student flow (unauthenticated, token-guarded)
 
 Reached via the exam's ``public_token``; attempt mutations also require the
