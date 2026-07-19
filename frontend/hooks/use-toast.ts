@@ -27,10 +27,11 @@ export function useToastState() {
 
     setToasts((prev) => [...prev, toast])
 
-    if (toast.duration > 0) {
+    const duration = toast.duration ?? DEFAULT_DURATION
+    if (duration > 0) {
       setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== toast.id))
-      }, toast.duration)
+      }, duration)
     }
 
     return toast.id

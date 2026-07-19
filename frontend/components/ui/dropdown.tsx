@@ -5,7 +5,7 @@ import {
   DropdownTrigger,
   DropdownMenu,
   DropdownItem,
-} from "@heroui/dropdown"
+} from "@heroui/react"
 import type { ButtonVariant, Size } from "@/types"
 import { Button } from "./button"
 import { ChevronDown } from "lucide-react"
@@ -60,23 +60,19 @@ export function Dropdown({
         onAction={(key) => onAction(key as string)}
         className="min-w-[180px] rounded-xl border border-border-primary bg-white p-1 shadow-dropdown"
       >
-        {items.map((item, i) => {
-          const isLast = i === items.length - 1
-          const nextIsDivider = !isLast && items[i + 1]?.divider
-          return (
-            <DropdownItem
-              key={item.key}
-              className={cn(
-                "rounded-lg px-3 py-2 text-sm text-content-primary data-[hover=true]:bg-surface-secondary",
-                item.danger && "text-danger data-[hover=true]:bg-danger-light",
-                item.divider && "mb-1 border-b border-border-primary",
-              )}
-              startContent={item.icon}
-            >
-              {item.label}
-            </DropdownItem>
-          )
-        })}
+        {items.map((item) => (
+          <DropdownItem
+            key={item.key}
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm text-content-primary",
+              "data-[focused=true]:bg-surface-secondary data-[hover=true]:bg-surface-secondary",
+              item.danger && "text-danger data-[focused=true]:bg-danger-light data-[hover=true]:bg-danger-light",
+            )}
+          >
+            {item.icon && <span className="mr-2 shrink-0">{item.icon}</span>}
+            {item.label}
+          </DropdownItem>
+        ))}
       </DropdownMenu>
     </HeroDropdown>
   )
