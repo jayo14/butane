@@ -115,7 +115,7 @@ class Teacher(SoftDeleteModel):
         if not self.employee_id:
             short = str(self.id).replace("-", "")[:12].upper()
             self.employee_id = f"TCH-{short}"
-        super().save(*args, **kwargs)
+            super().save(update_fields=["employee_id", "updated_at"])
 
 
 class Student(SoftDeleteModel):
@@ -157,4 +157,4 @@ class Student(SoftDeleteModel):
         if not self.student_id:
             short = str(self.id).replace("-", "")[:12].upper()
             self.student_id = f"STU-{short}"
-        super().save(*args, **kwargs)
+            super().save(update_fields=["student_id", "updated_at"])
