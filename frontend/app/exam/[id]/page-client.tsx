@@ -109,10 +109,11 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                 { icon: <Clock size={18} />, label: "Duration", value: formatDuration(exam.duration) },
                 { icon: <BarChart3 size={18} />, label: "Total Marks", value: `${exam.totalMarks}` },
                 { icon: <HelpCircle size={18} />, label: "Pass Mark", value: `${exam.passingMarks}%` },
-              ].map((item) => (
+              ].map((item, i) => (
                 <div
                   key={item.label}
-                  className="flex flex-col items-center rounded-xl bg-surface-secondary p-3 text-center"
+                  className="flex flex-col items-center rounded-xl bg-surface-secondary p-3 text-center animate-in fade-in slide-in-from-bottom-2 duration-300"
+                  style={{ animationDelay: `${i * 80}ms` }}
                 >
                   <span className="text-primary">{item.icon}</span>
                   <p className="mt-1.5 text-lg font-semibold text-content-primary">{item.value}</p>
@@ -201,22 +202,21 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                 <div>
                   <p className="text-sm font-medium text-content-primary">Before you start</p>
                   <ul className="mt-2 space-y-1.5 text-sm text-content-secondary">
-                    <li className="flex items-center gap-2">
-                      <span className="size-1.5 rounded-full bg-primary/50" />
-                      Ensure you have a stable internet connection
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="size-1.5 rounded-full bg-primary/50" />
-                      You have {formatDuration(exam.duration)} to complete this exam
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="size-1.5 rounded-full bg-primary/50" />
-                      Do not refresh or close the browser during the exam
-                    </li>
-                    <li className="flex items-center gap-2">
-                      <span className="size-1.5 rounded-full bg-primary/50" />
-                      You cannot pause once the exam has started
-                    </li>
+                    {[
+                      "Ensure you have a stable internet connection",
+                      `You have ${formatDuration(exam.duration)} to complete this exam`,
+                      "Do not refresh or close the browser during the exam",
+                      "You cannot pause once the exam has started",
+                    ].map((text, i) => (
+                      <li
+                        key={text}
+                        className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2 duration-300"
+                        style={{ animationDelay: `${i * 80}ms` }}
+                      >
+                        <span className="size-1.5 rounded-full bg-primary/50 shrink-0" />
+                        {text}
+                      </li>
+                    ))}
                   </ul>
                 </div>
               </div>
