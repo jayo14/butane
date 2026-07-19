@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useRef } from "react"
 import { useForm, FormProvider, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -9,6 +9,10 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useAutosave, type AutosaveStatus } from "@/hooks/use-autosave"
 import { BasicInfoStep } from "./steps/basic-info-step"
+import { QuestionBuilderStep, type QuestionBuilderHandle } from "./steps/question-builder-step"
+import { SettingsStep } from "./steps/settings-step"
+import { ReviewPublishStep } from "./steps/review-publish-step"
+import type { Question, ExamSettings } from "@/types/exam"
 
 const basicInfoSchema = z.object({
   title: z.string().min(1, "Exam title is required").max(200, "Title is too long"),
@@ -22,10 +26,21 @@ const basicInfoSchema = z.object({
 
 export type BasicInfoValues = z.infer<typeof basicInfoSchema>
 
-export const stepSchemas = [basicInfoSchema]
-
 export interface ExamDraft {
   basicInfo: BasicInfoValues
+  questions: Question[]
+  settings: ExamSettings
+}
+
+const defaultSettings: ExamSettings = {
+  shuffleQuestions: false,
+  shuffleAnswers: false,
+  passMark: 50,
+  availableFrom: "",
+  availableTo: "",
+  timeLimit: 60,
+  showResult: true,
+  allowReview: false,
 }
 
 const initialDraft: ExamDraft = {
@@ -38,6 +53,8 @@ const initialDraft: ExamDraft = {
     questionCount: 10,
     instructions: "",
   },
+  questions: [],
+  settings: defaultSettings,
 }
 
 const subjects = [
@@ -69,6 +86,7 @@ const terms = [
 const steps = [
   { id: "basic-info", label: "Basic Information", description: "Exam details & settings" },
   { id: "questions", label: "Questions", description: "Add exam questions" },
+  { id: "settings", label: "Settings", description: "Exam configuration" },
   { id: "review", label: "Review & Publish", description: "Final review" },
 ]
 
@@ -83,6 +101,8 @@ export function CreateExamWizard() {
   const [currentStep, setCurrentStep] = useState(0)
   const [draft, setDraft] = useState<ExamDraft>(initialDraft)
   const [isPublishing, setIsPublishing] = useState(false)
+  const [published, setPublished] = useState(false)
+  const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
 
   const form = useForm<BasicInfoValues>({
     resolver: zodResolver(basicInfoSchema) as unknown as Resolver<BasicInfoValues>,
@@ -91,7 +111,7 @@ export function CreateExamWizard() {
   })
 
   const { watch } = form
-  const watchedValues = watch()
+  const watchedBasicInfo = watch()
 
   const saveDraft = useCallback(async (data: ExamDraft) => {
     await new Promise((r) => setTimeout(r, 800))
@@ -99,16 +119,22 @@ export function CreateExamWizard() {
   }, [])
 
   const { status: autosaveStatus, triggerSave } = useAutosave({
-    data: { ...draft, basicInfo: watchedValues },
+    data: { ...draft, basicInfo: watchedBasicInfo },
     onSave: saveDraft,
     delay: 3000,
   })
 
   async function handleNext() {
-    const isValid = await form.trigger()
-    if (!isValid) return
+    if (currentStep === 0) {
+      const isValid = await form.trigger()
+      if (!isValid) return
+      setDraft((prev) => ({ ...prev, basicInfo: form.getValues() }))
+    }
 
-    setDraft((prev) => ({ ...prev, basicInfo: form.getValues() }))
+    if (currentStep === 1) {
+      const isValid = questionBuilderRef.current?.validate() ?? false
+      if (!isValid) return
+    }
 
     if (currentStep < steps.length - 1) {
       setCurrentStep((s) => s + 1)
@@ -124,6 +150,25 @@ export function CreateExamWizard() {
     triggerSave()
     await new Promise((r) => setTimeout(r, 2000))
     setIsPublishing(false)
+    setPublished(true)
+  }
+
+  if (published) {
+    return (
+      <div className="mx-auto max-w-3xl">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-content-primary">Create New Exam</h1>
+          <p className="mt-1 text-content-secondary">Set up a computer-based test in a few steps</p>
+        </div>
+        <div className="rounded-2xl border border-border-primary bg-white p-6 md:p-8">
+          <ReviewPublishStep
+            basicInfo={draft.basicInfo}
+            questions={draft.questions}
+            settings={draft.settings}
+          />
+        </div>
+      </div>
+    )
   }
 
   const asConfig = autosaveStatusConfig[autosaveStatus]
@@ -132,9 +177,7 @@ export function CreateExamWizard() {
     <div className="mx-auto max-w-3xl">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-content-primary">Create New Exam</h1>
-        <p className="mt-1 text-content-secondary">
-          Set up a computer-based test in a few steps
-        </p>
+        <p className="mt-1 text-content-secondary">Set up a computer-based test in a few steps</p>
       </div>
 
       {/* Step Indicator */}
@@ -168,7 +211,7 @@ export function CreateExamWizard() {
               {i < steps.length - 1 && (
                 <div
                   className={cn(
-                    "mx-4 h-px w-16 sm:w-24 md:w-32 transition-colors duration-300",
+                    "mx-4 h-px w-12 sm:w-16 md:w-24 transition-colors duration-300",
                     i < currentStep ? "bg-success" : "bg-border-primary",
                   )}
                 />
@@ -189,28 +232,28 @@ export function CreateExamWizard() {
       {/* Step Content */}
       <div className="rounded-2xl border border-border-primary bg-white p-6 md:p-8">
         <FormProvider {...form}>
-          {currentStep === 0 && <BasicInfoStep subjects={subjects} classes={classes} terms={terms} />}
+          {currentStep === 0 && (
+            <BasicInfoStep subjects={subjects} classes={classes} terms={terms} />
+          )}
           {currentStep === 1 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-surface-secondary text-content-muted">
-                <Loader2 size={32} className="animate-pulse" />
-              </div>
-              <h2 className="text-lg font-semibold text-content-primary">Questions Coming Soon</h2>
-              <p className="mt-1 max-w-sm text-sm text-content-secondary">
-                The question builder will let you add multiple choice, true/false, and essay questions.
-              </p>
-            </div>
+            <QuestionBuilderStep
+              ref={questionBuilderRef}
+              questions={draft.questions}
+              onChange={(questions) => setDraft((prev) => ({ ...prev, questions }))}
+            />
           )}
           {currentStep === 2 && (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-surface-secondary text-content-muted">
-                <Check size={32} className="text-content-muted/40" />
-              </div>
-              <h2 className="text-lg font-semibold text-content-primary">Review & Publish</h2>
-              <p className="mt-1 max-w-sm text-sm text-content-secondary">
-                Review all exam settings before publishing.
-              </p>
-            </div>
+            <SettingsStep
+              settings={draft.settings}
+              onChange={(settings) => setDraft((prev) => ({ ...prev, settings }))}
+            />
+          )}
+          {currentStep === 3 && (
+            <ReviewPublishStep
+              basicInfo={draft.basicInfo}
+              questions={draft.questions}
+              settings={draft.settings}
+            />
           )}
         </FormProvider>
       </div>
