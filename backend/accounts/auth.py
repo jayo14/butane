@@ -20,6 +20,7 @@ from rest_framework import serializers
 
 from .models import Teacher
 from .serializers import TeacherSerializer, UserSerializer
+from core.throttling import LoginRateThrottle
 
 AUTHENTICATABLE_ROLES = {"teacher", "admin"}
 
@@ -56,6 +57,7 @@ class LoginView(APIView):
 
     authentication_classes: list = []
     permission_classes: list = []
+    throttle_classes = [LoginRateThrottle]
 
     def post(self, request):
         serializer = TeacherTokenObtainPairSerializer(data=request.data)
