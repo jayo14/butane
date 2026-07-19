@@ -8,9 +8,10 @@ from __future__ import annotations
 
 from django.db import transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import status, viewsets
+from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 from accounts.permissions import IsTeacher
 from .models import Choice, Exam, Question
@@ -44,6 +45,14 @@ class QuestionViewSet(viewsets.ModelViewSet):
         serializer.save()
 
     @transaction.atomic
+    @extend_schema(
+        request=inline_serializer(
+            "ReorderRequest",
+            fields={"question_ids": serializers.ListField(child=serializers.UUIDField())},
+        ),
+        responses=QuestionSerializer(many=True),
+        tags=["Questions"],
+    )
     @action(detail=False, methods=["post"], url_path="reorder")
     def reorder(self, request, exam_id=None):
         """Reorder questions given an ordered list of question ids."""
@@ -73,6 +82,11 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return Response(QuestionSerializer(exam.questions.all(), many=True).data)
 
     @transaction.atomic
+    @extend_schema(
+        request=None,
+        responses=QuestionSerializer,
+        tags=["Questions"],
+    )
     @action(detail=True, methods=["post"], url_path="duplicate")
     def duplicate(self, request, exam_id=None, pk=None):
         """Duplicate a single question (with its choices) at the end of the exam."""
@@ -97,6 +111,17 @@ class QuestionViewSet(viewsets.ModelViewSet):
         return Response(QuestionSerializer(new_q).data, status=status.HTTP_201_CREATED)
 
     @transaction.atomic
+    @extend_schema(
+        request=inline_serializer(
+            "MarkCorrectRequest",
+            fields={
+                "choice_id": serializers.UUIDField(required=False),
+                "choice_ids": serializers.ListField(child=serializers.UUIDField(), required=False),
+            },
+        ),
+        responses=ChoiceSerializer(many=True),
+        tags=["Questions"],
+    )
     @action(detail=True, methods=["patch"], url_path="mark-correct")
     def mark_correct(self, request, exam_id=None, pk=None):
         """Set the correct answer(s) for a question.
