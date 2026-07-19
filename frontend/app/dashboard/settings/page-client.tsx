@@ -271,7 +271,7 @@ export function SettingsClient() {
         </nav>
 
         {/* Content */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
           {/* Desktop tabs */}
           <div className="hidden lg:block mb-6">{tabContent}</div>
           {/* Mobile grid */}
