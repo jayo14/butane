@@ -64,6 +64,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "core.middleware.RequestLoggingMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -177,7 +178,20 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,
     "ENUM_NAME_OVERRIDES": {
         "StatusEnum": "exams.models.Exam.STATUS_CHOICES",
+        "QuestionTypeEnum": "exams.models.Question.QUESTION_TYPES",
+        "AttemptStatusEnum": "exams.models.Attempt.STATUS_CHOICES",
     },
+    "TAGS": [
+        {"name": "Authentication", "description": "JWT login, logout, and current user."},
+        {"name": "Accounts", "description": "Teacher and student directories."},
+        {"name": "Exams", "description": "Exam CRUD, publish, share, duplicate, archive."},
+        {"name": "Questions", "description": "Nested question management under an exam."},
+        {"name": "Attempts", "description": "Student attempts and submissions."},
+        {"name": "Results", "description": "Aggregated results and reporting."},
+        {"name": "Public", "description": "Unauthenticated student examination flow."},
+        {"name": "Reports", "description": "Teacher analytics and statistics."},
+    ],
+    "CONTACT": {"name": "Butane Platform", "url": "https://butane.example.com"},
 }
 
 
@@ -195,10 +209,15 @@ if not DEBUG:
     SECURE_HSTS_PRELOAD = True
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
+    SECURE_REFERRER_POLICY = "strict-origin-when-cross-origin"
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+    SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = "require-corp"
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     CSRF_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = "Lax"
+    CSRF_COOKIE_SAMESITE = "Lax"
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 
