@@ -146,6 +146,19 @@ Base path: `/api/`
 - `GET/POST /api/attempts/` — attempts; `POST /api/attempts/{id}/submit/` grades
 - `GET  /api/results/` — aggregated results (read-only reporting)
 
+
+### Public student flow (unauthenticated, token-guarded)
+
+Reached via the exam's ``public_token``; attempt mutations also require the
+per-attempt ``access_token`` returned on start. Correct answers are never served.
+
+- `GET  /api/public/exams/{token}/` — safe exam details (validates published / available / not expired)
+- `POST /api/public/exams/{token}/start/` — create student if needed, create/resume attempt; returns `access_token`
+- `GET  /api/public/attempts/{id}/?token=...` — resume: attempt + saved answers
+- `POST /api/public/attempts/{id}/save/` — autosave answers + duration/metadata
+- `POST /api/public/attempts/{id}/submit/` — grade, finalize, return result (review answers only if `allow_review`)
+
+
 Docs:
 
 - Swagger UI: `/api/docs/`
