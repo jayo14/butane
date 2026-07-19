@@ -5,6 +5,7 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
 
 from accounts.permissions import IsStudent, IsTeacher
@@ -13,6 +14,7 @@ from accounts.models import Student, Teacher
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
 from .models import Attempt, AttemptAnswer, Exam, Question, Result
+from .public_views import _result_response
 from .serializers import (
     AttemptSerializer,
     ExamDetailSerializer,
@@ -45,11 +47,12 @@ class ExamViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
-        # Teachers see only their own exams; admins see everything.
         if getattr(user, "role", None) != "admin":
             teacher = Teacher.objects.filter(user=user).first()
             if teacher:
                 qs = qs.filter(created_by=teacher)
+            else:
+                qs = qs.none()
         return qs
 
     def perform_create(self, serializer):
@@ -130,6 +133,10 @@ class AttemptViewSet(viewsets.ModelViewSet):
     @action(detail=True, methods=["post"], url_path="submit")
     def submit(self, request, pk=None):
         """Submit an attempt: persist answers, auto-grade, and store the Result."""
+        throttle = LoginRateThrottle()
+        if not throttle.allow_request(request, self):
+            raise Throttled(throttle.wait())
+
         attempt = self.get_object()
         if attempt.status == "submitted":
             return Response({"detail": "Attempt already submitted."}, status=status.HTTP_400_BAD_REQUEST)
@@ -150,16 +157,7 @@ class AttemptViewSet(viewsets.ModelViewSet):
 
         result = submit_and_grade(attempt)
 
-        # Respect the exam's result-visibility setting.
-        if not attempt.exam.show_result:
-            return Response(
-                {"detail": "Exam submitted successfully.", "attempt_id": str(attempt.id), "show_result": False},
-                status=status.HTTP_201_CREATED,
-            )
-        data = ResultSerializer(result).data
-        data["show_result"] = True
-        data["allow_review"] = attempt.exam.allow_review
-        return Response(data, status=status.HTTP_201_CREATED)
+        return _result_response(attempt, result)
 
 
 class ResultViewSet(viewsets.ReadOnlyModelViewSet):
@@ -171,12 +169,20 @@ class ResultViewSet(viewsets.ReadOnlyModelViewSet):
     N+1 queries.
     """
 
-    queryset = Result.objects.filter(is_deleted=False).select_related(
-        "exam", "student", "student__user", "attempt"
-    )
     serializer_class = ResultSerializer
     filterset_class = ResultFilter
     search_fields = ["student__user__first_name", "student__user__last_name", "exam__title", "attempt__student_name"]
     ordering_fields = ["percentage", "score", "correct_count", "graded_at", "created_at"]
     ordering = ["-created_at"]
     permission_classes = [IsTeacher]
+
+    def get_queryset(self):
+        qs = Result.objects.filter(is_deleted=False).select_related(
+            "exam", "student", "student__user", "attempt"
+        )
+        user = self.request.user
+        if getattr(user, "role", None) != "admin":
+            teacher = Teacher.objects.filter(user=user).first()
+            if teacher:
+                qs = qs.filter(exam__created_by=teacher)
+        return qs
