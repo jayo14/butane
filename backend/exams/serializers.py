@@ -5,10 +5,9 @@ from rest_framework import serializers
 
 from accounts.models import Student, Teacher
 from .models import Attempt, AttemptAnswer, Exam, Result
-from .question_serializers import ChoiceSerializer, QuestionSerializer
+from .question_serializers import QuestionSerializer
 
 __all__ = [
-    "ChoiceSerializer",
     "QuestionSerializer",
     "ExamListSerializer",
     "ExamDetailSerializer",
@@ -60,11 +59,10 @@ class ExamDetailSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         questions = validated_data.pop("questions")
         exam = Exam.objects.create(**validated_data)
-        for question in questions:
-            choices = question.pop("choices")
-            q = Question.objects.create(exam=exam, **question)
-            for choice in choices:
-                Choice.objects.create(question=q, **choice)
+        question_serializer = QuestionSerializer()
+        for index, question in enumerate(questions, start=1):
+            question.setdefault("order", index)
+            question_serializer.create({**question, "exam": exam})
         return exam
 
     def update(self, instance, validated_data):
@@ -74,11 +72,10 @@ class ExamDetailSerializer(serializers.ModelSerializer):
         instance.save()
         if questions is not None:
             instance.questions.all().delete()
-            for question in questions:
-                choices = question.pop("choices")
-                q = Question.objects.create(exam=instance, **question)
-                for choice in choices:
-                    Choice.objects.create(question=q, **choice)
+            question_serializer = QuestionSerializer()
+            for index, question in enumerate(questions, start=1):
+                question.setdefault("order", index)
+                question_serializer.create({**question, "exam": instance})
         return instance
 
 
