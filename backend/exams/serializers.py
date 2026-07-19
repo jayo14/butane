@@ -52,8 +52,21 @@ class ExamDetailSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
-        if attrs.get("passing_marks", 0) > attrs.get("total_marks", 0) and attrs.get("total_marks"):
-            raise serializers.ValidationError("Passing marks cannot exceed total marks.")
+        total_marks = attrs.get("total_marks", self.instance.total_marks if self.instance else 0)
+        passing_marks = attrs.get("passing_marks", self.instance.passing_marks if self.instance else 0)
+        passing_percentage = attrs.get("passing_percentage", self.instance.passing_percentage if self.instance else 50)
+        duration_minutes = attrs.get("duration_minutes", self.instance.duration_minutes if self.instance else 60)
+        available_from = attrs.get("available_from", getattr(self.instance, "available_from", None))
+        available_to = attrs.get("available_to", getattr(self.instance, "available_to", None))
+
+        if passing_marks > total_marks and total_marks:
+            raise serializers.ValidationError({"passing_marks": "Passing marks cannot exceed total marks."})
+        if passing_percentage < 0 or passing_percentage > 100:
+            raise serializers.ValidationError({"passing_percentage": "Must be between 0 and 100."})
+        if duration_minutes <= 0:
+            raise serializers.ValidationError({"duration_minutes": "Must be a positive integer."})
+        if available_from and available_to and available_from >= available_to:
+            raise serializers.ValidationError({"available_to": "Must be after available_from."})
         return attrs
 
     def create(self, validated_data):
