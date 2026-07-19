@@ -15,6 +15,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 
 from .models import Teacher
 from .serializers import TeacherSerializer, UserSerializer
@@ -42,6 +44,13 @@ class TeacherTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 
+@extend_schema(
+    request=inline_serializer(
+        "LoginRequest",
+        fields={"email": serializers.EmailField(), "password": serializers.CharField()},
+    ),
+    responses=TeacherTokenObtainPairSerializer,
+)
 class LoginView(APIView):
     """Exchange email + password for access/refresh JWTs (teachers only)."""
 
@@ -54,6 +63,10 @@ class LoginView(APIView):
         return Response(serializer.validated_data, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    request=inline_serializer("RefreshRequest", fields={"refresh": serializers.CharField()}),
+    responses={"200": TeacherTokenObtainPairSerializer},
+)
 class LogoutView(APIView):
     """Blacklist the submitted refresh token to invalidate the session."""
 
@@ -71,6 +84,7 @@ class LogoutView(APIView):
         return Response({"detail": "Successfully logged out."}, status=status.HTTP_200_OK)
 
 
+@extend_schema(responses=UserSerializer)
 class CurrentUserView(APIView):
     """Return the authenticated user's account."""
 
@@ -80,6 +94,7 @@ class CurrentUserView(APIView):
         return Response(UserSerializer(request.user).data)
 
 
+@extend_schema(responses=TeacherSerializer)
 class ProfileView(APIView):
     """Return the authenticated teacher's full profile (account + teacher data)."""
 

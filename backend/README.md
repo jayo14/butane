@@ -123,7 +123,26 @@ Base path: `/api/`
 - `POST /api/accounts/auth/refresh/` — rotate refresh token
 - `GET  /api/accounts/me/` — current user
 - `GET  /api/accounts/teachers/`, `/api/accounts/students/`
-- `GET/POST/PUT/PATCH/DELETE /api/exams/` — exam CRUD (nested questions/choices)
+
+### Exams (teacher-owned)
+
+- `GET/POST/PUT/PATCH/DELETE /api/exams/` — exam CRUD (teachers see only their own)
+- `POST /api/exams/{id}/publish/` — publish (status → ongoing, enables public link)
+- `POST /api/exams/{id}/generate-public-token/` — create/rotate the signed public token + URL
+- `POST /api/exams/{id}/revoke-public-token/` — disable public access
+- `POST /api/exams/{id}/duplicate/` — deep-copy exam (new draft, questions + choices)
+- `POST /api/exams/{id}/archive/` — archive (status → completed, public link off)
+
+### Questions (nested under an exam)
+
+- `GET/POST /api/exams/{exam_id}/questions/` — list / create
+- `GET/PUT/PATCH/DELETE /api/exams/{exam_id}/questions/{id}/` — retrieve / update / delete
+- `POST /api/exams/{exam_id}/questions/reorder/` — `{"question_ids": [...]}`
+- `POST /api/exams/{exam_id}/questions/{id}/duplicate/` — duplicate a question
+- `PATCH /api/exams/{exam_id}/questions/{id}/mark-correct/` — `{"choice_id"}` or `{"choice_ids": [...]}`
+
+### Attempts & results
+
 - `GET/POST /api/attempts/` — attempts; `POST /api/attempts/{id}/submit/` grades
 - `GET  /api/results/` — aggregated results (read-only reporting)
 
