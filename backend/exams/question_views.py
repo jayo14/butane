@@ -33,7 +33,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
         if getattr(self, "swagger_fake_view", False):
             return Question.objects.none()
         exam = self.get_exam()
-        return exam.questions.all()
+        return exam.questions.select_related("exam").prefetch_related("choices").all()
 
     def perform_create(self, serializer):
         exam = self.get_exam()
@@ -65,11 +65,11 @@ class QuestionViewSet(viewsets.ModelViewSet):
         for index, qid in enumerate(ordered_ids, start=offset):
             q = questions[str(qid)]
             q.order = index
-            q.save(update_fields=["order", "updated_at"])
+        Question.objects.bulk_update(questions.values(), ["order", "updated_at"])
         for index, qid in enumerate(ordered_ids, start=1):
             q = questions[str(qid)]
             q.order = index
-            q.save(update_fields=["order", "updated_at"])
+        Question.objects.bulk_update(questions.values(), ["order", "updated_at"])
         return Response(QuestionSerializer(exam.questions.all(), many=True).data)
 
     @transaction.atomic
