@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from rest_framework import generics, permissions
+from drf_spectacular.utils import extend_schema
 
 from .auth import CurrentUserView, LoginView, LogoutView, ProfileView
 from .models import Student, Teacher
@@ -18,12 +19,20 @@ __all__ = [
 ]
 
 
+@extend_schema(
+    responses=TeacherSerializer(many=True),
+    tags=["Accounts"],
+)
 class TeacherListView(generics.ListAPIView):
     queryset = Teacher.objects.filter(is_deleted=False)
     serializer_class = TeacherSerializer
     permission_classes = [permissions.IsAuthenticated]
 
 
+@extend_schema(
+    responses=StudentSerializer(many=True),
+    tags=["Accounts"],
+)
 class StudentListView(generics.ListAPIView):
     queryset = Student.objects.filter(is_deleted=False)
     serializer_class = StudentSerializer
