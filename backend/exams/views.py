@@ -11,6 +11,7 @@ from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
 
 from .filters import AttemptFilter, ExamFilter, ResultFilter
+from .grading import submit_and_grade
 from .models import Attempt, AttemptAnswer, Exam, Question, Result
 from .serializers import (
     AttemptSerializer,
@@ -128,79 +129,54 @@ class AttemptViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     @action(detail=True, methods=["post"], url_path="submit")
     def submit(self, request, pk=None):
-        """Submit an attempt: grade answers, build a Result, and finalize."""
+        """Submit an attempt: persist answers, auto-grade, and store the Result."""
         attempt = self.get_object()
         if attempt.status == "submitted":
             return Response({"detail": "Attempt already submitted."}, status=status.HTTP_400_BAD_REQUEST)
 
         answers = request.data.get("answers", [])
-        question_ids = {a["question"] for a in answers if "question" in a}
-
-        # Persist/refresh each answer row and grade it.
-        total_marks = attempt.exam.total_marks or 0
-        correct = incorrect = unanswered = 0
-        earned = 0.0
         question_map = {str(q.id): q for q in attempt.exam.questions.all()}
-
         for ans in answers:
             question = question_map.get(str(ans.get("question")))
             if not question:
                 continue
             selected_id = ans.get("selected_choice")
-            choice = None
-            if selected_id:
-                choice = question.choices.filter(id=selected_id).first()
-
-            is_correct = bool(choice and choice.is_correct)
-            awarded = float(question.marks) if is_correct else 0.0
-            if selected_id is None:
-                unanswered += 1
-            elif is_correct:
-                correct += 1
-                earned += awarded
-            else:
-                incorrect += 1
-
+            choice = question.choices.filter(id=selected_id).first() if selected_id else None
             AttemptAnswer.objects.update_or_create(
                 attempt=attempt,
                 question=question,
-                defaults={"selected_choice": choice, "is_correct": is_correct, "awarded_marks": awarded},
+                defaults={"selected_choice": choice},
             )
 
-        attempt.status = "submitted"
-        from django.utils import timezone
-        attempt.submitted_at = timezone.now()
-        attempt.save(update_fields=["status", "submitted_at", "updated_at"])
+        result = submit_and_grade(attempt)
 
-        percentage = round((earned / total_marks) * 100, 2) if total_marks else 0.0
-        passed = earned >= attempt.exam.passing_marks
-
-        result = Result.objects.update_or_create(
-            attempt=attempt,
-            defaults={
-                "exam": attempt.exam,
-                "student": attempt.student,
-                "score": earned,
-                "total_marks": total_marks,
-                "percentage": percentage,
-                "passed": passed,
-                "correct_count": correct,
-                "incorrect_count": incorrect,
-                "unanswered_count": unanswered,
-                "graded_at": timezone.now(),
-            },
-        )[0]
-
-        return Response(ResultSerializer(result).data, status=status.HTTP_201_CREATED)
+        # Respect the exam's result-visibility setting.
+        if not attempt.exam.show_result:
+            return Response(
+                {"detail": "Exam submitted successfully.", "attempt_id": str(attempt.id), "show_result": False},
+                status=status.HTTP_201_CREATED,
+            )
+        data = ResultSerializer(result).data
+        data["show_result"] = True
+        data["allow_review"] = attempt.exam.allow_review
+        return Response(data, status=status.HTTP_201_CREATED)
 
 
 class ResultViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only aggregated results for reporting."""
+    """Read-only aggregated results for reporting.
 
-    queryset = Result.objects.filter(is_deleted=False).select_related("exam", "student", "student__user")
+    Supports filtering (exam, student, passed, percentage range, graded date
+    range), full-text search, sorting, and pagination. Queries are optimized
+    with ``select_related`` so per-result student/exam lookups don't trigger
+    N+1 queries.
+    """
+
+    queryset = Result.objects.filter(is_deleted=False).select_related(
+        "exam", "student", "student__user", "attempt"
+    )
     serializer_class = ResultSerializer
     filterset_class = ResultFilter
-    search_fields = ["student__user__first_name", "student__user__last_name", "exam__title"]
-    ordering_fields = ["percentage", "score", "graded_at", "created_at"]
+    search_fields = ["student__user__first_name", "student__user__last_name", "exam__title", "attempt__student_name"]
+    ordering_fields = ["percentage", "score", "correct_count", "graded_at", "created_at"]
     ordering = ["-created_at"]
     permission_classes = [IsTeacher]

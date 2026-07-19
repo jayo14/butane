@@ -16,6 +16,7 @@ from rest_framework.views import APIView
 
 from accounts.models import Student, User
 
+from .grading import grade_attempt, submit_and_grade
 from .models import Attempt, AttemptAnswer, Choice, Exam, Question, Result
 from .public_serializers import (
     PublicAttemptSerializer,
@@ -58,6 +59,34 @@ def _resolve_student(name: str, admission_number: str, exam: Exam) -> Student | 
     )
     student, _ = Student.objects.get_or_create(user=user, defaults={"grade": exam.class_group})
     return student
+
+
+def _result_response(attempt: Attempt, result: Result) -> Response:
+    """Build the submit response, honouring the exam's result-visibility settings.
+
+    - ``show_result=False`` → hidden results: only confirmation, no scores.
+    - ``show_result=True``  → instant results: full score breakdown.
+    - ``allow_review=True`` → include the per-question review (still no correct answer text).
+    """
+    if not attempt.exam.show_result:
+        return Response(
+            {"detail": "Exam submitted successfully.", "attempt_id": str(attempt.id), "show_result": False},
+            status=status.HTTP_201_CREATED,
+        )
+
+    data = ResultSerializer(result).data
+    data["show_result"] = True
+    data["allow_review"] = attempt.exam.allow_review
+    if attempt.exam.allow_review:
+        data["answers"] = [
+            {
+                "question": str(a.question_id),
+                "selected_choice": str(a.selected_choice_id) if a.selected_choice_id else None,
+                "is_correct": a.is_correct,
+            }
+            for a in attempt.answers.all()
+        ]
+    return Response(data, status=status.HTTP_201_CREATED)
 
 
 class PublicExamDetailView(APIView):
@@ -195,57 +224,5 @@ class SubmitAttemptView(APIView):
                 defaults={"selected_choice": choice},
             )
 
-        total_marks = attempt.exam.total_marks or 0
-        correct = incorrect = unanswered = 0
-        earned = 0.0
-        for ans in attempt.answers.select_related("question", "selected_choice").all():
-            question = ans.question
-            choice = ans.selected_choice
-            is_correct = bool(choice and choice.is_correct)
-            awarded = float(question.marks) if is_correct else 0.0
-            ans.is_correct = is_correct
-            ans.awarded_marks = awarded
-            ans.save(update_fields=["is_correct", "awarded_marks", "updated_at"])
-            if choice is None:
-                unanswered += 1
-            elif is_correct:
-                correct += 1
-                earned += awarded
-            else:
-                incorrect += 1
-
-        attempt.status = "submitted"
-        attempt.submitted_at = timezone.now()
-        attempt.save(update_fields=["status", "submitted_at", "updated_at"])
-
-        percentage = round((earned / total_marks) * 100, 2) if total_marks else 0.0
-        passed = earned >= attempt.exam.passing_marks
-        result = Result.objects.update_or_create(
-            attempt=attempt,
-            defaults={
-                "exam": attempt.exam,
-                "student": attempt.student,
-                "score": earned,
-                "total_marks": total_marks,
-                "percentage": percentage,
-                "passed": passed,
-                "correct_count": correct,
-                "incorrect_count": incorrect,
-                "unanswered_count": unanswered,
-                "graded_at": timezone.now(),
-            },
-        )[0]
-
-        # Return the safe result; explanations only if review is allowed.
-        data = ResultSerializer(result).data
-        data["allow_review"] = attempt.exam.allow_review
-        if attempt.exam.allow_review:
-            data["answers"] = [
-                {
-                    "question": str(a.question_id),
-                    "selected_choice": str(a.selected_choice_id) if a.selected_choice_id else None,
-                    "is_correct": a.is_correct,
-                }
-                for a in attempt.answers.all()
-            ]
-        return Response(data, status=status.HTTP_201_CREATED)
+        result = submit_and_grade(attempt)
+        return _result_response(attempt, result)
