@@ -26,6 +26,12 @@ class UserWriteSerializer(serializers.ModelSerializer):
         fields = ["id", "email", "first_name", "last_name", "role", "password"]
         read_only_fields = ["id"]
 
+    def validate_role(self, value):
+        request = self.context.get("request")
+        if request and getattr(request.user, "role", None) != "admin":
+            raise serializers.ValidationError("Only admins may assign roles.")
+        return value
+
     def create(self, validated_data):
         password = validated_data.pop("password")
         user = User(**validated_data)
