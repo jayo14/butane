@@ -9,10 +9,11 @@ teacher's ownership where applicable.
 from __future__ import annotations
 
 from django.db.models import Avg, Count, Max, Min, Q
-from rest_framework import status
+from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 from accounts.models import Student, Teacher
 from accounts.permissions import IsTeacher
@@ -63,6 +64,63 @@ def _score_distribution(results):
     return out
 
 
+@extend_schema(
+    responses=inline_serializer(
+        "ExamStatisticsResponse",
+        fields={
+            "exam_id": serializers.UUIDField(),
+            "title": serializers.CharField(),
+            "total_marks": serializers.IntegerField(),
+            "passing_marks": serializers.IntegerField(),
+            "stats": inline_serializer(
+                "ResultStats",
+                fields={
+                    "total_attempts": serializers.IntegerField(),
+                    "average_score": serializers.FloatField(),
+                    "highest": serializers.FloatField(),
+                    "lowest": serializers.FloatField(),
+                    "total_passed": serializers.IntegerField(),
+                    "pass_rate": serializers.FloatField(),
+                },
+            ),
+            "distribution": serializers.ListField(
+                child=inline_serializer(
+                    "ScoreDistribution",
+                    fields={"range": serializers.CharField(), "count": serializers.IntegerField()},
+                )
+            ),
+            "question_statistics": serializers.ListField(
+                child=inline_serializer(
+                    "QuestionStat",
+                    fields={
+                        "question_id": serializers.UUIDField(),
+                        "number": serializers.IntegerField(),
+                        "text": serializers.CharField(),
+                        "type": serializers.CharField(),
+                        "marks": serializers.IntegerField(),
+                        "responses": serializers.IntegerField(),
+                        "correct_responses": serializers.IntegerField(),
+                        "correct_rate": serializers.FloatField(),
+                    },
+                )
+            ),
+            "top_performers": serializers.ListField(
+                child=inline_serializer(
+                    "TopPerformer",
+                    fields={
+                        "student_id": serializers.UUIDField(allow_null=True),
+                        "student_name": serializers.CharField(),
+                        "percentage": serializers.FloatField(),
+                        "score": serializers.FloatField(),
+                        "total_marks": serializers.FloatField(),
+                        "passed": serializers.BooleanField(),
+                    },
+                )
+            ),
+        },
+    ),
+    tags=["Reports"],
+)
 class ExamStatisticsView(APIView):
     """GET /api/reports/exams/{exam_id}/ — aggregate statistics for one exam."""
 
@@ -103,6 +161,30 @@ class ExamStatisticsView(APIView):
         )
 
 
+@extend_schema(
+    responses=inline_serializer(
+        "QuestionStatisticsResponse",
+        fields={
+            "exam_id": serializers.UUIDField(),
+            "questions": serializers.ListField(
+                child=inline_serializer(
+                    "QuestionStat",
+                    fields={
+                        "question_id": serializers.UUIDField(),
+                        "number": serializers.IntegerField(),
+                        "text": serializers.CharField(),
+                        "type": serializers.CharField(),
+                        "marks": serializers.IntegerField(),
+                        "responses": serializers.IntegerField(),
+                        "correct_responses": serializers.IntegerField(),
+                        "correct_rate": serializers.FloatField(),
+                    },
+                )
+            ),
+        },
+    ),
+    tags=["Reports"],
+)
 class QuestionStatisticsView(APIView):
     """GET /api/reports/exams/{exam_id}/questions/ — per-question analytics."""
 
@@ -115,6 +197,47 @@ class QuestionStatisticsView(APIView):
         return Response({"exam_id": str(exam.id), "questions": question_statistics(exam)})
 
 
+@extend_schema(
+    responses=inline_serializer(
+        "StudentHistoryResponse",
+        fields={
+            "student_id": serializers.UUIDField(),
+            "student_name": serializers.CharField(),
+            "grade": serializers.CharField(),
+            "summary": inline_serializer(
+                "StudentSummary",
+                fields={
+                    "total_exams": serializers.IntegerField(),
+                    "average_score": serializers.FloatField(),
+                    "highest": serializers.FloatField(),
+                    "lowest": serializers.FloatField(),
+                    "pass_rate": serializers.FloatField(),
+                    "rank": serializers.IntegerField(allow_null=True),
+                },
+            ),
+            "history": serializers.ListField(
+                child=inline_serializer(
+                    "StudentHistoryItem",
+                    fields={
+                        "result_id": serializers.UUIDField(),
+                        "exam_id": serializers.UUIDField(),
+                        "exam_title": serializers.CharField(),
+                        "course": serializers.CharField(),
+                        "percentage": serializers.FloatField(),
+                        "score": serializers.FloatField(),
+                        "total_marks": serializers.FloatField(),
+                        "passed": serializers.BooleanField(),
+                        "correct_count": serializers.IntegerField(),
+                        "incorrect_count": serializers.IntegerField(),
+                        "unanswered_count": serializers.IntegerField(),
+                        "graded_at": serializers.DateTimeField(),
+                    },
+                )
+            ),
+        },
+    ),
+    tags=["Reports"],
+)
 class StudentHistoryView(APIView):
     """GET /api/reports/students/{student_id}/ — a student's attempt history + summary."""
 
