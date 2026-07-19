@@ -343,6 +343,9 @@ class Result(SoftDeleteModel):
         Student,
         on_delete=models.PROTECT,
         related_name="results",
+        null=True,
+        blank=True,
+        help_text="Optional link to a known student (public attempts may be anonymous).",
     )
 
     score = models.FloatField(default=0.0, help_text="Marks obtained")
