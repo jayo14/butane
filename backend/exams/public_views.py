@@ -13,6 +13,8 @@ from rest_framework.exceptions import NotFound, PermissionDenied, ValidationErro
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers
 
 from accounts.models import Student, User
 
@@ -111,33 +113,12 @@ def _result_response(attempt: Attempt, result: Result) -> Response:
             for a in attempt.answers.all()
         ]
     return Response(data, status=status.HTTP_201_CREATED)
-    """Build the submit response, honouring the exam's result-visibility settings.
-
-    - ``show_result=False`` → hidden results: only confirmation, no scores.
-    - ``show_result=True``  → instant results: full score breakdown.
-    - ``allow_review=True`` → include the per-question review (still no correct answer text).
-    """
-    if not attempt.exam.show_result:
-        return Response(
-            {"detail": "Exam submitted successfully.", "attempt_id": str(attempt.id), "show_result": False},
-            status=status.HTTP_201_CREATED,
-        )
-
-    data = ResultSerializer(result).data
-    data["show_result"] = True
-    data["allow_review"] = attempt.exam.allow_review
-    if attempt.exam.allow_review:
-        data["answers"] = [
-            {
-                "question": str(a.question_id),
-                "selected_choice": str(a.selected_choice_id) if a.selected_choice_id else None,
-                "is_correct": a.is_correct,
-            }
-            for a in attempt.answers.all()
-        ]
-    return Response(data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(
+    responses=PublicExamSerializer,
+    tags=["Public"],
+)
 class PublicExamDetailView(APIView):
     """GET /api/public/exams/{token}/ — safe, public exam details."""
 
@@ -151,6 +132,11 @@ class PublicExamDetailView(APIView):
         return Response(data)
 
 
+@extend_schema(
+    request=StartExamRequestSerializer,
+    responses={200: PublicAttemptSerializer, 201: PublicAttemptSerializer},
+    tags=["Public"],
+)
 class StartAttemptView(APIView):
     """POST /api/public/exams/{token}/start/ — create student + attempt (resume if exists)."""
 
@@ -194,6 +180,16 @@ class StartAttemptView(APIView):
         return Response(PublicAttemptSerializer(attempt).data, status=status.HTTP_201_CREATED)
 
 
+@extend_schema(
+    parameters=[
+        inline_serializer(
+            "ResumeAttemptToken",
+            fields={"token": serializers.CharField(help_text="Access token for the attempt.")},
+        )
+    ],
+    responses=PublicAttemptSerializer,
+    tags=["Public"],
+)
 class ResumeAttemptView(APIView):
     """GET /api/public/attempts/{attempt_id}/ — return an attempt + saved answers."""
 
@@ -206,6 +202,11 @@ class ResumeAttemptView(APIView):
         return Response(PublicAttemptSerializer(attempt).data)
 
 
+@extend_schema(
+    request=SaveAttemptRequestSerializer,
+    responses=PublicAttemptSerializer,
+    tags=["Public"],
+)
 class SaveAttemptView(APIView):
     """POST /api/public/attempts/{attempt_id}/save/ — autosave answers."""
 
@@ -235,6 +236,40 @@ class SaveAttemptView(APIView):
         return Response(PublicAttemptSerializer(attempt).data, status=status.HTTP_200_OK)
 
 
+@extend_schema(
+    request=SaveAttemptRequestSerializer,
+    responses={
+        status.HTTP_201_CREATED: inline_serializer(
+            "SubmitResultResponse",
+            fields={
+                "detail": serializers.CharField(required=False),
+                "attempt_id": serializers.UUIDField(required=False),
+                "show_result": serializers.BooleanField(),
+                "allow_review": serializers.BooleanField(required=False),
+                "score": serializers.FloatField(required=False),
+                "total_marks": serializers.FloatField(required=False),
+                "percentage": serializers.FloatField(required=False),
+                "passed": serializers.BooleanField(required=False),
+                "correct_count": serializers.IntegerField(required=False),
+                "incorrect_count": serializers.IntegerField(required=False),
+                "unanswered_count": serializers.IntegerField(required=False),
+                "graded_at": serializers.DateTimeField(required=False),
+                "answers": serializers.ListField(
+                    required=False,
+                    child=inline_serializer(
+                        "SubmitAnswerReview",
+                        fields={
+                            "question": serializers.UUIDField(),
+                            "selected_choice": serializers.UUIDField(allow_null=True),
+                            "is_correct": serializers.BooleanField(),
+                        },
+                    ),
+                ),
+            },
+        )
+    },
+    tags=["Public"],
+)
 class SubmitAttemptView(APIView):
     """POST /api/public/attempts/{attempt_id}/submit/ — grade and finalize."""
 
