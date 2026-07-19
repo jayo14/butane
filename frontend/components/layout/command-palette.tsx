@@ -7,9 +7,9 @@ import { useRouter } from "next/navigation"
 import { NAV_ITEMS } from "@/lib/constants"
 
 const extraCommands = [
-  { label: "View Results", href: "/dashboard/results", icon: BarChart3 },
-  { label: "Create Exam", href: "/dashboard/exams", icon: FileText },
-  { label: "Add Student", href: "/dashboard/students", icon: Users },
+  { label: "View Results", href: "/dashboard/results", icon: "bar-chart-3" },
+  { label: "Create Exam", href: "/dashboard/exams", icon: "clipboard-list" },
+  { label: "Add Student", href: "/dashboard/students", icon: "users" },
 ]
 
 export function CommandPalette() {
@@ -53,13 +53,16 @@ export function CommandPalette() {
     router.push(href)
   }
 
-  const iconMap: Record<string, typeof LayoutDashboard> = {
-    "layout-dashboard": LayoutDashboard,
-    users: Users,
-    "book-open": BookOpen,
-    "clipboard-list": ClipboardList,
-    "bar-chart-3": BarChart3,
-    settings: Settings,
+  function getIcon(iconName: string) {
+    const icons: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
+      "layout-dashboard": LayoutDashboard,
+      users: Users,
+      "book-open": BookOpen,
+      "clipboard-list": ClipboardList,
+      "bar-chart-3": BarChart3,
+      settings: Settings,
+    }
+    return icons[iconName] || GraduationCap
   }
 
   return (
@@ -109,7 +112,7 @@ export function CommandPalette() {
                   ) : (
                     <div className="space-y-0.5">
                       {filtered.map((item) => {
-                        const IconComponent = iconMap[item.icon] || GraduationCap
+                        const IconComponent = getIcon(item.icon)
                         return (
                           <button
                             key={item.href}

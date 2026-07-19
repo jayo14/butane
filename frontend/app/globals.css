@@ -1,12 +1,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-
-@import "@heroui/styles/dist/base/base.css" layer(base);
-@import "@heroui/styles/dist/base/scrollbar.css" layer(base);
-@import "@heroui/styles/dist/components/index.css" layer(components);
-@import "@heroui/styles/dist/themes/default/index.css" layer(theme);
-@import "@heroui/styles/dist/utilities/index.css";
-@import "@heroui/styles/dist/variants/index.css";
+@import "@heroui/styles/css";
 
 @theme {
   --color-surface-primary: #FFFFFF;
@@ -70,6 +64,24 @@ body {
 ::selection {
   background-color: var(--color-primary);
   color: var(--color-primary-foreground);
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.4; transform: scale(1); }
+  50% { opacity: 0.2; transform: scale(1.05); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 4s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
