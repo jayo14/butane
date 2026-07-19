@@ -223,6 +223,12 @@ class Attempt(SoftDeleteModel):
     One attempt represents a single sitting. Linking to both the student and the
     exam lets us compute per-student and per-exam analytics, enforce one active
     attempt at a time, and attribute results even after the exam is archived.
+
+    For the public (unauthenticated) flow the student may be anonymous: the
+    identity snapshot (name, admission number, class, term) is captured directly
+    on the attempt and the ``student`` FK is optional. An ``access_token`` guards
+    the unauthenticated save/resume/submit endpoints so only the holder of an
+    attempt can mutate it.
     """
 
     STATUS_CHOICES = [
@@ -241,20 +247,40 @@ class Attempt(SoftDeleteModel):
         Student,
         on_delete=models.PROTECT,
         related_name="attempts",
+        null=True,
+        blank=True,
+        help_text="Optional link to a known student account (public attempts may be anonymous).",
     )
+
+    # Identity snapshot captured at start time for the public flow.
+    student_name = models.CharField(max_length=160, blank=True)
+    admission_number = models.CharField(max_length=64, blank=True, db_index=True)
+    class_group = models.CharField(max_length=40, blank=True)
+    term = models.CharField(max_length=40, blank=True)
+
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="in_progress")
+
+    # Guard token for unauthenticated save/resume/submit endpoints.
+    access_token = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
 
     started_at = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
     duration_seconds = models.PositiveIntegerField(default=0, help_text="Time spent on the attempt")
+    client_meta = models.JSONField(default=dict, blank=True, help_text="Free-form client metadata (e.g. device, timing).")
 
     class Meta:
         db_table = "exams_attempt"
         ordering = ["-started_at"]
-        indexes = [models.Index(fields=["exam", "student"])]
+        indexes = [models.Index(fields=["exam", "admission_number"])]
 
     def __str__(self) -> str:
-        return f"{self.student} → {self.exam} ({self.status})"
+        return f"{self.student_name or self.admission_number or self.student} → {self.exam} ({self.status})"
+
+    def generate_access_token(self) -> str:
+        from django.utils.crypto import get_random_string
+
+        self.access_token = get_random_string(48)
+        return self.access_token
 
 
 class AttemptAnswer(TimestampedModel):
