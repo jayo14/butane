@@ -824,6 +824,7 @@ function ConfettiAnimation() {
     const canvas = canvasRef.current
     if (!canvas) return
     const ctx = canvas.getContext("2d")
+    if (!ctx) return
     canvas.width = window.innerWidth
     canvas.height = window.innerHeight
     const colors = ["#10b981", "#006c49", "#6ffbbe", "#f9f9ff", "#85f8c4"]
@@ -838,7 +839,7 @@ function ConfettiAnimation() {
     }))
     let frameId: number
     function animate() {
-      if (!ctx) return
+      if (!ctx || !canvas) return
       ctx.clearRect(0, 0, canvas.width, canvas.height)
       pieces.forEach((p) => {
         p.y += p.speed

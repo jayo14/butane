@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   Search,
   X,
@@ -14,6 +14,7 @@ import {
   Calendar,
   Users,
   Filter,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -22,22 +23,50 @@ import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
 import { formatDate, formatDuration } from "@/lib/utils"
+import { api } from "@/lib/api"
 import type { ExamAttempt, StudentWithResults } from "@/types"
 
 const ITEMS_PER_PAGE = 10
 
-export function ResultsPageClient({
-  attempts,
-  students,
-}: {
-  attempts: ExamAttempt[]
-  students: StudentWithResults[]
-}) {
+export function ResultsPageClient() {
+  const [attempts, setAttempts] = useState<ExamAttempt[]>([])
+  const [students, setStudents] = useState<StudentWithResults[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [examFilter, setExamFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      api.results.list().then(r => r.results || []).catch(() => []),
+      api.students.list().catch(() => []),
+    ]).then(([results, studentsList]) => {
+      setAttempts(results.map((r) => ({
+        id: r.id,
+        examId: r.exam,
+        examTitle: r.exam_title,
+        course: r.course,
+        date: r.graded_at,
+        score: r.score,
+        totalMarks: r.total_marks,
+        passed: r.passed,
+        duration: 0,
+        studentName: r.student_name,
+      })))
+      setStudents(studentsList.map((s) => ({
+        id: s.id,
+        firstName: s.user.first_name,
+        lastName: s.user.last_name,
+        email: s.user.email,
+        grade: s.grade,
+        status: s.status,
+        summary: { totalExams: 0, completedExams: 0, averageScore: 0, highestScore: 0, lowestScore: 0, passRate: 0, rank: 0 },
+        attempts: [] as any[],
+      })))
+    }).finally(() => setLoading(false))
+  }, [])
 
   const examNames = useMemo(() => {
     const set = new Set(attempts.map((a) => a.examTitle))
@@ -177,7 +206,15 @@ export function ResultsPageClient({
         )}
       </div>
 
-      {attempts.length === 0 && (
+      {loading && (
+        <Card padding="lg">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={32} className="animate-spin" style={{ color: "#006c49" }} />
+          </div>
+        </Card>
+      )}
+
+      {!loading && attempts.length === 0 && (
         <Card padding="lg">
           <EmptyState
             icon={<GraduationCap size={40} />}
