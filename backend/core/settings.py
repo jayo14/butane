@@ -110,16 +110,23 @@ ASGI_APPLICATION = "core.asgi.application"
 
 
 # --- Database ---------------------------------------------------------------
-import dj_database_url
+from urllib.parse import urlparse, parse_qsl
 
 database_url = env("DATABASE_URL", default="")
 if database_url:
+    tmp = urlparse(database_url)
     DATABASES = {
-        "default": dj_database_url.config(
-            default=database_url,
-            conn_max_age=60,
-            conn_health_checks=True,
-        )
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": tmp.path.replace("/", ""),
+            "USER": tmp.username,
+            "PASSWORD": tmp.password,
+            "HOST": tmp.hostname,
+            "PORT": tmp.port or 5432,
+            "CONN_MAX_AGE": 60,
+            "CONN_HEALTH_CHECKS": True,
+            "OPTIONS": dict(parse_qsl(tmp.query)),
+        }
     }
 else:
     DB_ENGINE = env("DB_ENGINE", default="sqlite")
