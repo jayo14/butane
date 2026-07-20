@@ -54,6 +54,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
         attemptId: attempt.id,
         accessToken: attempt.access_token || "",
         name: studentName.trim(),
+        token: exam.token,
       })
       router.push(`/exam/${exam.id}/take?${params.toString()}`)
     } catch (err) {
