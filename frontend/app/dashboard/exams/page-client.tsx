@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -21,6 +21,7 @@ import {
   Users,
   FileText,
   GraduationCap,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -30,7 +31,7 @@ import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Dropdown } from "@/components/ui/dropdown"
 import { formatDate, formatDuration } from "@/lib/utils"
-import { api, transformExam } from "@/lib/api"
+import { api, transformExam, fetchExams } from "@/lib/api"
 import type { Exam } from "@/types"
 
 const statusConfig: Record<string, { label: string; variant: "info" | "warning" | "success" | "danger" }> = {
@@ -43,12 +44,20 @@ const statusConfig: Record<string, { label: string; variant: "info" | "warning" 
 
 const ITEMS_PER_PAGE = 6
 
-export function ExamsPageClient({ exams: initialExams }: { exams: Exam[] }) {
+export function ExamsPageClient() {
   const router = useRouter()
-  const [exams, setExams] = useState(initialExams)
+  const [exams, setExams] = useState<Exam[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    fetchExams()
+      .then(setExams)
+      .catch(() => setExams([]))
+      .finally(() => setLoading(false))
+  }, [])
 
   const filtered = useMemo(() => {
     let result = exams
@@ -178,8 +187,17 @@ export function ExamsPageClient({ exams: initialExams }: { exams: Exam[] }) {
         </div>
       </Card>
 
+      {/* Loading state */}
+      {loading && (
+        <Card padding="lg">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={32} className="animate-spin" style={{ color: "#006c49" }} />
+          </div>
+        </Card>
+      )}
+
       {/* Empty State (no exams at all) */}
-      {exams.length === 0 && !hasActiveFilters && (
+      {!loading && exams.length === 0 && !hasActiveFilters && (
         <Card padding="lg">
           <EmptyState
             icon={<GraduationCap size={40} />}
