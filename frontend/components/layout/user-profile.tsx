@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation"
 import { User, Settings, LogOut, ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getInitials } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
 
 export function UserProfile() {
   const router = useRouter()
+  const { user, logout } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const buttonRef = useRef<HTMLButtonElement>(null)
@@ -44,10 +46,16 @@ export function UserProfile() {
     }
   }, [isOpen])
 
-  function handleLogout() {
+  async function handleLogout() {
     setIsOpen(false)
+    await logout()
     router.push("/login")
   }
+
+  const initials = user ? getInitials(user.full_name) : "U"
+  const displayName = user ? user.full_name : "User"
+  const displayEmail = user ? user.email : ""
+  const shortName = user ? (user.first_name || user.full_name.split(" ")[0] || "User") : "User"
 
   return (
     <div className="relative">
@@ -60,9 +68,9 @@ export function UserProfile() {
         aria-expanded={isOpen}
       >
         <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
-          {getInitials("Admin User")}
+          {initials}
         </div>
-        <span className="hidden text-sm font-medium text-content-primary md:block">Admin</span>
+        <span className="hidden text-sm font-medium text-content-primary md:block">{shortName}</span>
         <ChevronDown
           size={16}
           className={cn(
@@ -81,8 +89,8 @@ export function UserProfile() {
         >
           <div className="overflow-hidden rounded-2xl border border-border-primary bg-white shadow-dropdown">
             <div className="border-b border-border-primary px-4 py-3">
-              <p className="text-sm font-medium text-content-primary">Admin User</p>
-              <p className="text-xs text-content-secondary">admin@deesoar.edu</p>
+              <p className="text-sm font-medium text-content-primary">{displayName}</p>
+              <p className="text-xs text-content-secondary">{displayEmail}</p>
             </div>
 
             <div className="p-1.5">

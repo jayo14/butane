@@ -257,11 +257,15 @@ export function transformAttempt(api: ApiResult, studentName?: string, studentGr
 export const api = {
   auth: {
     login: (email: string, password: string) =>
-      apiFetch<{ access: string; refresh: string }>("accounts/auth/login/", {
+      apiFetch<{ access: string; refresh: string; user: ApiUser }>("accounts/auth/login/", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
-    logout: () => apiFetch<void>("accounts/auth/logout/", { method: "POST" }),
+    logout: (refresh: string) =>
+      apiFetch<void>("accounts/auth/logout/", {
+        method: "POST",
+        body: JSON.stringify({ refresh }),
+      }),
     refresh: (refresh: string) =>
       apiFetch<{ access: string }>("accounts/auth/refresh/", {
         method: "POST",

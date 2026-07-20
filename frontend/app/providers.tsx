@@ -1,5 +1,6 @@
 "use client"
 
+import { AuthProvider } from "@/lib/auth-context"
 import { ToastProvider } from "@/components/ui/toast"
 
 interface ProvidersProps {
@@ -8,8 +9,10 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <ToastProvider>
-      {children}
-    </ToastProvider>
+    <AuthProvider>
+      <ToastProvider>
+        {children}
+      </ToastProvider>
+    </AuthProvider>
   )
 }

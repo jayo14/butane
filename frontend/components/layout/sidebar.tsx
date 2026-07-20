@@ -2,10 +2,11 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn, getInitials } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-media-query"
 import { useDisclosure } from "@/hooks/use-disclosure"
 import { NAV_ITEMS, APP_NAME } from "@/lib/constants"
+import { useAuth } from "@/lib/auth-context"
 import { CommandPalette } from "./command-palette"
 import {
   LayoutDashboard,
@@ -35,6 +36,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const { isOpen, onToggle, onClose } = useDisclosure(false)
+  const { user } = useAuth()
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -96,11 +98,15 @@ export function Sidebar() {
           className="flex items-center gap-3 rounded-xl bg-surface-secondary px-3 py-2.5 transition-colors hover:bg-surface-secondary/80"
         >
           <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-xs font-semibold text-white shadow-sm">
-            AU
+            {user ? getInitials(user.full_name) : "AU"}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-content-primary">Admin User</p>
-            <p className="truncate text-xs text-content-muted">admin@deesoar.edu</p>
+            <p className="truncate text-sm font-medium text-content-primary">
+              {user ? user.full_name : "User"}
+            </p>
+            <p className="truncate text-xs text-content-muted">
+              {user ? user.email : ""}
+            </p>
           </div>
         </Link>
       </div>

@@ -8,10 +8,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Eye, EyeOff, LogIn, AlertCircle, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/lib/auth-context"
 
 const loginSchema = z.object({
   email: z.string().min(1, "Email is required").email("Enter a valid email address"),
-  password: z.string().min(1, "Password is required").min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Password is required"),
   rememberMe: z.boolean().optional(),
 })
 
@@ -19,6 +20,7 @@ type LoginFormData = z.infer<typeof loginSchema>
 
 export function LoginForm() {
   const router = useRouter()
+  const { login, isLoading: authLoading } = useAuth()
   const [showPassword, setShowPassword] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [shakeKey, setShakeKey] = useState(0)
@@ -27,7 +29,7 @@ export function LoginForm() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting, isValid },
+    formState: { errors, isSubmitting },
     setFocus,
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -48,22 +50,23 @@ export function LoginForm() {
 
   async function onSubmit(data: LoginFormData) {
     setSubmitError(null)
-    await new Promise((r) => setTimeout(r, 1500))
-    if (data.email === "admin@deesoar.edu" && data.password === "password") {
+    try {
+      await login(data.email, data.password)
       router.push("/dashboard")
-    } else {
-      setSubmitError("Invalid email or password. Please try again.")
+    } catch (err: any) {
+      const message = err?.message || "Invalid email or password. Please try again."
+      setSubmitError(message)
       setFocus("email")
     }
   }
+
+  const isDisabled = isSubmitting || authLoading
 
   return (
     <div className="py-6 md:py-8">
       <div className="mb-8 text-center lg:text-left">
         <h1 className="text-2xl font-bold text-content-primary">Welcome back</h1>
-        <p className="mt-1.5 text-content-secondary">
-          Sign in to your account to continue
-        </p>
+        <p className="mt-1.5 text-content-secondary">Sign in to your account to continue</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
@@ -103,10 +106,7 @@ export function LoginForm() {
               aria-describedby={errors.email ? "email-error" : undefined}
             />
             {errors.email && (
-              <AlertCircle
-                size={16}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-danger"
-              />
+              <AlertCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-danger" />
             )}
           </div>
           {errors.email && (
@@ -172,7 +172,7 @@ export function LoginForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isDisabled}
           className={cn(
             "relative flex h-12 w-full items-center justify-center gap-2.5 rounded-xl text-sm font-semibold text-white",
             "transition-all duration-200",
@@ -181,7 +181,7 @@ export function LoginForm() {
             "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
           )}
         >
-          {isSubmitting ? (
+          {isDisabled ? (
             <>
               <Loader2 size={18} className="animate-spin" />
               Signing in...
