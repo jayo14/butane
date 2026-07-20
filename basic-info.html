@@ -166,7 +166,7 @@
               <!-- Exam Title -->
               <div class="space-y-2">
                 <label for="exam-title" class="ml-1 block text-sm font-semibold tracking-[0.02em]" style="color:#3c4a42">
-                  Exam Title
+                  Exam Title <span style="color:#ba1a1a">*</span>
                 </label>
                 <div class="relative group">
                   <input id="exam-title" type="text" placeholder="e.g. Midterm: Cellular Biology &amp; Genetics"
@@ -177,6 +177,7 @@
                     <span class="material-symbols-outlined">edit</span>
                   </div>
                 </div>
+                <p class="ml-1 mt-1 text-xs hidden" style="color:#ba1a1a" role="alert">Exam title is required</p>
               </div>
 
               <!-- Subject + Grade Level Grid -->
@@ -185,7 +186,7 @@
                 <!-- Subject -->
                 <div class="space-y-2">
                   <label for="subject" class="ml-1 block text-sm font-semibold tracking-[0.02em]" style="color:#3c4a42">
-                    Subject
+                    Subject <span style="color:#ba1a1a">*</span>
                   </label>
                   <div class="relative">
                     <select id="subject"
@@ -206,12 +207,13 @@
                       <span class="material-symbols-outlined">expand_more</span>
                     </div>
                   </div>
+                  <p class="ml-1 mt-1 text-xs hidden" style="color:#ba1a1a" role="alert">Please select a subject</p>
                 </div>
 
                 <!-- Grade Level -->
                 <div class="space-y-2">
                   <label for="grade-level" class="ml-1 block text-sm font-semibold tracking-[0.02em]" style="color:#3c4a42">
-                    Grade Level
+                    Grade Level <span style="color:#ba1a1a">*</span>
                   </label>
                   <div class="relative">
                     <select id="grade-level"
