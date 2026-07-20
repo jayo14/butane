@@ -4,12 +4,13 @@ from __future__ import annotations
 from rest_framework import generics, permissions
 from drf_spectacular.utils import extend_schema
 
-from .auth import CurrentUserView, LoginView, LogoutView, ProfileView
+from .auth import ChangePasswordView, CurrentUserView, LoginView, LogoutView, ProfileView
 from .models import Student, Teacher
 from .permissions import IsTeacher
 from .serializers import StudentSerializer, TeacherSerializer
 
 __all__ = [
+    "ChangePasswordView",
     "LoginView",
     "LogoutView",
     "CurrentUserView",

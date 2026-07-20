@@ -7,7 +7,8 @@ refresh token so it cannot be reused.
 """
 from __future__ import annotations
 
-from rest_framework import status
+from django.contrib.auth import get_user_model
+from rest_framework import serializers, status
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -16,13 +17,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView
 from drf_spectacular.utils import extend_schema, inline_serializer
-from rest_framework import serializers
 
 from .models import Teacher
 from .serializers import TeacherSerializer, UserSerializer
 from core.throttling import LoginRateThrottle
 
 AUTHENTICATABLE_ROLES = {"teacher", "admin"}
+User = get_user_model()
 
 
 class TeacherTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -110,3 +111,49 @@ class ProfileView(APIView):
         if not teacher:
             return Response({"detail": "Teacher profile not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(TeacherSerializer(teacher).data)
+
+
+@extend_schema(
+    request=inline_serializer(
+        "ChangePasswordRequest",
+        fields={
+            "old_password": serializers.CharField(),
+            "new_password": serializers.CharField(min_length=8),
+        },
+    ),
+    responses={204: None},
+)
+class ChangePasswordView(APIView):
+    """Change the authenticated user's password."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        old = request.data.get("old_password")
+        new = request.data.get("new_password")
+
+        if not old or not new:
+            return Response(
+                {"error": {"code": "validation_error", "message": "Both old and new passwords are required.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if len(new) < 8:
+            return Response(
+                {"error": {"code": "validation_error", "message": "New password must be at least 8 characters.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not user.check_password(old):
+            return Response(
+                {"error": {"code": "authentication_failed", "message": "Current password is incorrect.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if old == new:
+            return Response(
+                {"error": {"code": "validation_error", "message": "New password must differ from current password.", "details": {}}},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        user.set_password(new)
+        user.save(update_fields=["password"])
+        return Response(status=status.HTTP_204_NO_CONTENT)

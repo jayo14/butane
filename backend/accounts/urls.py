@@ -6,6 +6,7 @@ from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
+    ChangePasswordView,
     CurrentUserView,
     LoginView,
     LogoutView,
@@ -24,6 +25,7 @@ urlpatterns = [
     # Authenticated user
     path("me/", CurrentUserView.as_view(), name="current_user"),
     path("profile/", ProfileView.as_view(), name="profile"),
+    path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
     # Directories
     path("teachers/", TeacherListView.as_view(), name="teacher_list"),
     path("students/", StudentListView.as_view(), name="student_list"),

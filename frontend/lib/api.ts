@@ -1,10 +1,121 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 export class ApiError extends Error {
-  constructor(public status: number, message: string) {
+  constructor(
+    public status: number,
+    message: string,
+    public code?: string,
+  ) {
     super(message)
     this.name = "ApiError"
   }
+}
+
+function extractMessage(body: any, statusText: string): { message: string; code?: string } {
+  if (!body || typeof body !== "object") {
+    return { message: statusText }
+  }
+
+  if (body.error && typeof body.error === "object") {
+    return {
+      message: body.error.message || body.error.detail || statusText,
+      code: body.error.code,
+    }
+  }
+
+  if (body.detail) {
+    return { message: body.detail }
+  }
+
+  if (body.message) {
+    return { message: body.message }
+  }
+
+  const firstVal = Object.values(body)[0]
+  if (Array.isArray(firstVal)) {
+    return { message: String(firstVal[0]) }
+  }
+  if (typeof firstVal === "string") {
+    return { message: firstVal }
+  }
+
+  return { message: statusText }
+}
+
+const REFRESH_ENDPOINT = "accounts/auth/refresh/"
+let isRefreshing = false
+let refreshPromise: Promise<string | null> | null = null
+
+function dispatchAuthExpired() {
+  if (typeof window === "undefined") return
+  window.dispatchEvent(new CustomEvent("auth:expired"))
+}
+
+function getRefreshToken(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("refresh_token")
+}
+
+function setAccessToken(token: string) {
+  if (typeof window === "undefined") return
+  localStorage.setItem("access_token", token)
+}
+
+function clearSession() {
+  if (typeof window === "undefined") return
+  localStorage.removeItem("access_token")
+  localStorage.removeItem("refresh_token")
+  localStorage.removeItem("auth_user")
+}
+
+async function attemptTokenRefresh(): Promise<string | null> {
+  const refresh = getRefreshToken()
+  if (!refresh) return null
+
+  if (isRefreshing && refreshPromise) {
+    return refreshPromise
+  }
+
+  isRefreshing = true
+  refreshPromise = (async () => {
+    try {
+      const res = await fetch(`${BASE_URL}/api/${REFRESH_ENDPOINT}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      })
+      if (!res.ok) {
+        clearSession()
+        dispatchAuthExpired()
+        return null
+      }
+      const data = await res.json()
+      setAccessToken(data.access)
+      return data.access
+    } catch {
+      clearSession()
+      dispatchAuthExpired()
+      return null
+    } finally {
+      isRefreshing = false
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
+async function doFetch(
+  endpoint: string,
+  options: RequestInit,
+  token: string | null,
+): Promise<Response> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(options.headers as Record<string, string>),
+  }
+  if (token) headers["Authorization"] = `Bearer ${token}`
+  return fetch(`${BASE_URL}/api/${endpoint}`, { ...options, headers })
 }
 
 export async function apiFetch<T>(
@@ -13,21 +124,19 @@ export async function apiFetch<T>(
 ): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string>),
+  let res = await doFetch(endpoint, options, token)
+
+  if (res.status === 401 && typeof window !== "undefined") {
+    const newToken = await attemptTokenRefresh()
+    if (newToken) {
+      res = await doFetch(endpoint, options, newToken)
+    }
   }
-
-  if (token) headers["Authorization"] = `Bearer ${token}`
-
-  const res = await fetch(`${BASE_URL}/api/${endpoint}`, {
-    ...options,
-    headers,
-  })
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, body.detail || body.message || res.statusText)
+    const { message, code } = extractMessage(body, res.statusText)
+    throw new ApiError(res.status, message, code)
   }
 
   if (res.status === 204) return undefined as T
@@ -273,6 +382,11 @@ export const api = {
       }),
     me: () => apiFetch<ApiUser>("accounts/me/"),
     profile: () => apiFetch<ApiTeacherProfile>("accounts/profile/"),
+    changePassword: (oldPassword: string, newPassword: string) =>
+      apiFetch<void>("accounts/auth/change-password/", {
+        method: "POST",
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword }),
+      }),
   },
 
   teachers: {

@@ -1,6 +1,7 @@
 import { Sidebar } from "@/components/layout/sidebar"
 import { Header } from "@/components/layout/header"
 import { AuthGuard } from "./auth-guard"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 
 export default function DashboardLayout({
   children,
@@ -20,7 +21,7 @@ export default function DashboardLayout({
         <div className="flex flex-1 flex-col overflow-hidden">
           <Header />
           <main id="main-content" className="flex-1 overflow-y-auto bg-surface-secondary p-4 md:p-6 lg:p-8">
-            {children}
+            <ErrorBoundary>{children}</ErrorBoundary>
           </main>
         </div>
       </div>

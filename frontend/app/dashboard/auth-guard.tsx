@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, type ReactNode } from "react"
+import { useEffect, useCallback, type ReactNode } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Loader2 } from "lucide-react"
@@ -17,18 +17,31 @@ interface AuthGuardProps {
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter()
   const pathname = usePathname()
-  const { isAuthenticated, isLoading, user, hasRole } = useAuth()
+  const { isAuthenticated, isLoading, user, hasRole, logout } = useAuth()
+
+  const redirectToLogin = useCallback(() => {
+    router.replace("/login")
+  }, [router])
+
+  useEffect(() => {
+    function handleAuthExpired() {
+      logout()
+      redirectToLogin()
+    }
+    window.addEventListener("auth:expired", handleAuthExpired)
+    return () => window.removeEventListener("auth:expired", handleAuthExpired)
+  }, [logout, redirectToLogin])
 
   useEffect(() => {
     if (isLoading) return
 
     if (!isAuthenticated) {
-      router.replace("/login")
+      redirectToLogin()
       return
     }
 
     if (!hasRole("admin", "teacher")) {
-      router.replace("/login")
+      redirectToLogin()
       return
     }
 
@@ -37,7 +50,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
       router.replace("/dashboard")
       return
     }
-  }, [isLoading, isAuthenticated, pathname, router, hasRole])
+  }, [isLoading, isAuthenticated, pathname, router, hasRole, redirectToLogin])
 
   if (isLoading) {
     return (

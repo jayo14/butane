@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import Link from "next/link"
 import {
   Mail,
@@ -12,12 +13,14 @@ import {
   Edit3,
   Award,
   Lock,
+  KeyRound,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
+import { ChangePasswordModal } from "@/components/auth/change-password-modal"
 import type { ApiTeacherProfile } from "@/lib/api"
 
 const roleBadge: Record<string, { label: string; variant: "primary" | "success" | "info" }> = {
@@ -26,6 +29,7 @@ const roleBadge: Record<string, { label: string; variant: "primary" | "success" 
 }
 
 export function ProfilePageClient({ profile }: { profile: ApiTeacherProfile }) {
+  const [showChangePassword, setShowChangePassword] = useState(false)
   const user = profile.user
   const role = roleBadge[user.role] || { label: user.role, variant: "info" as const }
 
@@ -124,22 +128,25 @@ export function ProfilePageClient({ profile }: { profile: ApiTeacherProfile }) {
                   <p className="text-xs text-content-muted">Update your personal information</p>
                 </div>
               </Link>
-              <Link
-                href="/dashboard/settings"
-                className="flex items-center gap-3 rounded-xl border border-border-primary p-4 transition-all hover:border-primary/30 hover:shadow-card"
+              <button
+                type="button"
+                onClick={() => setShowChangePassword(true)}
+                className="flex items-center gap-3 rounded-xl border border-border-primary p-4 text-left transition-all hover:border-primary/30 hover:shadow-card"
               >
                 <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                  <Lock size={20} />
+                  <KeyRound size={20} />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-content-primary">Security</p>
-                  <p className="text-xs text-content-muted">Change password and security settings</p>
+                  <p className="text-sm font-medium text-content-primary">Change Password</p>
+                  <p className="text-xs text-content-muted">Update your account password</p>
                 </div>
-              </Link>
+              </button>
             </div>
           </Card>
         </div>
       </div>
+
+      <ChangePasswordModal isOpen={showChangePassword} onClose={() => setShowChangePassword(false)} />
     </Container>
   )
 }
