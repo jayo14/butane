@@ -63,19 +63,22 @@ export function LoginForm() {
   const isDisabled = isSubmitting || authLoading
 
   return (
-    <div className="py-6 md:py-8">
+    <div className="py-8 md:py-10">
       <div className="mb-8 text-center lg:text-left">
-        <h1 className="text-2xl font-bold text-content-primary">Welcome back</h1>
-        <p className="mt-1.5 text-content-secondary">Sign in to your account to continue</p>
+        <div className="mx-auto lg:mx-0 mb-4 flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/70 text-white shadow-lg shadow-primary/30">
+          <LogIn size={28} />
+        </div>
+        <h1 className="text-3xl font-bold text-content-primary">Welcome back</h1>
+        <p className="mt-2 text-base text-content-secondary">Sign in to your account to continue</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6" noValidate>
         {submitError && (
           <div
             key={shakeKey}
             ref={errorRef}
             tabIndex={-1}
-            className="animate-in fade-in slide-in-from-top-2 rounded-xl border border-danger/20 bg-danger-light p-3 text-sm text-danger shake-error"
+            className="animate-in fade-in slide-in-from-top-2 rounded-2xl border-2 border-danger/20 bg-danger-light p-4 text-sm text-danger shake-error"
             role="alert"
           >
             <div className="flex items-center gap-2">
@@ -174,29 +177,25 @@ export function LoginForm() {
           type="submit"
           disabled={isDisabled}
           className={cn(
-            "relative flex h-12 w-full items-center justify-center gap-2.5 rounded-xl text-sm font-semibold text-white",
+            "relative flex h-13 w-full items-center justify-center gap-2.5 rounded-2xl text-base font-bold text-white",
             "transition-all duration-200",
-            "bg-primary hover:bg-primary-hover active:scale-[0.98]",
+            "bg-primary hover:bg-primary-hover active:scale-[0.98] shadow-lg shadow-primary/30",
             "disabled:cursor-not-allowed disabled:opacity-60",
             "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
           )}
         >
           {isDisabled ? (
             <>
-              <Loader2 size={18} className="animate-spin" />
+              <Loader2 size={20} className="animate-spin" />
               Signing in...
             </>
           ) : (
             <>
-              <LogIn size={18} />
+              <LogIn size={20} />
               Sign in
             </>
           )}
         </button>
-
-        <div className="text-center text-xs text-content-muted">
-          Press <kbd className="mx-0.5 rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">Enter</kbd> to submit
-        </div>
       </form>
 
       <p className="mt-6 text-center text-sm text-content-secondary">
