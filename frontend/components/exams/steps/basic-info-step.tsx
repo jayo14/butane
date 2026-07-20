@@ -1,8 +1,7 @@
 "use client"
 
 import { useFormContext } from "react-hook-form"
-import { cn } from "@/lib/utils"
-import { AlertCircle, Clock, FileText, HelpCircle, BookOpen, Users, Hash } from "lucide-react"
+import { PenLine, ChevronDown } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 
 interface BasicInfoStepProps {
@@ -11,234 +10,144 @@ interface BasicInfoStepProps {
   terms: { label: string; value: string }[]
 }
 
-export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) {
+export function BasicInfoStep({ subjects, classes }: BasicInfoStepProps) {
   const {
     register,
     formState: { errors },
   } = useFormContext<BasicInfoValues>()
 
-  function inputClass(error?: string) {
-    return cn(
-      "block w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-content-primary placeholder:text-content-secondary",
-      "transition-all duration-200",
-      "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
-      error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
-    )
-  }
-
-  function selectClass(error?: string) {
-    return cn(
-      "block w-full appearance-none rounded-xl border bg-white px-4 py-2.5 pr-10 text-sm text-content-primary",
-      "transition-all duration-200",
-      "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
-      error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
-    )
-  }
-
-  function textareaClass(error?: string) {
-    return cn(
-      "block w-full rounded-xl border bg-white px-4 py-2.5 text-sm text-content-primary placeholder:text-content-secondary",
-      "transition-all duration-200 resize-y min-h-[100px]",
-      "focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20",
-      error ? "border-danger focus:border-danger focus:ring-danger/20" : "border-border-primary",
-    )
-  }
-
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-content-primary">Basic Information</h2>
-        <p className="mt-0.5 text-sm text-content-secondary">
-          Enter the core details for this exam
-        </p>
-      </div>
-
-      <div className="grid gap-5 sm:grid-cols-2">
-        {/* Exam Title */}
-        <div className="sm:col-span-2">
-          <label htmlFor="title" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <FileText size={16} className="text-content-muted" />
-            Exam Title
-          </label>
+    <div className="space-y-8">
+      {/* Exam Title */}
+      <div className="space-y-2">
+        <label htmlFor="exam-title" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+          Exam Title
+        </label>
+        <div className="relative group">
           <input
             {...register("title")}
-            id="title"
-            placeholder="e.g. Algebra I - Midterm Examination"
-            className={inputClass(errors.title?.message)}
-            aria-invalid={!!errors.title}
+            id="exam-title"
+            placeholder="e.g. Midterm: Cellular Biology &amp; Genetics"
+            className="form-well w-full rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] placeholder:text-[#6c7a71]/50 transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+            style={{ borderColor: errors.title ? "#ba1a1a" : "#bbcabf" }}
           />
-          {errors.title && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
-              {errors.title.message}
-            </p>
-          )}
+          <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6c7a71]/30 transition-colors group-focus-within:text-[#006c49]">
+            <PenLine size={20} />
+          </div>
         </div>
+        {errors.title && (
+          <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">
+            {errors.title.message}
+          </p>
+        )}
+      </div>
 
+      {/* Subject + Grade Level Grid */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {/* Subject */}
-        <div>
-          <label htmlFor="subject" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <BookOpen size={16} className="text-content-muted" />
+        <div className="space-y-2">
+          <label htmlFor="subject" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
             Subject
           </label>
           <div className="relative">
             <select
               {...register("subject")}
               id="subject"
-              className={selectClass(errors.subject?.message)}
-              aria-invalid={!!errors.subject}
-              defaultValue=""
+              className="form-well w-full appearance-none rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+              style={{ borderColor: errors.subject ? "#ba1a1a" : "#bbcabf" }}
             >
-              <option value="" disabled>Select subject</option>
+              <option value="">Select subject</option>
               {subjects.map((s) => (
                 <option key={s.value} value={s.value}>{s.label}</option>
               ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6c7a71]">
+              <ChevronDown size={20} />
             </div>
           </div>
           {errors.subject && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
+            <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">
               {errors.subject.message}
             </p>
           )}
         </div>
 
-        {/* Class */}
-        <div>
-          <label htmlFor="class" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <Users size={16} className="text-content-muted" />
-            Class
+        {/* Grade Level (maps to "class") */}
+        <div className="space-y-2">
+          <label htmlFor="grade-level" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+            Grade Level
           </label>
           <div className="relative">
             <select
               {...register("class")}
-              id="class"
-              className={selectClass(errors.class?.message)}
-              aria-invalid={!!errors.class}
-              defaultValue=""
+              id="grade-level"
+              className="form-well w-full appearance-none rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+              style={{ borderColor: errors.class ? "#ba1a1a" : "#bbcabf" }}
             >
-              <option value="" disabled>Select class</option>
+              <option value="">Select grade level</option>
               {classes.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
               ))}
             </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6c7a71]">
+              <ChevronDown size={20} />
             </div>
           </div>
           {errors.class && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
+            <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">
               {errors.class.message}
             </p>
           )}
         </div>
-
-        {/* Term */}
-        <div>
-          <label htmlFor="term" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <BookOpen size={16} className="text-content-muted" />
-            Term
-          </label>
-          <div className="relative">
-            <select
-              {...register("term")}
-              id="term"
-              className={selectClass(errors.term?.message)}
-              aria-invalid={!!errors.term}
-              defaultValue=""
-            >
-              <option value="" disabled>Select term</option>
-              {terms.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
-          </div>
-          {errors.term && (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
-              {errors.term.message}
-            </p>
-          )}
-        </div>
-
-        {/* Duration */}
-        <div>
-          <label htmlFor="duration" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <Clock size={16} className="text-content-muted" />
-            Duration (minutes)
-          </label>
-          <input
-            {...register("duration")}
-            id="duration"
-            type="number"
-            min={1}
-            max={480}
-            className={inputClass(errors.duration?.message)}
-            aria-invalid={!!errors.duration}
-          />
-          {errors.duration ? (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
-              {errors.duration.message}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-content-muted">Max 480 minutes (8 hours)</p>
-          )}
-        </div>
-
-        {/* Question Count */}
-        <div>
-          <label htmlFor="questionCount" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-            <Hash size={16} className="text-content-muted" />
-            Number of Questions
-          </label>
-          <input
-            {...register("questionCount")}
-            id="questionCount"
-            type="number"
-            min={1}
-            max={200}
-            className={inputClass(errors.questionCount?.message)}
-            aria-invalid={!!errors.questionCount}
-          />
-          {errors.questionCount ? (
-            <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-              <AlertCircle size={12} />
-              {errors.questionCount.message}
-            </p>
-          ) : (
-            <p className="mt-1 text-xs text-content-muted">Maximum 200 questions</p>
-          )}
-        </div>
       </div>
 
-      {/* Instructions */}
-      <div>
-        <label htmlFor="instructions" className="mb-1.5 flex items-center gap-1.5 text-sm font-medium text-content-primary">
-          <HelpCircle size={16} className="text-content-muted" />
-          Instructions for Students
+      {/* Description */}
+      <div className="space-y-2">
+        <label htmlFor="description" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+          Exam Description
         </label>
         <textarea
           {...register("instructions")}
-          id="instructions"
+          id="description"
+          placeholder="Briefly describe the learning objectives or instructions for this assessment..."
           rows={4}
-          placeholder="e.g. Read each question carefully. You have 60 minutes to complete this exam. Each question carries equal marks."
-          className={textareaClass(errors.instructions?.message)}
-          aria-invalid={!!errors.instructions}
+          className="form-well w-full resize-none rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] placeholder:text-[#6c7a71]/50 transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+          style={{ borderColor: errors.instructions ? "#ba1a1a" : "#bbcabf" }}
         />
         {errors.instructions && (
-          <p className="mt-1.5 flex items-center gap-1 text-xs text-danger" role="alert">
-            <AlertCircle size={12} />
+          <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">
             {errors.instructions.message}
           </p>
         )}
+      </div>
+
+      {/* Visual Anchor (Image) */}
+      <div className="relative h-40 overflow-hidden rounded-xl">
+        <img
+          className="size-full object-cover"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDURkBFI0ZXnYvLf3AWy4RuiGltLMsGpEq6gPpRHx4fpXcSfEhpCiyvUPJEiImnd2LvhIclJBvL_fUTc9e0opk0JZgDOuD9OtHjI1J1ARcFki_lEXyKY-XIsaw9ShveLL_MGnvqPE7bZxhwgWhomwR3KdjECWG68zBrZhPNBd27npsyo1UGxiQRKzxiH9t2lFF4m7jHe2CJhwa2EjUQRsDVmaGnIWyFQQL-6x7SL-Yrrbso5oV7oFgiQQ"
+          alt=""
+          onError={(e) => {
+            const target = e.currentTarget
+            target.style.display = "none"
+            const parent = target.parentElement
+            if (parent) {
+              parent.style.background = "linear-gradient(135deg, #d9e3f7 0%, #82f5c1 50%, #fcfbf7 100%)"
+            }
+          }}
+        />
+        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,108,73,0.1)" }}>
+          <span
+            className="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest"
+            style={{
+              backgroundColor: "rgba(255,255,255,0.9)",
+              borderColor: "rgba(0,108,73,0.2)",
+              color: "#006c49",
+            }}
+          >
+            STEP 1: IDENTITY
+          </span>
+        </div>
       </div>
     </div>
   )
