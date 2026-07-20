@@ -54,7 +54,7 @@ class ExamListSerializer(serializers.ModelSerializer):
             "id", "title", "course", "course_code", "subject", "class_group", "term",
             "status", "duration_minutes", "total_marks", "passing_marks",
             "passing_percentage", "is_public", "created_by", "question_count",
-            "created_at", "published_at",
+            "short_code", "short_url", "published_at", "created_at",
         ]
 
 
