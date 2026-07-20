@@ -15,7 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { Plus, AlertCircle, FilePlus, Upload, Check, X } from "lucide-react"
+import { Plus, AlertCircle, FilePlus, Upload, Check, X, Loader2, Trash2, Copy, BarChart3 } from "lucide-react"
 import { QuestionCard } from "./question-card"
 import { parseBulkInput } from "./bulk-import-parser"
 import type { Question } from "@/types/exam"
@@ -34,6 +34,7 @@ function createQuestion(number: number): Question {
     })),
     correctAnswerId: "",
     points: 1,
+    difficulty: "medium",
   }
 }
 
@@ -53,6 +54,9 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
     const [bulkInput, setBulkInput] = useState("")
     const [bulkParsedText, setBulkParsedText] = useState("")
     const [bulkSuccessMsg, setBulkSuccessMsg] = useState<string | null>(null)
+    const [bulkLoading, setBulkLoading] = useState(false)
+    const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+    const [selectAll, setSelectAll] = useState(false)
     const bulkTextareaRef = useRef<HTMLTextAreaElement>(null)
     const importedStartRef = useRef<number | null>(null)
     const listRef = useRef<HTMLDivElement>(null)
@@ -105,6 +109,16 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
       onChange([...questions, dupe])
     }
 
+    function duplicateSelected() {
+      const selected = questions.filter((q) => selectedIds.has(q.id))
+      const dupes = selected.map((s) => ({
+        ...s,
+        id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        number: questions.length + 1,
+      }))
+      onChange([...questions, ...dupes])
+    }
+
     function deleteQuestion(questionId: string) {
       onChange(questions.filter((q) => q.id !== questionId).map((q, i) => ({ ...q, number: i + 1 })))
       setErrors((prev) => {
@@ -112,6 +126,48 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
         delete next[questionId]
         return next
       })
+      setSelectedIds((prev) => { const next = new Set(prev); next.delete(questionId); return next })
+    }
+
+    function deleteSelected() {
+      const remaining = questions.filter((q) => !selectedIds.has(q.id)).map((q, i) => ({ ...q, number: i + 1 }))
+      onChange(remaining)
+      setSelectedIds(new Set())
+    }
+
+    function moveUp(questionId: string) {
+      const idx = questions.findIndex((q) => q.id === questionId)
+      if (idx <= 0) return
+      const reordered = [...questions];
+      [reordered[idx - 1], reordered[idx]] = [reordered[idx], reordered[idx - 1]]
+      onChange(reordered.map((q, i) => ({ ...q, number: i + 1 })))
+    }
+
+    function moveDown(questionId: string) {
+      const idx = questions.findIndex((q) => q.id === questionId)
+      if (idx === -1 || idx >= questions.length - 1) return
+      const reordered = [...questions];
+      [reordered[idx], reordered[idx + 1]] = [reordered[idx + 1], reordered[idx]]
+      onChange(reordered.map((q, i) => ({ ...q, number: i + 1 })))
+    }
+
+    function toggleSelect(questionId: string) {
+      setSelectedIds((prev) => {
+        const next = new Set(prev)
+        if (next.has(questionId)) next.delete(questionId)
+        else next.add(questionId)
+        return next
+      })
+    }
+
+    function toggleSelectAll() {
+      if (selectAll) {
+        setSelectedIds(new Set())
+        setSelectAll(false)
+      } else {
+        setSelectedIds(new Set(questions.map((q) => q.id)))
+        setSelectAll(true)
+      }
     }
 
     function handleBulkParse() {
@@ -123,53 +179,70 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
         return
       }
 
-      const parsed = parseBulkInput(trimmed)
-      if (parsed.length === 0) {
-        setBulkSuccessMsg("Could not parse any questions. Check the format and try again.")
-        return
-      }
-
-      const needsReviewCount = parsed.filter((p) => p.needsReview).length
-      const startIndex = questions.length
-
-      const newQuestions: Question[] = parsed.map((p, i) => {
-        const newOptions = p.options.map((o) => ({
-          id: `opt-${Math.random().toString(36).slice(2, 7)}`,
-          label: o.label,
-          text: o.text,
-        }))
-        const correctId =
-          newOptions.find((o) => o.label === p.correctAnswerLabel)?.id ?? ""
-        return {
-          id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-          number: startIndex + i + 1,
-          text: p.text,
-          options: newOptions,
-          correctAnswerId: correctId,
-          points: 1,
-          needsReview: p.needsReview,
-          reviewReason: p.reviewReason,
-        }
-      })
-
-      onChange([...questions, ...newQuestions])
-      setBulkParsedText(trimmed)
-      setBulkSuccessMsg(
-        `Successfully imported ${parsed.length} question${parsed.length !== 1 ? "s" : ""}.` +
-          (needsReviewCount > 0
-            ? ` ${needsReviewCount} need${needsReviewCount !== 1 ? "" : "s"} review.`
-            : ""),
-      )
-      importedStartRef.current = startIndex
-
+      setBulkLoading(true)
+      // Simulate brief loading for UX
       setTimeout(() => {
-        if (listRef.current) {
-          const cards = listRef.current.querySelectorAll("[data-question-card]")
-          if (cards[startIndex]) {
-            cards[startIndex].scrollIntoView({ behavior: "smooth", block: "center" })
-          }
+        const parsed = parseBulkInput(trimmed)
+        setBulkLoading(false)
+
+        if (parsed.length === 0) {
+          setBulkSuccessMsg("Could not parse any questions. Check the format and try again.")
+          return
         }
-      }, 100)
+
+        const needsReviewCount = parsed.filter((p) => p.needsReview).length
+        const startIndex = questions.length
+
+        const newQuestions: Question[] = parsed.map((p, i) => {
+          const newOptions = p.options.map((o) => ({
+            id: `opt-${Math.random().toString(36).slice(2, 7)}`,
+            label: o.label,
+            text: o.text,
+          }))
+          const correctId =
+            newOptions.find((o) => o.label === p.correctAnswerLabel)?.id ?? ""
+          return {
+            id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+            number: startIndex + i + 1,
+            text: p.text,
+            options: newOptions,
+            correctAnswerId: correctId,
+            points: 1,
+            needsReview: p.needsReview,
+            reviewReason: p.reviewReason,
+            difficulty: "medium" as const,
+          }
+        })
+
+        onChange([...questions, ...newQuestions])
+        setBulkParsedText(trimmed)
+
+        if (needsReviewCount > 0) {
+          setBulkSuccessMsg(
+            `Imported ${parsed.length} questions (${parsed.length - needsReviewCount} parsed successfully, ${needsReviewCount} need review).`
+          )
+        } else {
+          setBulkSuccessMsg(
+            `Imported ${parsed.length} question${parsed.length !== 1 ? "s" : ""} — all parsed successfully.`
+          )
+        }
+
+        importedStartRef.current = startIndex
+
+        setTimeout(() => {
+          if (listRef.current) {
+            const cards = listRef.current.querySelectorAll("[data-question-card]")
+            // Scroll to first need-review card, or first imported card
+            const firstNeedsReview = Array.from(cards).findIndex(
+              (c) => c.querySelector("[data-needs-review]")
+            )
+            const target = firstNeedsReview >= 0 ? firstNeedsReview : startIndex
+            if (cards[target]) {
+              cards[target].scrollIntoView({ behavior: "smooth", block: "center" })
+            }
+          }
+        }, 100)
+      }, 400)
     }
 
     function handleBulkCancel() {
@@ -199,7 +272,7 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
     )
 
     return (
-      <div className="flex flex-col gap-8">
+      <div className="flex flex-col gap-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -299,18 +372,26 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
 
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                {bulkSuccessMsg && (
-                  <p
-                    className={`flex items-center gap-1.5 text-sm font-semibold ${bulkSuccessMsg.includes("Could not") || bulkSuccessMsg.includes("already") ? "text-[#ba1a1a]" : "text-[#006c49]"}`}
+                {bulkSuccessMsg ? (
+                  <div
+                    className={`flex items-start gap-2 rounded-lg border p-3 text-sm ${
+                      bulkSuccessMsg.includes("need review")
+                        ? "border-amber-200 bg-amber-50"
+                        : bulkSuccessMsg.includes("already") || bulkSuccessMsg.includes("Could not")
+                          ? "border-red-200 bg-red-50"
+                          : "border-green-200 bg-green-50"
+                    }`}
                   >
-                    {bulkSuccessMsg.includes("Successfully") ? (
-                      <Check size={16} />
+                    {bulkSuccessMsg.includes("need review") ? (
+                      <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: "#D97706" }} />
+                    ) : bulkSuccessMsg.includes("already") || bulkSuccessMsg.includes("Could not") ? (
+                      <AlertCircle size={16} className="shrink-0 mt-0.5" style={{ color: "#ba1a1a" }} />
                     ) : (
-                      <AlertCircle size={16} />
+                      <Check size={16} className="shrink-0 mt-0.5" style={{ color: "#006c49" }} />
                     )}
-                    {bulkSuccessMsg}
-                  </p>
-                )}
+                    <span style={{ color: "#3c4a42" }}>{bulkSuccessMsg}</span>
+                  </div>
+                ) : null}
               </div>
               <div className="flex gap-3">
                 <button
@@ -324,12 +405,16 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
                 <button
                   type="button"
                   onClick={handleBulkParse}
-                  disabled={!bulkInput.trim()}
+                  disabled={!bulkInput.trim() || bulkLoading}
                   className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-95 disabled:opacity-40"
                   style={{ backgroundColor: "#10b981", color: "#00422b" }}
                 >
-                  <Upload size={18} />
-                  Parse Questions
+                  {bulkLoading ? (
+                    <Loader2 size={18} className="animate-spin" />
+                  ) : (
+                    <Upload size={18} />
+                  )}
+                  {bulkLoading ? "Parsing..." : "Parse Questions"}
                 </button>
               </div>
             </div>
@@ -349,6 +434,44 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
           </div>
         ) : null}
 
+        {/* Bulk toolbar */}
+        {selectedIds.size > 0 && (
+          <div
+            className="flex items-center gap-3 rounded-lg border px-4 py-2.5"
+            style={{ borderColor: "#006c49", backgroundColor: "rgba(0,108,73,0.05)" }}
+          >
+            <span className="text-xs font-semibold" style={{ color: "#006c49" }}>
+              {selectedIds.size} selected
+            </span>
+            <div className="h-4 w-px" style={{ backgroundColor: "#bbcabf" }} />
+            <button
+              type="button"
+              onClick={deleteSelected}
+              className="flex items-center gap-1.5 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-red-50"
+              style={{ color: "#ba1a1a" }}
+            >
+              <Trash2 size={12} /> Delete Selected
+            </button>
+            <button
+              type="button"
+              onClick={duplicateSelected}
+              className="flex items-center gap-1.5 rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider transition-colors hover:bg-gray-100"
+              style={{ color: "#3c4a42" }}
+            >
+              <Copy size={12} /> Duplicate Selected
+            </button>
+            <div className="flex-1" />
+            <button
+              type="button"
+              onClick={() => setSelectedIds(new Set())}
+              className="text-[10px] font-semibold uppercase tracking-wider underline"
+              style={{ color: "#6c7a71" }}
+            >
+              Clear Selection
+            </button>
+          </div>
+        )}
+
         {/* Question List or Empty State */}
         {questions.length === 0 ? (
           <div
@@ -363,23 +486,44 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
             </p>
           </div>
         ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-6">
-                {questions.map((q, i) => (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    errors={errors[q.id] ?? {}}
-                    onChange={(updated) => updateQuestion(q.id, updated)}
-                    onDuplicate={duplicateQuestion}
-                    onDelete={deleteQuestion}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
+          <div ref={listRef}>
+            {/* Select all toggle */}
+            <div className="mb-3 flex items-center gap-2">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-medium" style={{ color: "#6c7a71" }}>
+                <input
+                  type="checkbox"
+                  checked={selectAll}
+                  onChange={toggleSelectAll}
+                  className="size-3.5 rounded"
+                  style={{ accentColor: "#006c49" }}
+                />
+                Select all {questions.length} questions
+              </label>
+            </div>
+
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
+                <div className="space-y-3">
+                  {questions.map((q, i) => (
+                    <QuestionCard
+                      key={q.id}
+                      question={q}
+                      index={i}
+                      total={questions.length}
+                      selected={selectedIds.has(q.id)}
+                      errors={errors[q.id] ?? {}}
+                      onChange={(updated) => updateQuestion(q.id, updated)}
+                      onDuplicate={duplicateQuestion}
+                      onDelete={deleteQuestion}
+                      onMoveUp={moveUp}
+                      onMoveDown={moveDown}
+                      onToggleSelect={toggleSelect}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
         )}
 
         {/* Bottom area */}

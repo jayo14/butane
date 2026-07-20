@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Clock, Users, Shuffle, Eye, Lock, Calendar } from "lucide-react"
+import { Clock, Users, Shuffle, Eye, Lock, Calendar, Check } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 import type { Question, ExamSettings } from "@/types/exam"
 

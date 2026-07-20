@@ -7,7 +7,7 @@ import { z } from "zod"
 import Link from "next/link"
 import {
   ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, Trash2, FileText,
-  Copy, Plus, AlertCircle, Sparkles, ArrowLeft,
+  Copy, Plus, AlertCircle, Sparkles, ArrowLeft, Zap,
   ArrowRight, X, Lightbulb, ShieldCheck, GraduationCap, PenLine, School,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -520,47 +520,7 @@ export function CreateExamWizard() {
           </div>
         </div>
 
-        {/* Confetti animation */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              setTimeout(() => {
-                const canvas = document.getElementById('confetti-canvas');
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
-                canvas.width = window.innerWidth;
-                canvas.height = window.innerHeight;
-                const colors = ['#10b981','#006c49','#6ffbbe','#f9f9ff','#85f8c4'];
-                const pieces = Array.from({ length: 100 }, () => ({
-                  x: Math.random() * canvas.width,
-                  y: Math.random() * canvas.height - canvas.height,
-                  rotation: Math.random() * 360,
-                  color: colors[Math.floor(Math.random() * colors.length)],
-                  size: Math.random() * 8 + 4,
-                  speed: Math.random() * 3 + 2,
-                  rotationSpeed: Math.random() * 10 - 5,
-                }));
-                function animate() {
-                  if (!ctx) return;
-                  ctx.clearRect(0, 0, canvas.width, canvas.height);
-                  pieces.forEach(p => {
-                    p.y += p.speed;
-                    p.rotation += p.rotationSpeed;
-                    if (p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
-                    ctx.save();
-                    ctx.translate(p.x, p.y);
-                    ctx.rotate(p.rotation * Math.PI / 180);
-                    ctx.fillStyle = p.color;
-                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
-                    ctx.restore();
-                  });
-                  requestAnimationFrame(animate);
-                }
-                animate();
-              }, 100);
-            `,
-          }}
-        />
+        <ConfettiAnimation />
       </div>
     )
   }
@@ -848,4 +808,50 @@ export function CreateExamWizard() {
       </main>
     </div>
   )
+}
+
+function ConfettiAnimation() {
+  const canvasRef = useRef<HTMLCanvasElement>(null)
+
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (!canvas) return
+    const ctx = canvas.getContext("2d")
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight
+    const colors = ["#10b981", "#006c49", "#6ffbbe", "#f9f9ff", "#85f8c4"]
+    const pieces = Array.from({ length: 100 }, () => ({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height - canvas.height,
+      rotation: Math.random() * 360,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      size: Math.random() * 8 + 4,
+      speed: Math.random() * 3 + 2,
+      rotationSpeed: Math.random() * 10 - 5,
+    }))
+    let frameId: number
+    function animate() {
+      if (!ctx) return
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      pieces.forEach((p) => {
+        p.y += p.speed
+        p.rotation += p.rotationSpeed
+        if (p.y > canvas.height) {
+          p.y = -20
+          p.x = Math.random() * canvas.width
+        }
+        ctx.save()
+        ctx.translate(p.x, p.y)
+        ctx.rotate((p.rotation * Math.PI) / 180)
+        ctx.fillStyle = p.color
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size)
+        ctx.restore()
+      })
+      frameId = requestAnimationFrame(animate)
+    }
+    animate()
+    return () => cancelAnimationFrame(frameId)
+  }, [])
+
+  return <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none z-0" />
 }

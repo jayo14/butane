@@ -29,16 +29,14 @@ interface StudentWelcomePageClientProps {
 export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps) {
   const router = useRouter()
   const [studentName, setStudentName] = useState("")
-  const [admissionNo, setAdmissionNo] = useState("")
 
   const config = statusConfig[exam.status] ?? { label: exam.status, className: "bg-[#006c49]/10 text-[#006c49]" }
   const canStart = exam.status === "scheduled" || exam.status === "ongoing"
 
   function handleBegin() {
-    if (!studentName.trim() || !admissionNo.trim()) return
+    if (!studentName.trim()) return
     const params = new URLSearchParams({
       name: studentName.trim(),
-      admission: admissionNo.trim(),
     })
     router.push(`/exam/${exam.id}/take?${params.toString()}`)
   }
@@ -86,59 +84,91 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
 
             {/* Info Grid - 5 columns */}
             <div className="px-8 mb-8">
-              <div
-                className="grid grid-cols-2 md:grid-cols-5 rounded-xl border overflow-hidden"
-                style={{ borderColor: "rgba(187,202,191,0.3)" }}
-              >
-                <div className="p-5 flex flex-col items-center" style={{ backgroundColor: "#eff3ff" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: "#6c7a71" }}>
-                    <span className="material-symbols-outlined text-sm">schedule</span>
-                    Duration
-                  </span>
-                  <span className="text-lg font-semibold" style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}>
-                    {exam.duration_minutes} mins
-                  </span>
-                </div>
-                <div className="p-5 flex flex-col items-center" style={{ backgroundColor: "#eff3ff" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: "#6c7a71" }}>
-                    <span className="material-symbols-outlined text-sm">quiz</span>
-                    Questions
-                  </span>
-                  <span className="text-lg font-semibold" style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}>
-                    {exam.question_count} Total
-                  </span>
-                </div>
-                <div className="p-5 flex flex-col items-center" style={{ backgroundColor: "#eff3ff" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: "#6c7a71" }}>
-                    <span className="material-symbols-outlined text-sm">book</span>
-                    Subject
-                  </span>
-                  <span className="text-lg font-semibold" style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}>
-                    {subjectLabels[(exam as any).subject] || exam.course || "General"}
-                  </span>
-                </div>
-                <div className="p-5 flex flex-col items-center" style={{ backgroundColor: "#eff3ff" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: "#6c7a71" }}>
-                    <span className="material-symbols-outlined text-sm">group</span>
-                    Class
-                  </span>
-                  <span className="text-lg font-semibold" style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}>
-                    {(exam as any).class_group || "General"}
-                  </span>
-                </div>
-                <div className="p-5 flex flex-col items-center" style={{ backgroundColor: "#eff3ff" }}>
-                  <span className="text-[10px] font-bold uppercase tracking-widest mb-1 flex items-center gap-1" style={{ color: "#6c7a71" }}>
-                    <span className="material-symbols-outlined text-sm">calendar_month</span>
-                    Term
-                  </span>
-                  <span className="text-lg font-semibold" style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}>
-                    {(exam as any).term || "General"}
-                  </span>
-                </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                {[
+                  {
+                    icon: "schedule",
+                    label: "Duration",
+                    value: `${exam.duration_minutes} mins`,
+                    accent: "#10b981",
+                    bgLight: "rgba(16,185,129,0.08)",
+                  },
+                  {
+                    icon: "quiz",
+                    label: "Questions",
+                    value: `${exam.question_count} Total`,
+                    accent: "#3b82f6",
+                    bgLight: "rgba(59,130,246,0.08)",
+                  },
+                  {
+                    icon: "book",
+                    label: "Subject",
+                    value: subjectLabels[(exam as any).subject] || exam.course || "General",
+                    accent: "#8b5cf6",
+                    bgLight: "rgba(139,92,246,0.08)",
+                  },
+                  {
+                    icon: "group",
+                    label: "Class",
+                    value: (exam as any).class_group || "General",
+                    accent: "#f59e0b",
+                    bgLight: "rgba(245,158,11,0.08)",
+                  },
+                  {
+                    icon: "calendar_month",
+                    label: "Term",
+                    value: (exam as any).term || "General",
+                    accent: "#ec4899",
+                    bgLight: "rgba(236,72,153,0.08)",
+                  },
+                ].map((card) => (
+                  <div
+                    key={card.label}
+                    className="group relative overflow-hidden rounded-xl border transition-all hover:-translate-y-0.5 hover:shadow-md"
+                    style={{
+                      borderColor: "rgba(187,202,191,0.25)",
+                      backgroundColor: "#ffffff",
+                    }}
+                  >
+                    {/* Top accent bar */}
+                    <div
+                      className="h-1 w-full transition-all group-hover:h-1.5"
+                      style={{ backgroundColor: card.accent }}
+                    />
+                    <div className="p-4 flex flex-col items-center gap-2 relative">
+                      {/* Decorative icon background */}
+                      <div
+                        className="absolute -right-3 -top-3 text-[56px] leading-none select-none transition-all group-hover:scale-110"
+                        style={{
+                          color: card.bgLight,
+                          fontFamily: "'Material Symbols Outlined'",
+                          opacity: 0.5,
+                        }}
+                      >
+                        {card.icon}
+                      </div>
+                      <span
+                        className="flex items-center justify-center size-9 rounded-full text-base transition-all group-hover:scale-110"
+                        style={{ backgroundColor: card.bgLight, color: card.accent }}
+                      >
+                        <span className="material-symbols-outlined" style={{ fontSize: "18px" }}>{card.icon}</span>
+                      </span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6c7a71" }}>
+                        {card.label}
+                      </span>
+                      <span
+                        className="text-base font-bold leading-tight text-center"
+                        style={{ color: card.accent, fontFamily: "'Source Serif 4', serif" }}
+                      >
+                        {card.value}
+                      </span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            {/* Form - only name and admission */}
+            {/* Form - only name */}
             <div className="w-full max-w-xl mx-auto py-4 px-8">
               <div className="space-y-5">
                 <div className="space-y-1.5">
@@ -164,28 +194,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label
-                    className="flex items-center gap-2 ml-1 text-sm font-semibold tracking-[0.02em]"
-                    style={{ color: "#3c4a42" }}
-                  >
-                    <span className="material-symbols-outlined text-sm">badge</span>
-                    Admission Number
-                  </label>
-                  <input
-                    type="text"
-                    value={admissionNo}
-                    onChange={(e) => setAdmissionNo(e.target.value)}
-                    placeholder="e.g. ADM-2023-001"
-                    className="w-full p-4 rounded-full border text-base transition-all outline-none"
-                    style={{
-                      borderColor: "rgba(187,202,191,0.4)",
-                      backgroundColor: "#ffffff",
-                      color: "#121c2a",
-                      boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
-                    }}
-                  />
-                </div>
+
               </div>
             </div>
 
@@ -194,7 +203,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
               <button
                 type="button"
                 onClick={handleBegin}
-                disabled={!studentName.trim() || !admissionNo.trim() || !canStart}
+                disabled={!studentName.trim() || !canStart}
                 className="group w-full md:w-auto px-12 py-5 font-bold text-base shadow-xl transition-all flex items-center justify-center gap-3 mx-auto rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: canStart ? "#006c49" : "#6c7a71",

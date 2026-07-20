@@ -10,6 +10,8 @@ interface TakeExam {
   duration: number
   totalMarks: number
   questionCount: number
+  allowReview: boolean
+  showResult: boolean
 }
 
 interface TakeQuestion {
@@ -24,20 +26,20 @@ interface ExamTakeClientProps {
   exam: TakeExam
   questions: TakeQuestion[]
   studentName: string
-  admissionNumber: string
 }
 
 const STORAGE_KEY_PREFIX = "exam-take-"
 
 const OPTION_LABELS = ["A", "B", "C", "D"]
 
-export function ExamTakeClient({ exam, questions, studentName, admissionNumber }: ExamTakeClientProps) {
+export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientProps) {
   const router = useRouter()
   const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
   const [timeLeft, setTimeLeft] = useState(exam.duration * 60)
   const mainRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
@@ -103,8 +105,18 @@ export function ExamTakeClient({ exam, questions, studentName, admissionNumber }
 
   const goToReview = useCallback(() => {
     saveState()
-    router.push(`/exam/${exam.id}/review`)
-  }, [saveState, router, exam.id])
+    if (!exam.allowReview && !exam.showResult) {
+      router.push(`/exam/${exam.id}/submitted`)
+    } else if (!exam.allowReview) {
+      router.push(`/exam/${exam.id}/results`)
+    } else {
+      router.push(`/exam/${exam.id}/review`)
+    }
+  }, [saveState, router, exam.id, exam.allowReview, exam.showResult])
+
+  const handleSubmitClick = useCallback(() => {
+    setShowSubmitConfirm(true)
+  }, [])
 
   handleTimeoutRef.current = goToReview
 
@@ -297,7 +309,7 @@ export function ExamTakeClient({ exam, questions, studentName, admissionNumber }
               ) : (
                 <button
                   type="button"
-                  onClick={goToReview}
+                  onClick={handleSubmitClick}
                   className="px-8 md:px-10 py-3 rounded-lg text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105"
                   style={{
                     backgroundColor: "#006c49",
@@ -450,7 +462,7 @@ export function ExamTakeClient({ exam, questions, studentName, admissionNumber }
           {/* Submit */}
           <button
             type="button"
-            onClick={goToReview}
+            onClick={handleSubmitClick}
             className="mt-auto w-full py-4 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md"
             style={{ backgroundColor: "#006c49", color: "#ffffff" }}
           >
@@ -487,6 +499,52 @@ export function ExamTakeClient({ exam, questions, studentName, admissionNumber }
           </span>
         </button>
       </div>
+
+      {/* Submit confirmation dialog */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div
+            className="w-full max-w-sm rounded-2xl border p-6 shadow-xl"
+            style={{ backgroundColor: "#ffffff", borderColor: "#bbcabf" }}
+          >
+            <h3
+              className="text-lg font-bold mb-2 text-center"
+              style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+            >
+              Submit Assessment?
+            </h3>
+            <p className="text-sm text-center mb-6" style={{ color: "#3c4a42" }}>
+              You have answered {Object.keys(answers).length} of {questions.length} questions.
+              {questions.length - Object.keys(answers).length > 0 && (
+                <span style={{ color: "#ba1a1a" }}>
+                  {" "}{questions.length - Object.keys(answers).length} unanswered.
+                </span>
+              )}
+              <br />
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowSubmitConfirm(false)}
+                className="flex-1 py-3 rounded-xl border text-sm font-semibold transition-all active:scale-95"
+                style={{ borderColor: "#bbcabf", color: "#3c4a42" }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setShowSubmitConfirm(false)
+                  setTimeout(() => goToReview(), 50)
+                }}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+              >
+                Submit Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

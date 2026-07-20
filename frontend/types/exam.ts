@@ -11,6 +11,8 @@ export interface Question {
   options: QuestionOption[]
   correctAnswerId: string
   points: number
+  difficulty?: "easy" | "medium" | "hard"
+  tags?: string[]
   needsReview?: boolean
   reviewReason?: string
 }
