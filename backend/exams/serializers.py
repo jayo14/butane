@@ -7,7 +7,10 @@ from accounts.models import Student, Teacher
 from .models import Attempt, AttemptAnswer, Exam, Result
 from .question_serializers import QuestionSerializer
 
+from .models import Subject
+
 __all__ = [
+    "SubjectSerializer",
     "QuestionSerializer",
     "ExamListSerializer",
     "ExamDetailSerializer",
@@ -15,6 +18,13 @@ __all__ = [
     "AttemptAnswerSerializer",
     "ResultSerializer",
 ]
+
+
+class SubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Subject
+        fields = ["id", "name", "code", "description", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
 
 
 class ExamListSerializer(serializers.ModelSerializer):

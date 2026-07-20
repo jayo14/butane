@@ -1,21 +1,20 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import {
   Search,
   Plus,
   BookOpen,
-  Users,
-  Clock,
+  FileText,
   MoreHorizontal,
   Edit3,
-  Archive,
   Trash2,
   X,
   ChevronLeft,
   ChevronRight,
   GraduationCap,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -24,32 +23,76 @@ import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Dropdown } from "@/components/ui/dropdown"
-import type { Course } from "@/types"
+import { api } from "@/lib/api"
+import type { ApiSubject } from "@/lib/api"
+
+interface SubjectItem {
+  id: string
+  name: string
+  code: string
+  description: string
+  examCount: number
+  createdAt: string
+}
 
 const ITEMS_PER_PAGE = 9
 
-export function CoursesPageClient({ courses: initialCourses }: { courses: Course[] }) {
-  const [courses, setCourses] = useState(initialCourses)
+export function CoursesPageClient() {
+  const [subjects, setSubjects] = useState<SubjectItem[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
 
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const [subjectList, examsRes] = await Promise.all([
+          api.subjects.list(),
+          api.exams.list(),
+        ])
+        if (cancelled) return
+
+        const examCountBySubject = new Map<string, number>()
+        for (const e of examsRes?.results || []) {
+          const key = e.subject
+          if (key) {
+            examCountBySubject.set(key, (examCountBySubject.get(key) || 0) + 1)
+          }
+        }
+
+        const items: SubjectItem[] = (subjectList || []).map((s: ApiSubject) => ({
+          id: s.id,
+          name: s.name,
+          code: s.code,
+          description: s.description,
+          examCount: examCountBySubject.get(s.name) || 0,
+          createdAt: s.created_at,
+        }))
+
+        setSubjects(items)
+      } catch {
+        // silently fail
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   const filtered = useMemo(() => {
-    let result = courses
+    let result = subjects
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(
-        (c) =>
-          c.name.toLowerCase().includes(q) ||
-          c.code.toLowerCase().includes(q) ||
-          c.teacher.toLowerCase().includes(q),
+        (s) =>
+          s.name.toLowerCase().includes(q) ||
+          s.code.toLowerCase().includes(q),
       )
     }
-    if (statusFilter !== "all") {
-      result = result.filter((c) => c.status === statusFilter)
-    }
     return result
-  }, [courses, search, statusFilter])
+  }, [subjects, search])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(currentPage, totalPages)
@@ -57,33 +100,38 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
 
   function clearFilters() {
     setSearch("")
-    setStatusFilter("all")
     setCurrentPage(1)
   }
 
-  function handleArchive(id: string) {
-    setCourses((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, status: c.status === "archived" ? "active" : "archived" } as Course : c)),
+  function handleDelete(id: string) {
+    setSubjects((prev) => prev.filter((s) => s.id !== id))
+  }
+
+  const hasActiveFilters = !!search
+  const isEmpty = filtered.length === 0 && hasActiveFilters
+
+  if (loading) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={24} className="animate-spin text-content-muted" />
+        </div>
+      </Container>
     )
   }
-
-  function handleDelete(id: string) {
-    setCourses((prev) => prev.filter((c) => c.id !== id))
-  }
-
-  const hasActiveFilters = search || statusFilter !== "all"
-  const isEmpty = filtered.length === 0 && hasActiveFilters
 
   return (
     <Container>
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-content-primary">Courses</h1>
+          <h1 className="text-2xl font-bold text-content-primary">Subjects</h1>
           <p className="mt-1 text-content-secondary">
-            Manage all your courses and subjects
+            Manage all subjects used in exam creation
           </p>
         </div>
-        <Button leftIcon={<Plus size={18} />}>Add Course</Button>
+        <Link href="/dashboard/subjects/create">
+          <Button leftIcon={<Plus size={18} />}>Add Subject</Button>
+        </Link>
       </div>
 
       <Card padding="md" className="mb-6">
@@ -94,7 +142,7 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }}
-              placeholder="Search by name, code, or teacher..."
+              placeholder="Search by name or code..."
               className="h-10 w-full rounded-xl border border-border-primary bg-white pl-10 pr-4 text-sm text-content-primary placeholder:text-content-secondary transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             {search && (
@@ -106,20 +154,6 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
                 <X size={16} />
               </button>
             )}
-          </div>
-          <div className="relative w-full sm:w-44">
-            <select
-              value={statusFilter}
-              onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1) }}
-              className="h-10 w-full appearance-none rounded-xl border border-border-primary bg-white pl-4 pr-10 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
-            >
-              <option value="all">All Statuses</option>
-              <option value="active">Active</option>
-              <option value="archived">Archived</option>
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
           </div>
           {hasActiveFilters && (
             <button
@@ -134,14 +168,16 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
         </div>
       </Card>
 
-      {courses.length === 0 && !hasActiveFilters && (
+      {subjects.length === 0 && !hasActiveFilters && (
         <Card padding="lg">
           <EmptyState
             icon={<BookOpen size={40} />}
-            title="No courses yet"
-            description="Add your first course to get started."
+            title="No subjects yet"
+            description="Add your first subject to get started."
             action={
-              <Button leftIcon={<Plus size={18} />}>Add Course</Button>
+              <Link href="/dashboard/subjects/create">
+                <Button leftIcon={<Plus size={18} />}>Add Subject</Button>
+              </Link>
             }
           />
         </Card>
@@ -151,8 +187,8 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
         <Card padding="lg">
           <EmptyState
             icon={<GraduationCap size={40} />}
-            title="No courses match your search"
-            description="Try adjusting your filters or search terms."
+            title="No subjects match your search"
+            description="Try adjusting your search terms."
             action={
               <Button variant="outline" onClick={clearFilters}>
                 Clear Filters
@@ -162,12 +198,12 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
         </Card>
       )}
 
-      {!isEmpty && courses.length > 0 && (
+      {!isEmpty && subjects.length > 0 && (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {paginated.map((course, i) => (
+            {paginated.map((subject, i) => (
               <div
-                key={course.id}
+                key={subject.id}
                 className="group rounded-xl border border-border-primary bg-white p-5 transition-all duration-200 hover:border-primary/20 hover:shadow-card"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
@@ -175,37 +211,34 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
                   <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary">
                     <BookOpen size={22} />
                   </div>
-                  <Badge variant={course.status === "active" ? "success" : "warning"} size="sm">
-                    {course.status}
+                  <Badge variant="primary" size="sm">
+                    {subject.code || "—"}
                   </Badge>
                 </div>
                 <div className="mt-3">
-                  <h3 className="text-base font-semibold text-content-primary">{course.name}</h3>
-                  <p className="mt-0.5 text-xs text-content-muted">{course.code}</p>
-                  <p className="mt-2 text-sm text-content-secondary line-clamp-2">{course.description}</p>
+                  <h3 className="text-base font-semibold text-content-primary">{subject.name}</h3>
+                  <p className="mt-2 text-sm text-content-secondary line-clamp-2">
+                    {subject.description || "No description"}
+                  </p>
                 </div>
                 <div className="mt-4 flex items-center gap-4 text-xs text-content-muted">
                   <span className="flex items-center gap-1">
-                    <Users size={12} />
-                    {course.students} students
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Clock size={12} />
-                    {course.schedule}
+                    <FileText size={12} />
+                    {subject.examCount} exam{subject.examCount !== 1 ? "s" : ""}
                   </span>
                 </div>
                 <div className="mt-3 flex items-center justify-between border-t border-border-primary pt-3">
-                  <p className="text-xs text-content-muted">{course.teacher}</p>
+                  <p className="text-xs text-content-muted">
+                    Created {new Date(subject.createdAt).toLocaleDateString()}
+                  </p>
                   <Dropdown
                     items={[
                       { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
-                      { key: "toggle-archive", label: course.status === "archived" ? "Activate" : "Archive", icon: <Archive size={14} /> },
                       { key: "divider", label: "", divider: true },
                       { key: "delete", label: "Delete", icon: <Trash2 size={14} />, danger: true },
                     ]}
                     onAction={(key) => {
-                      if (key === "toggle-archive") handleArchive(course.id)
-                      if (key === "delete") handleDelete(course.id)
+                      if (key === "delete") handleDelete(subject.id)
                     }}
                     variant="ghost"
                     size="sm"
@@ -216,7 +249,7 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
                         tabIndex={0}
                         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { const btn = e.currentTarget.closest('[data-trigger]'); if (btn) (btn as HTMLElement).click() } }}
                         className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
-                        aria-label="Course actions"
+                        aria-label="Subject actions"
                       >
                         <MoreHorizontal size={18} />
                       </span>
@@ -231,7 +264,7 @@ export function CoursesPageClient({ courses: initialCourses }: { courses: Course
             <div className="mt-6 flex items-center justify-between">
               <p className="text-sm text-content-muted">
                 Showing {(safePage - 1) * ITEMS_PER_PAGE + 1}–
-                {Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length} courses
+                {Math.min(safePage * ITEMS_PER_PAGE, filtered.length)} of {filtered.length} subjects
               </p>
               <div className="flex items-center gap-1">
                 <button

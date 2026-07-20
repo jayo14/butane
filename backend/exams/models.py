@@ -17,6 +17,23 @@ def _hash_token(raw: str) -> str:
     return hashlib.sha256(secret + raw.encode("utf-8")).hexdigest()
 
 
+class Subject(TimestampedModel):
+    """A subject/course that exams can be categorised under."""
+
+    name = models.CharField(max_length=160, unique=True)
+    code = models.CharField(max_length=32, unique=True, blank=True, help_text="e.g. MATH")
+    description = models.TextField(blank=True)
+
+    class Meta:
+        db_table = "exams_subject"
+        ordering = ["name"]
+        verbose_name = "subject"
+        verbose_name_plural = "subjects"
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Exam(SoftDeleteModel):
     """An assessment authored by a teacher.
 

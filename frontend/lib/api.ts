@@ -324,6 +324,15 @@ export interface PaginatedResponse<T> {
   results: T[]
 }
 
+export interface ApiSubject {
+  id: string
+  name: string
+  code: string
+  description: string
+  created_at: string
+  updated_at: string
+}
+
 export interface ApiTeacherProfile {
   id: string
   user: ApiUser
@@ -461,6 +470,17 @@ export const api = {
   students: {
     list: (params?: { grade?: string; status?: string; search?: string }) =>
       apiFetch<ApiStudent[]>(`accounts/students/${buildQuery(params || {})}`),
+  },
+
+  subjects: {
+    list: (params?: { search?: string }) =>
+      apiFetch<ApiSubject[]>(`subjects/${buildQuery(params || {})}`),
+    get: (id: string) => apiFetch<ApiSubject>(`subjects/${id}/`),
+    create: (data: { name: string; code?: string; description?: string }) =>
+      apiFetch<ApiSubject>("subjects/", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ApiSubject>) =>
+      apiFetch<ApiSubject>(`subjects/${id}/`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`subjects/${id}/`, { method: "DELETE" }),
   },
 
   exams: {

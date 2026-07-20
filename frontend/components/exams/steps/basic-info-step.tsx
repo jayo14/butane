@@ -1,12 +1,17 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { useFormContext } from "react-hook-form"
-import { PenLine, ChevronDown, ImagePlus } from "lucide-react"
+import { PenLine, ChevronDown, ImagePlus, Search, Plus } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 
+export interface SubjectOption {
+  label: string
+  value: string
+}
+
 interface BasicInfoStepProps {
-  subjects: { label: string; value: string }[]
+  subjects: SubjectOption[]
   classes: { label: string; value: string }[]
   terms: { label: string; value: string }[]
 }
@@ -14,9 +19,45 @@ interface BasicInfoStepProps {
 export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) {
   const {
     register,
+    setValue,
+    watch,
     formState: { errors },
   } = useFormContext<BasicInfoValues>()
   const [showImage, setShowImage] = useState(true)
+
+  const [subjectSearch, setSubjectSearch] = useState("")
+  const [subjectOpen, setSubjectOpen] = useState(false)
+  const subjectRef = useRef<HTMLDivElement>(null)
+  const subjectInputRef = useRef<HTMLInputElement>(null)
+  const subjectValue = watch("subject")
+
+  const filteredSubjects = useMemo(
+    () => subjects.filter((s) => s.label.toLowerCase().includes(subjectSearch.toLowerCase())),
+    [subjects, subjectSearch],
+  )
+
+  useEffect(() => {
+    if (subjectValue && !subjectSearch) {
+      const match = subjects.find((s) => s.value === subjectValue)
+      if (match) setSubjectSearch(match.label)
+    }
+  }, [subjectValue, subjects, subjectSearch])
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (subjectRef.current && !subjectRef.current.contains(e.target as Node)) {
+        setSubjectOpen(false)
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside)
+    return () => document.removeEventListener("mousedown", handleClickOutside)
+  }, [])
+
+  function selectSubject(value: string, label: string) {
+    setValue("subject", value, { shouldValidate: true })
+    setSubjectSearch(label)
+    setSubjectOpen(false)
+  }
 
   return (
     <div className="space-y-8">
@@ -46,26 +87,57 @@ export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) 
 
       {/* Subject + Grade Level Grid */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-        {/* Subject */}
-        <div className="space-y-2">
-          <label htmlFor="subject" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+        {/* Subject - Searchable Select */}
+        <div className="space-y-2" ref={subjectRef}>
+          <label htmlFor="subject-search" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
             Subject
           </label>
           <div className="relative">
-            <select
-              {...register("subject")}
-              id="subject"
-              className="form-well w-full appearance-none rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+            <input
+              ref={subjectInputRef}
+              id="subject-search"
+              type="text"
+              value={subjectSearch}
+              onChange={(e) => {
+                setSubjectSearch(e.target.value)
+                if (!subjectOpen) setSubjectOpen(true)
+                if (!e.target.value) setValue("subject", "", { shouldValidate: true })
+              }}
+              onFocus={() => setSubjectOpen(true)}
+              placeholder="Search subject..."
+              className="form-well w-full rounded-xl border bg-white px-6 py-4 pr-20 text-base text-[#121c2a] placeholder:text-[#6c7a71]/50 transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
               style={{ borderColor: errors.subject ? "#ba1a1a" : "#bbcabf" }}
-            >
-              <option value="">Select subject</option>
-              {subjects.map((s) => (
-                <option key={s.value} value={s.value}>{s.label}</option>
-              ))}
-            </select>
-            <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6c7a71]">
-              <ChevronDown size={20} />
+            />
+            <div className="absolute inset-y-0 right-4 flex items-center gap-1 text-[#6c7a71]">
+              <Search size={18} />
+              <ChevronDown size={18} className={`transition-transform ${subjectOpen ? "rotate-180" : ""}`} />
             </div>
+            {subjectOpen && (
+              <div
+                className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-auto rounded-xl border bg-white shadow-lg"
+                style={{ borderColor: "#bbcabf" }}
+              >
+                {filteredSubjects.length > 0 ? (
+                  filteredSubjects.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => selectSubject(s.value, s.label)}
+                      className={`flex w-full items-center px-4 py-2.5 text-left text-sm transition-colors hover:bg-[#eff3ff] ${
+                        subjectValue === s.value ? "bg-[#eff3ff] font-semibold text-[#006c49]" : "text-[#121c2a]"
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))
+                ) : (
+                  <div className="flex items-center gap-2 px-4 py-3 text-sm text-[#6c7a71]">
+                    <Plus size={14} />
+                    <span>No subjects found. Create one in the Subjects page.</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {errors.subject && (
             <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">

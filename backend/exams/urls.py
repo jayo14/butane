@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
-from .views import AttemptViewSet, ExamViewSet, ResultViewSet
+from .views import AttemptViewSet, ExamViewSet, ResultViewSet, SubjectViewSet
 from .question_views import QuestionViewSet
 from .public_views import (
     CodeLookupView,
@@ -19,6 +19,7 @@ from .reports import ExamStatisticsView, QuestionStatisticsView, StudentHistoryV
 app_name = "exams"
 
 router = DefaultRouter()
+router.register(r"subjects", SubjectViewSet, basename="subject")
 router.register(r"exams", ExamViewSet, basename="exam")
 router.register(r"attempts", AttemptViewSet, basename="attempt")
 router.register(r"results", ResultViewSet, basename="result")

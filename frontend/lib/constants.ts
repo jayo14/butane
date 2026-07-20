@@ -6,7 +6,7 @@ export const APP_DESCRIPTION = "CBT Management System"
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
   { label: "Students", href: "/dashboard/students", icon: "users", roles: ["admin"] },
-  { label: "Courses", href: "/dashboard/courses", icon: "book-open" },
+  { label: "Subjects", href: "/dashboard/courses", icon: "book-open" },
   { label: "Exams", href: "/dashboard/exams", icon: "clipboard-list" },
   { label: "Results", href: "/dashboard/results", icon: "bar-chart-3" },
   { label: "Reports", href: "/dashboard/reports", icon: "bar-chart-3" },

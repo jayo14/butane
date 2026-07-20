@@ -16,14 +16,26 @@ from accounts.models import Student, Teacher
 from core.throttling import LoginRateThrottle
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
-from .models import Attempt, AttemptAnswer, Exam, Question, Result
+from .models import Attempt, AttemptAnswer, Exam, Question, Result, Subject
 from .public_views import _result_response
 from .serializers import (
     AttemptSerializer,
     ExamDetailSerializer,
     ExamListSerializer,
     ResultSerializer,
+    SubjectSerializer,
 )
+
+
+class SubjectViewSet(viewsets.ModelViewSet):
+    """CRUD for subjects used in exam creation."""
+
+    queryset = Subject.objects.all()
+    serializer_class = SubjectSerializer
+    search_fields = ["name", "code"]
+    ordering_fields = ["name", "created_at"]
+    ordering = ["name"]
+    pagination_class = None
 
 
 class ExamViewSet(viewsets.ModelViewSet):

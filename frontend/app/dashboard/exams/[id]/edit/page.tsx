@@ -1,17 +1,52 @@
-import { api } from "@/lib/api"
-import { notFound } from "next/navigation"
+"use client"
+
+import { useEffect, useState } from "react"
+import { useParams } from "next/navigation"
 import { CreateExamWizard } from "@/components/exams/create-exam-wizard"
+import { api } from "@/lib/api"
+import type { ApiExam } from "@/lib/api"
+import { Loader2 } from "lucide-react"
 
-interface EditExamPageProps {
-  params: Promise<{ id: string }>
-}
+export default function EditExamPage() {
+  const params = useParams()
+  const id = params?.id as string | undefined
+  const [exam, setExam] = useState<ApiExam | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
-export default async function EditExamPage({ params }: EditExamPageProps) {
-  const { id } = await params
-  try {
-    const exam = await api.exams.get(id)
-    return <CreateExamWizard initialExam={exam} />
-  } catch {
-    notFound()
+  useEffect(() => {
+    if (!id) return
+    let cancelled = false
+    async function load() {
+      try {
+        const data = await api.exams.get(id)
+        if (!cancelled) setExam(data)
+      } catch {
+        if (!cancelled) setError(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <Loader2 size={32} className="animate-spin text-content-muted" />
+      </div>
+    )
   }
+
+  if (error || !exam) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-content-muted">
+        <p className="text-lg font-medium">Failed to load exam</p>
+        <p className="mt-1 text-sm">The exam could not be found or you don't have permission to edit it.</p>
+      </div>
+    )
+  }
+
+  return <CreateExamWizard initialExam={exam} />
 }
