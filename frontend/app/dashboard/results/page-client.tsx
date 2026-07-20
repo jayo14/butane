@@ -43,6 +43,7 @@ export function ResultsPageClient() {
       api.results.list().then(r => r.results || []).catch(() => []),
       api.students.list().catch(() => []),
     ]).then(([results, studentsList]) => {
+      const students = Array.isArray(studentsList) ? studentsList : (studentsList as any).results || []
       setAttempts(results.map((r) => ({
         id: r.id,
         examId: r.exam,
@@ -55,11 +56,11 @@ export function ResultsPageClient() {
         duration: 0,
         studentName: r.student_name,
       })))
-      setStudents(studentsList.map((s) => ({
+      setStudents(students.map((s: any) => ({
         id: s.id,
-        firstName: s.user.first_name,
-        lastName: s.user.last_name,
-        email: s.user.email,
+        firstName: s.user?.first_name || "",
+        lastName: s.user?.last_name || "",
+        email: s.user?.email || "",
         grade: s.grade,
         status: s.status,
         summary: { totalExams: 0, completedExams: 0, averageScore: 0, highestScore: 0, lowestScore: 0, passRate: 0, rank: 0 },
