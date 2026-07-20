@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { cn, getInitials } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-media-query"
 import { useDisclosure } from "@/hooks/use-disclosure"
 import { NAV_ITEMS, APP_NAME } from "@/lib/constants"
 import { useAuth } from "@/lib/auth-context"
+import { useSidebar } from "@/lib/sidebar-context"
 import { CommandPalette } from "./command-palette"
 import {
   LayoutDashboard,
@@ -21,8 +22,6 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
-  ChevronsLeft,
-  ChevronsRight,
 } from "lucide-react"
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -39,7 +38,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const { isOpen, onToggle, onClose } = useDisclosure(false)
-  const [collapsed, setCollapsed] = useState(false)
+  const { collapsed } = useSidebar()
   const { user } = useAuth()
 
   const visibleItems = useMemo(
@@ -86,22 +85,26 @@ export function Sidebar() {
               onClick={() => isMobile && onClose()}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group flex items-center rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
-                collapsed ? "justify-center" : "gap-3",
+                "group flex items-center rounded-xl transition-all duration-200",
+                collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3",
                 isActive
-                  ? "bg-primary/10 text-primary"
-                  : "text-content-muted hover:bg-surface-secondary hover:text-content-primary",
+                  ? "bg-primary/10 text-primary shadow-sm shadow-primary/10 font-semibold"
+                  : "text-content-muted hover:bg-surface-secondary hover:text-content-primary font-medium",
               )}
               title={collapsed ? item.label : undefined}
             >
-              <span className={cn("shrink-0 transition-transform duration-150", isActive && "scale-110")}>
+              <span className={cn("shrink-0 transition-all duration-200", isActive && "scale-110 text-primary")}>
                 {iconMap[item.icon]}
               </span>
-              {!collapsed && <span>{item.label}</span>}
-              {!collapsed && item.badge != null && (
-                <span className="ml-auto rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
-                  {item.badge}
-                </span>
+              {!collapsed && (
+                <>
+                  <span>{item.label}</span>
+                  {item.badge != null && (
+                    <span className="ml-auto rounded-full bg-primary/15 px-2.5 py-0.5 text-[11px] font-semibold text-primary">
+                      {item.badge}
+                    </span>
+                  )}
+                </>
               )}
             </Link>
           )
@@ -124,13 +127,13 @@ export function Sidebar() {
           <Link
             href="/dashboard/profile"
             onClick={() => isMobile && onClose()}
-            className="flex items-center gap-3 rounded-xl bg-surface-secondary px-3 py-2.5 transition-colors hover:bg-surface-secondary/80"
+            className="flex items-center gap-3 rounded-2xl bg-gradient-to-r from-primary/5 to-primary/[0.02] border border-primary/10 px-4 py-3 transition-all duration-300 hover:from-primary/10 hover:to-primary/5 hover:shadow-sm hover:shadow-primary/10"
           >
-            <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-xs font-semibold text-white shadow-sm">
+            <div className="flex size-10 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/70 text-xs font-bold text-white shadow-sm shadow-primary/20">
               {user ? getInitials(user.full_name) : "AU"}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-content-primary">
+              <p className="truncate text-sm font-semibold text-content-primary">
                 {user ? user.full_name : "User"}
               </p>
               <p className="truncate text-xs text-content-muted">
@@ -141,18 +144,7 @@ export function Sidebar() {
         )}
       </div>
 
-      {!isMobile && (
-        <div className="border-t border-border-primary px-3 py-2">
-          <button
-            type="button"
-            onClick={() => setCollapsed(!collapsed)}
-            className="flex w-full items-center justify-center gap-2 rounded-xl px-3 py-2 text-xs text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? <ChevronsRight size={16} /> : <><ChevronsLeft size={16} /> Collapse</>}
-          </button>
-        </div>
-      )}
+
     </div>
   )
 
