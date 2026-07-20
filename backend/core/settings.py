@@ -30,6 +30,12 @@ if DEBUG:
     if not ALLOWED_HOSTS:
         ALLOWED_HOSTS = ["*"]
 
+# Render.com automatically injects RENDER_EXTERNAL_HOSTNAME.
+# Include it so the app works without hardcoding every possible domain.
+if render_hostname := env("RENDER_EXTERNAL_HOSTNAME", default=""):
+    if render_hostname not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(render_hostname)
+
 # Production guard: refuse to start with the insecure default secret in production.
 if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
     raise RuntimeError("DJANGO_SECRET_KEY must be set to a secure value in production.")
@@ -37,7 +43,15 @@ if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
 # Base site URL used to build shareable public exam links.
 SITE_URL = env("SITE_URL", default="")
 
+# On Render, derive the site URL from the automatically-injected hostname.
+if not SITE_URL and (render_hostname := env("RENDER_EXTERNAL_HOSTNAME", default="")):
+    SITE_URL = f"https://{render_hostname}"
+
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
+if render_hostname:
+    csrf_origin = f"https://{render_hostname}"
+    if csrf_origin not in CSRF_TRUSTED_ORIGINS:
+        CSRF_TRUSTED_ORIGINS.append(csrf_origin)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
