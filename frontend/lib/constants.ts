@@ -36,7 +36,7 @@ export const GRADES = [
   "Grade 12",
 ] as const
 
-export const EXAM_STATUS = ["scheduled", "ongoing", "completed", "cancelled"] as const
+export const EXAM_STATUS = ["draft", "scheduled", "ongoing", "completed", "cancelled"] as const
 
 export const STUDENT_STATUS = ["active", "inactive", "suspended"] as const
 

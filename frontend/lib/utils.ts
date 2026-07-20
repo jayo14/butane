@@ -57,6 +57,7 @@ export function statusColor(status: string): string {
     active: "success",
     inactive: "warning",
     suspended: "danger",
+    draft: "info",
     scheduled: "info",
     ongoing: "warning",
     completed: "success",

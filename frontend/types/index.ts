@@ -58,7 +58,7 @@ export interface Exam {
   duration: number
   totalMarks: number
   passingMarks: number
-  status: "scheduled" | "ongoing" | "completed" | "cancelled"
+  status: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled"
   questionCount: number
   enrolledStudents: number
 }

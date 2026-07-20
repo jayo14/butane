@@ -34,6 +34,7 @@ import { api, transformExam } from "@/lib/api"
 import type { Exam } from "@/types"
 
 const statusConfig: Record<string, { label: string; variant: "info" | "warning" | "success" | "danger" }> = {
+  draft: { label: "Draft", variant: "info" },
   scheduled: { label: "Scheduled", variant: "info" },
   ongoing: { label: "Ongoing", variant: "warning" },
   completed: { label: "Completed", variant: "success" },
@@ -75,6 +76,7 @@ export function ExamsPageClient({ exams: initialExams }: { exams: Exam[] }) {
 
   const statusOptions = [
     { label: "All Statuses", value: "all" },
+    { label: "Draft", value: "draft" },
     { label: "Scheduled", value: "scheduled" },
     { label: "Ongoing", value: "ongoing" },
     { label: "Completed", value: "completed" },

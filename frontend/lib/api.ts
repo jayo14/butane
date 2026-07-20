@@ -160,7 +160,7 @@ export interface ExamSummary {
   duration: number
   totalMarks: number
   passingMarks: number
-  status: "scheduled" | "ongoing" | "completed" | "cancelled" | "draft"
+  status: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled"
   questionCount: number
   enrolledStudents: number
 }
@@ -202,7 +202,7 @@ export function transformExam(api: ApiExam): ExamSummary {
     duration: api.duration_minutes,
     totalMarks: api.total_marks,
     passingMarks: api.passing_marks,
-    status: api.status === "draft" ? "scheduled" : api.status,
+    status: api.status,
     questionCount: api.question_count,
     enrolledStudents: 0,
   }

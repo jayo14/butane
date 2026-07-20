@@ -52,6 +52,7 @@ interface ExamStats {
 }
 
 const statusConfig: Record<string, { label: string; variant: "info" | "warning" | "success" | "danger" }> = {
+  draft: { label: "Draft", variant: "info" },
   scheduled: { label: "Scheduled", variant: "info" },
   ongoing: { label: "Ongoing", variant: "warning" },
   completed: { label: "Completed", variant: "success" },
