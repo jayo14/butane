@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { api } from "@/lib/api"
 
 interface ResultsExam {
   id: string
@@ -17,11 +18,6 @@ interface ResultsQuestion {
   text: string
   options: { id: string; label: string; text: string }[]
   correctAnswerId: string
-}
-
-interface ExamResultsClientProps {
-  exam: ResultsExam
-  questions: ResultsQuestion[]
 }
 
 const STORAGE_KEY_PREFIX = "exam-take-"
@@ -74,9 +70,19 @@ function AnimatedScoreCircle({ score }: { score: number }) {
   )
 }
 
-export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
+export function ExamResultsClient() {
   const router = useRouter()
-  const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
+  const searchParams = useSearchParams()
+
+  const examId = searchParams.get("id") || ""
+  const token = searchParams.get("token") || ""
+
+  const [exam, setExam] = useState<ResultsExam | null>(null)
+  const [questions, setQuestions] = useState<ResultsQuestion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
 
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
@@ -91,7 +97,41 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
     unanswered_count: number
   } | null>(null)
 
+  // Fetch exam data
   useEffect(() => {
+    async function loadExam() {
+      setLoading(true)
+      setError("")
+      try {
+        const examData = await api.public.exam(token || examId)
+        setExam({
+          id: examData.id,
+          title: examData.title,
+          duration: examData.duration_minutes,
+          totalMarks: examData.total_marks,
+          questionCount: examData.question_count,
+        })
+        setQuestions(examData.questions.map((q) => ({
+          id: q.id,
+          number: q.number,
+          text: q.text,
+          options: q.options,
+          correctAnswerId: "",
+        })))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load exam results")
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (token || examId) {
+      loadExam()
+    }
+  }, [token, examId])
+
+  // Restore state from localStorage
+  useEffect(() => {
+    if (!exam) return
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
@@ -108,12 +148,47 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
         setResultData(parsed)
       }
     } catch {}
-  }, [storageKey, exam.id])
+  }, [storageKey, exam])
 
   useEffect(() => {
     const timer = setTimeout(() => setRevealed(true), 600)
     return () => clearTimeout(timer)
   }, [])
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f9f9ff" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-12 rounded-full border-4 border-[#006c49] border-t-transparent animate-spin" />
+          <p className="text-sm font-medium" style={{ color: "#3c4a42" }}>Loading results...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !exam) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f9f9ff" }}>
+        <div className="flex flex-col items-center gap-4 max-w-md mx-auto px-4 text-center">
+          <div className="size-16 rounded-full bg-danger-light flex items-center justify-center">
+            <span className="text-3xl">!</span>
+          </div>
+          <h2 className="text-xl font-bold" style={{ color: "#121c2a" }}>Results Not Available</h2>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            {error || "Results could not be loaded. Please check the link and try again."}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/exam/portal")}
+            className="mt-4 px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:brightness-105"
+            style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+          >
+            Go to Exam Portal
+          </button>
+        </div>
+      </main>
+    )
+  }
 
   const totalPossible = questions.length
   const correctCount = resultData?.correct_count ?? questions.filter((q) => answers[q.id] && answers[q.id] === q.correctAnswerId).length
@@ -129,7 +204,8 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
     score >= 80 ? "High" : score >= 50 ? "Medium" : "Low"
 
   function handleQuestionClick(_questionId: string) {
-    router.push(`/exam/${exam.id}/review`)
+    if (!exam) return
+    router.push(`/exam/${exam.id}/review?token=${encodeURIComponent(token)}`)
   }
 
   if (!revealed) {
