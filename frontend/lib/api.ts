@@ -210,6 +210,8 @@ export interface ApiExam {
   show_result?: boolean
   allow_review?: boolean
   public_url?: string
+  short_code?: string
+  short_url?: string
 }
 
 export interface ApiQuestion {
@@ -503,6 +505,7 @@ export const api = {
   // ---- Public (unauthenticated) student endpoints ----
   public: {
     exam: (token: string) => apiFetch<ApiPublicExam>(`public/exams/${token}/`),
+    codeLookup: (code: string) => apiFetch<ApiPublicExam>(`public/code/${code}/`),
     startAttempt: (token: string, data: { student_name: string; admission_number: string; class_group?: string; term?: string }) =>
       apiFetch<ApiPublicAttempt>(`public/exams/${token}/start/`, { method: "POST", body: JSON.stringify(data) }),
     resumeAttempt: (attemptId: string, accessToken: string) =>
