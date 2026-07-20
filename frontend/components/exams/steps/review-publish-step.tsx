@@ -26,12 +26,12 @@ const subjectLabels: Record<string, string> = {
 }
 
 const classLabels: Record<string, string> = {
-  "grade-7": "Grade 7",
-  "grade-8": "Grade 8",
-  "grade-9": "Grade 9",
-  "grade-10": "Grade 10",
-  "grade-11": "Grade 11",
-  "grade-12": "Grade 12",
+  jss1: "JSS1",
+  jss2: "JSS2",
+  jss3: "JSS3",
+  sss1: "SSS1",
+  sss2: "SSS2",
+  sss3: "SSS3",
 }
 
 const termLabels: Record<string, string> = {

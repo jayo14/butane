@@ -18,7 +18,7 @@ const mockNotifications: Notification[] = [
   { id: "1", type: "exam", title: "Exam Scheduled", message: "Algebra I Midterm scheduled for Oct 15", time: "5 min ago", read: false },
   { id: "2", type: "success", title: "Results Published", message: "Biology Chapter 5 results are available", time: "1 hour ago", read: false },
   { id: "3", type: "warning", title: "Low Pass Rate", message: "Physics quiz has a 62% pass rate", time: "3 hours ago", read: true },
-  { id: "4", type: "enrollment", title: "New Student", message: "Evelyn Brown enrolled in Grade 10", time: "1 day ago", read: true },
+  { id: "4", type: "enrollment", title: "New Student", message: "Evelyn Brown enrolled in SSS1", time: "1 day ago", read: true },
 ]
 
 const iconMap: Record<string, React.ReactNode> = {

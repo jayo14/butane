@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
 import { formatDate, formatDuration } from "@/lib/utils"
-import type { ExamAttempt, StudentWithResults } from "@/data/mock/student-results"
+import type { ExamAttempt, StudentWithResults } from "@/types"
 
 const ITEMS_PER_PAGE = 10
 

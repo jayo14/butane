@@ -252,6 +252,69 @@ export interface ApiResult {
   graded_at: string
 }
 
+// ---- Public API (student-facing) response shapes ----
+
+export interface ApiPublicQuestion {
+  id: string
+  number: number
+  text: string
+  type: string
+  marks: number
+  options: { id: string; label: string; text: string }[]
+}
+
+export interface ApiPublicExam {
+  id: string
+  title: string
+  description: string
+  instructions: string
+  course: string
+  course_code: string
+  subject: string
+  class_group: string
+  term: string
+  status: string
+  duration_minutes: number
+  total_marks: number
+  passing_marks: number
+  passing_percentage: number
+  show_result: boolean
+  allow_review: boolean
+  shuffle_questions: boolean
+  shuffle_answers: boolean
+  question_count: number
+  questions: ApiPublicQuestion[]
+}
+
+export interface ApiPublicAttempt {
+  id: string
+  access_token: string | null
+  student_name: string
+  admission_number: string
+  class_group: string
+  term: string
+  status: string
+  started_at: string | null
+  duration_seconds: number | null
+  answers: { question: string; selected_choice: string | null }[]
+}
+
+export interface ApiSubmitResult {
+  detail?: string
+  attempt_id?: string
+  show_result: boolean
+  allow_review?: boolean
+  score?: number
+  total_marks?: number
+  percentage?: number
+  passed?: boolean
+  correct_count?: number
+  incorrect_count?: number
+  unanswered_count?: number
+  graded_at?: string
+  answers?: { question: string; selected_choice: string | null; is_correct: boolean }[]
+}
+
 export interface PaginatedResponse<T> {
   count: number
   next: string | null
@@ -436,6 +499,19 @@ export const api = {
   },
 
   health: () => apiFetch<{ status: string; database: string }>("health/"),
+
+  // ---- Public (unauthenticated) student endpoints ----
+  public: {
+    exam: (token: string) => apiFetch<ApiPublicExam>(`public/exams/${token}/`),
+    startAttempt: (token: string, data: { student_name: string; admission_number: string; class_group?: string; term?: string }) =>
+      apiFetch<ApiPublicAttempt>(`public/exams/${token}/start/`, { method: "POST", body: JSON.stringify(data) }),
+    resumeAttempt: (attemptId: string, accessToken: string) =>
+      apiFetch<ApiPublicAttempt>(`public/attempts/${attemptId}/?token=${accessToken}`),
+    saveAttempt: (attemptId: string, accessToken: string, data: { answers?: { question: string; selected_choice: string | null }[]; duration_seconds?: number }) =>
+      apiFetch<ApiPublicAttempt>(`public/attempts/${attemptId}/save/`, { method: "POST", body: JSON.stringify({ ...data, token: accessToken }) }),
+    submitAttempt: (attemptId: string, accessToken: string, data?: { answers?: { question: string; selected_choice: string | null }[] }) =>
+      apiFetch<ApiSubmitResult>(`public/attempts/${attemptId}/submit/`, { method: "POST", body: JSON.stringify({ ...data, token: accessToken }) }),
+  },
 }
 
 // ---- Server-side data fetching helpers ----

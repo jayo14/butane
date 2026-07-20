@@ -17,7 +17,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import type { ExamAttempt } from "@/data/mock/student-results"
+import type { ExamAttempt } from "@/types"
 
 interface ReportsStats {
   totalStudents: number

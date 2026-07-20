@@ -34,8 +34,6 @@ export default async function ResultsPage() {
 
     return <ResultsPageClient attempts={attempts as any} students={students as any} />
   } catch {
-    const { studentResults } = await import("@/data/mock/student-results")
-    const allAttempts = studentResults.flatMap((s) => s.attempts)
-    return <ResultsPageClient attempts={allAttempts as any} students={studentResults as any} />
+    return <ResultsPageClient attempts={[]} students={[]} />
   }
 }

@@ -14,7 +14,7 @@ import {
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { formatDuration } from "@/lib/utils"
-import type { Exam } from "@/types"
+import type { ApiPublicExam } from "@/lib/api"
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   scheduled: { label: "Scheduled", className: "bg-info/20 text-info" },
@@ -24,13 +24,13 @@ const statusConfig: Record<string, { label: string; className: string }> = {
 }
 
 interface StudentWelcomePageClientProps {
-  exam: Exam
+  exam: ApiPublicExam
 }
 
 export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps) {
   const [studentName, setStudentName] = useState("")
   const [admissionNo, setAdmissionNo] = useState("")
-  const [selectedClass, setSelectedClass] = useState("grade-10")
+  const [selectedClass, setSelectedClass] = useState("sss1")
   const [selectedTerm, setSelectedTerm] = useState("first-term")
   const [started, setStarted] = useState(false)
 
@@ -97,17 +97,17 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   </span>
                 </div>
                 <p className="mt-1.5 text-content-secondary">
-                  {exam.course} &middot; {exam.courseCode}
+                  {exam.course} &middot; {exam.course_code}
                 </p>
               </div>
             </div>
 
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {[
-                { icon: <FileText size={18} />, label: "Questions", value: `${exam.questionCount}` },
-                { icon: <Clock size={18} />, label: "Duration", value: formatDuration(exam.duration) },
-                { icon: <BarChart3 size={18} />, label: "Total Marks", value: `${exam.totalMarks}` },
-                { icon: <HelpCircle size={18} />, label: "Pass Mark", value: `${exam.passingMarks}%` },
+                { icon: <FileText size={18} />, label: "Questions", value: `${exam.question_count}` },
+                { icon: <Clock size={18} />, label: "Duration", value: formatDuration(exam.duration_minutes) },
+                { icon: <BarChart3 size={18} />, label: "Total Marks", value: `${exam.total_marks}` },
+                { icon: <HelpCircle size={18} />, label: "Pass Mark", value: `${exam.passing_percentage}%` },
               ].map((item, i) => (
                 <div
                   key={item.label}
@@ -163,12 +163,12 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                     className="block w-full appearance-none rounded-xl border border-border-primary bg-white px-4 py-2.5 pr-10 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20"
                     aria-label="Select class"
                   >
-                    <option value="grade-7">Grade 7</option>
-                    <option value="grade-8">Grade 8</option>
-                    <option value="grade-9">Grade 9</option>
-                    <option value="grade-10">Grade 10</option>
-                    <option value="grade-11">Grade 11</option>
-                    <option value="grade-12">Grade 12</option>
+                    <option value="jss1">JSS1</option>
+                    <option value="jss2">JSS2</option>
+                    <option value="jss3">JSS3</option>
+                    <option value="sss1">SSS1</option>
+                    <option value="sss2">SSS2</option>
+                    <option value="sss3">SSS3</option>
                   </select>
                   <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m6 9 6 6 6-6"/></svg>
@@ -204,7 +204,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   <ul className="mt-2 space-y-1.5 text-sm text-content-secondary">
                     {[
                       "Ensure you have a stable internet connection",
-                      `You have ${formatDuration(exam.duration)} to complete this exam`,
+                      `You have ${formatDuration(exam.duration_minutes)} to complete this exam`,
                       "Do not refresh or close the browser during the exam",
                       "You cannot pause once the exam has started",
                     ].map((text, i) => (

@@ -86,6 +86,40 @@ export interface SelectOption {
   disabled?: boolean
 }
 
+export interface StudentResultSummary {
+  totalExams: number
+  completedExams: number
+  averageScore: number
+  highestScore: number
+  lowestScore: number
+  passRate: number
+  rank: number
+}
+
+export interface ExamAttempt {
+  id: string
+  examId: string
+  examTitle: string
+  course: string
+  date: string
+  score: number
+  totalMarks: number
+  passed: boolean
+  duration: number
+}
+
+export interface StudentWithResults {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  grade: string
+  status: "active" | "inactive" | "suspended"
+  avatar?: string
+  summary: StudentResultSummary
+  attempts: ExamAttempt[]
+}
+
 export interface NavItem {
   label: string
   href: string

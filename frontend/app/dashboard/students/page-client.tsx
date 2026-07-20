@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import type { StudentWithResults } from "@/data/mock/student-results"
+import type { StudentWithResults } from "@/types"
 
 const statusVariant: Record<string, "success" | "warning" | "danger"> = {
   active: "success",

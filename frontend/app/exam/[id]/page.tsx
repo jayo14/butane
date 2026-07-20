@@ -1,4 +1,4 @@
-import { mockExams } from "@/data/mock/exams"
+import { api } from "@/lib/api"
 import { StudentWelcomePageClient } from "./page-client"
 import { notFound } from "next/navigation"
 
@@ -8,7 +8,10 @@ interface ExamPageProps {
 
 export default async function ExamWelcomePage({ params }: ExamPageProps) {
   const { id } = await params
-  const exam = mockExams.find((e) => e.id === id)
-  if (!exam) notFound()
-  return <StudentWelcomePageClient exam={exam} />
+  try {
+    const exam = await api.public.exam(id)
+    return <StudentWelcomePageClient exam={exam} />
+  } catch {
+    notFound()
+  }
 }

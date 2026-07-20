@@ -32,7 +32,6 @@ export default async function CoursesPage() {
 
     return <CoursesPageClient courses={courses} />
   } catch {
-    const { mockCourses } = await import("@/data/mock/courses")
-    return <CoursesPageClient courses={mockCourses} />
+    return <CoursesPageClient courses={[]} />
   }
 }

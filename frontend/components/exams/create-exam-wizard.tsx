@@ -69,12 +69,12 @@ const subjects = [
 ]
 
 const classes = [
-  { label: "Grade 7", value: "grade-7" },
-  { label: "Grade 8", value: "grade-8" },
-  { label: "Grade 9", value: "grade-9" },
-  { label: "Grade 10", value: "grade-10" },
-  { label: "Grade 11", value: "grade-11" },
-  { label: "Grade 12", value: "grade-12" },
+  { label: "JSS1", value: "jss1" },
+  { label: "JSS2", value: "jss2" },
+  { label: "JSS3", value: "jss3" },
+  { label: "SSS1", value: "sss1" },
+  { label: "SSS2", value: "sss2" },
+  { label: "SSS3", value: "sss3" },
 ]
 
 const terms = [
