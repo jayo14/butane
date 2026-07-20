@@ -285,12 +285,15 @@
 
         <!-- Footer Actions -->
         <div class="flex items-center justify-between border-t px-6 py-5 md:px-8" style="border-color:#dee9fd;background-color:#eff3ff">
-          <a href="/dashboard/exams">
-            <button type="button" class="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80" style="color:#6c7a71">
-              <span class="material-symbols-outlined text-lg">close</span>
-              Cancel
-            </button>
-          </a>
+          <div class="flex items-center gap-3">
+            <a href="/dashboard/exams">
+              <button type="button" class="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80" style="color:#6c7a71">
+                <span class="material-symbols-outlined text-lg">close</span>
+                Cancel
+              </button>
+            </a>
+            <span class="hidden md:inline text-[11px] font-semibold uppercase tracking-wider" style="color:#6c7a71">Esc</span>
+          </div>
           <div class="flex items-center gap-3">
             <a href="wizard-adapted.html">
               <button type="button" class="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]" style="background-color:#10b981;color:#00422b;box-shadow:0 4px 12px rgba(0,108,73,0.2)">
@@ -298,6 +301,7 @@
                 <span class="material-symbols-outlined text-lg">arrow_forward</span>
               </button>
             </a>
+            <span class="hidden md:inline text-[11px] font-semibold uppercase tracking-wider" style="color:#6c7a71">Ctrl+Enter</span>
           </div>
         </div>
 

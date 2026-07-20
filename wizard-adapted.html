@@ -318,12 +318,15 @@
 
         <!-- Footer Actions — wizard pattern -->
         <div class="flex items-center justify-between border-t px-6 py-5 md:px-8" style="border-color:#dee9fd;background-color:#eff3ff">
-          <a href="/dashboard/exams">
-            <button type="button" class="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80" style="color:#6c7a71">
-              <span class="material-symbols-outlined text-lg">close</span>
-              Cancel
-            </button>
-          </a>
+          <div class="flex items-center gap-3">
+            <a href="/dashboard/exams">
+              <button type="button" class="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80" style="color:#6c7a71">
+                <span class="material-symbols-outlined text-lg">close</span>
+                Cancel
+              </button>
+            </a>
+            <span class="hidden md:inline text-[11px] font-semibold uppercase tracking-wider" style="color:#6c7a71">Esc</span>
+          </div>
           <div class="flex items-center gap-3">
             <a href="basic-info.html" class="flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all" style="background-color:transparent;border:1px solid #bbcabf;color:#3c4a42">
               <span class="material-symbols-outlined text-lg">arrow_back</span>
@@ -333,6 +336,7 @@
               Next Step
               <span class="material-symbols-outlined text-lg">arrow_forward</span>
             </button>
+            <span class="hidden md:inline text-[11px] font-semibold uppercase tracking-wider" style="color:#6c7a71">Ctrl+Enter</span>
           </div>
         </div>
 
