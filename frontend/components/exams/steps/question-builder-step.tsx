@@ -120,7 +120,7 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
       [questions, onChange],
     )
 
-    const hasErrors = questions.some(
+    const hasErrors = questions.length === 0 || questions.some(
       (q) => !q.text.trim() || !q.correctAnswerId || q.options.some((o) => !o.text.trim()),
     )
 
