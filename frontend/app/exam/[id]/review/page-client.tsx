@@ -2,18 +2,6 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import {
-  CheckCircle2,
-  Flag,
-  AlertTriangle,
-  ChevronLeft,
-  Send,
-  Eye,
-  HelpCircle,
-  Clock,
-} from "lucide-react"
 
 interface ReviewExam {
   id: string
@@ -38,13 +26,17 @@ interface ExamReviewClientProps {
 
 const STORAGE_KEY_PREFIX = "exam-take-"
 
+const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"]
+
 export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
   const router = useRouter()
   const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
 
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
+  const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
+  const [showAllQuestions, setShowAllQuestions] = useState(false)
 
   useEffect(() => {
     if (!showConfirm) return
@@ -62,7 +54,8 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
         const parsed = JSON.parse(saved)
         if (parsed.answers) setAnswers(parsed.answers)
         if (parsed.flagged) setFlagged(new Set(parsed.flagged))
-        if (parsed.isSubmitted) {
+        if (parsed.timeLeft != null) setTimeLeft(parsed.timeLeft)
+        if (parsed.isSubmitted || parsed.submitted) {
           router.replace(`/exam/${exam.id}/results`)
           return
         }
@@ -71,17 +64,14 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
   }, [storageKey, exam.id, router])
 
   const answeredCount = questions.filter((q) => answers[q.id]).length
-  const skippedCount = questions.length - answeredCount
   const flaggedCount = flagged.size
+  const timerMinutes = timeLeft != null ? Math.floor(timeLeft / 60) : exam.duration
+  const timerSeconds = timeLeft != null ? timeLeft % 60 : 0
 
   function handleSubmit() {
     localStorage.setItem(
       storageKey,
-      JSON.stringify({
-        answers,
-        flagged: [...flagged],
-        submitted: true,
-      }),
+      JSON.stringify({ answers, flagged: [...flagged], submitted: true }),
     )
     router.push(`/exam/${exam.id}/results`)
   }
@@ -90,198 +80,487 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
     router.push(`/exam/${exam.id}/take?focus=${questionId}`)
   }
 
-  if (showConfirm) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-label="Confirm submission">
-        <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-200 rounded-2xl border border-border-primary bg-white p-6 shadow-modal">
-          <div className="text-center">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-warning-light text-warning">
-              <AlertTriangle size={28} />
-            </div>
-            <h2 className="text-lg font-semibold text-content-primary">Submit Your Answers?</h2>
-            <p className="mt-2 text-sm text-content-secondary">
-              You answered <strong className="text-content-primary">{answeredCount}</strong> of{" "}
-              {questions.length} questions.
-            </p>
-            {skippedCount > 0 && (
-              <p className="mt-1 text-sm text-warning">
-                {skippedCount} question{skippedCount > 1 ? "s" : ""} skipped.{" "}
-                {flaggedCount > 0 && `${flaggedCount} flagged.`}
-              </p>
-            )}
-            <p className="mt-3 text-xs text-content-muted">This action cannot be undone.</p>
-          </div>
-          <div className="mt-6 flex gap-3">
-            <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>
-              Keep Reviewing
-            </Button>
-            <Button variant="primary" className="flex-1" onClick={handleSubmit}>
-              Submit Now
-            </Button>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  const displayedQuestions = showAllQuestions ? questions : questions.slice(0, 4)
+  const hiddenCount = questions.length - 4
 
   return (
-    <div className="min-h-screen bg-surface-secondary">
-      {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-border-primary bg-white/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-5xl items-center gap-4 px-4">
-          <button
-            type="button"
-            onClick={() => router.push(`/exam/${exam.id}/take`)}
-            className="flex size-9 items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
-            aria-label="Back to exam"
+    <div
+      className="min-h-screen flex flex-col overflow-x-hidden"
+      style={{ backgroundColor: "#f9f9ff", color: "#121c2a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+    >
+      <main className="flex-grow w-full max-w-4xl mx-auto px-4 md:px-10 py-12">
+        {/* Header Section */}
+        <div className="mb-10 text-center md:text-left">
+          <h1
+            className="text-[32px] md:text-[48px] font-bold leading-tight tracking-[-0.02em] mb-3"
+            style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
           >
-            <ChevronLeft size={20} />
-          </button>
-          <div className="min-w-0 flex-1">
-            <h1 className="truncate text-sm font-semibold text-content-primary">Review Answers</h1>
-            <p className="truncate text-xs text-content-muted">{exam.title}</p>
-          </div>
-          <div className="hidden items-center gap-2 text-xs text-content-muted sm:flex">
-            <Clock size={14} />
-            <span>{exam.duration} min</span>
-          </div>
-        </div>
-      </header>
-
-      <div className="mx-auto max-w-5xl px-4 py-6 md:py-10">
-        {/* Summary */}
-        <div className="mb-8 rounded-2xl border border-border-primary bg-white p-5 shadow-card md:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="grid grid-cols-3 gap-4 md:gap-8">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2">
-                <CheckCircle2 size={18} className="text-success" />
-                <span className="text-2xl font-bold text-content-primary">{answeredCount}</span>
-              </div>
-              <p className="mt-0.5 text-xs text-content-muted">Answered</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2">
-                <HelpCircle size={18} className={skippedCount > 0 ? "text-warning" : "text-content-muted"} />
-                <span className={cn("text-2xl font-bold", skippedCount > 0 ? "text-warning" : "text-content-muted")}>
-                  {skippedCount}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-content-muted">Skipped</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-2">
-                <Flag size={18} className={flaggedCount > 0 ? "text-warning" : "text-content-muted"} />
-                <span className={cn("text-2xl font-bold", flaggedCount > 0 ? "text-warning" : "text-content-muted")}>
-                  {flaggedCount}
-                </span>
-              </div>
-              <p className="mt-0.5 text-xs text-content-muted">Flagged</p>
-            </div>
-          </div>
-
-          <div className="mt-4 h-2 w-full rounded-full bg-surface-secondary overflow-hidden">
-            <div
-              className="h-full rounded-full bg-success transition-all duration-700"
-              style={{ width: `${questions.length > 0 ? (answeredCount / questions.length) * 100 : 0}%` }}
-            />
-          </div>
-          <p className="mt-1.5 text-right text-xs text-content-muted">
-            {Math.round((answeredCount / questions.length) * 100)}% complete
+            Review Your Answers
+          </h1>
+          <p className="text-base max-w-2xl mx-auto md:mx-0" style={{ color: "#3c4a42" }}>
+            Carefully check your selections. Questions highlighted in red or marked as flagged may
+            need a second look.
           </p>
         </div>
 
-        {/* Question Grid */}
-        <div className="mb-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
-          {questions.map((q, i) => {
-            const isAnswered = !!answers[q.id]
-            const isFlagged = flagged.has(q.id)
-            return (
-              <button
-                key={q.id}
-                type="button"
-                onClick={() => navigateToQuestion(q.id)}
-                className={cn(
-                  "group relative rounded-xl border-2 p-4 text-left transition-all duration-200",
-                  "hover:shadow-md hover:-translate-y-0.5",
-                  "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
-                  isAnswered
-                    ? "border-success/30 bg-success-light/10"
-                    : "border-border-primary bg-white",
-                  isFlagged && !isAnswered && "border-warning/30 bg-warning-light/10",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-lg text-xs font-bold",
-                        isAnswered
-                          ? "bg-success text-white"
-                          : isFlagged
-                            ? "bg-warning text-white"
-                            : "bg-surface-secondary text-content-muted",
-                      )}
-                    >
-                      {i + 1}
-                    </span>
-                    <span className="text-xs font-medium text-content-primary">
-                      Question {i + 1}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {isAnswered && (
-                      <span className="rounded-md bg-success-light px-1.5 py-0.5 text-[10px] font-medium text-success">
-                        Answered
-                      </span>
-                    )}
-                    {!isAnswered && (
-                      <span className="rounded-md bg-surface-secondary px-1.5 py-0.5 text-[10px] font-medium text-content-muted">
-                        Skipped
-                      </span>
-                    )}
-                    {isFlagged && (
-                      <Flag size={12} className="text-warning" fill="currentColor" />
-                    )}
-                  </div>
+        {/* Enhanced Summary Bar */}
+        <div
+          className="sticky top-4 z-40 rounded-2xl p-6 md:p-8 flex flex-wrap gap-8 items-center justify-between mb-12 border backdrop-blur-xl shadow-xl"
+          style={{
+            backgroundColor: "rgba(239, 243, 255, 0.95)",
+            borderColor: "rgba(187, 202, 191, 0.3)",
+          }}
+        >
+          <div className="flex flex-wrap gap-8 items-center">
+            {/* Total */}
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl" style={{ backgroundColor: "#d9e3f7" }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: "#006c49", fontVariationSettings: "'FILL' 0, 'wght' 400" }}
+                >
+                  quiz
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span
+                  className="text-[12px] font-bold uppercase tracking-widest"
+                  style={{ color: "#3c4a42" }}
+                >
+                  Total
+                </span>
+                <span
+                  className="text-[24px] font-bold leading-tight"
+                  style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+                >
+                  {questions.length}
+                </span>
+              </div>
+            </div>
+
+            <div className="h-10 w-px hidden md:block" style={{ backgroundColor: "rgba(187, 202, 191, 0.4)" }} />
+
+            {/* Answered */}
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl" style={{ backgroundColor: "rgba(16, 185, 129, 0.2)" }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: "#006c49", fontVariationSettings: "'FILL' 1, 'wght' 400" }}
+                >
+                  task_alt
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span
+                  className="text-[12px] font-bold uppercase tracking-widest"
+                  style={{ color: "#3c4a42" }}
+                >
+                  Answered
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-[24px] font-bold leading-tight"
+                    style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+                  >
+                    {answeredCount}
+                  </span>
+                  <span
+                    className="text-sm font-bold px-2 py-0.5 rounded-full"
+                    style={{
+                      color: "#006c49",
+                      backgroundColor: "rgba(0, 108, 73, 0.1)",
+                    }}
+                  >
+                    {questions.length > 0
+                      ? Math.round((answeredCount / questions.length) * 100)
+                      : 0}
+                    %
+                  </span>
                 </div>
-                <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-content-secondary">
-                  {q.text}
-                </p>
-                <div className="mt-2 flex items-center gap-1 text-[11px] text-content-muted transition-colors group-hover:text-primary">
-                  <Eye size={12} />
-                  <span>View question</span>
-                </div>
-              </button>
-            )
-          })}
+              </div>
+            </div>
+
+            <div className="h-10 w-px hidden md:block" style={{ backgroundColor: "rgba(187, 202, 191, 0.4)" }} />
+
+            {/* Flagged */}
+            <div className="flex items-center gap-4">
+              <div className="p-3 rounded-xl" style={{ backgroundColor: "rgba(255, 218, 214, 0.4)" }}>
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: "#ba1a1a", fontVariationSettings: "'FILL' 1, 'wght' 400" }}
+                >
+                  flag
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span
+                  className="text-[12px] font-bold uppercase tracking-widest"
+                  style={{ color: "#3c4a42" }}
+                >
+                  Flagged
+                </span>
+                <span
+                  className="text-[24px] font-bold leading-tight"
+                  style={{ color: "#ba1a1a", fontFamily: "'Source Serif 4', serif" }}
+                >
+                  {flaggedCount}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Timer */}
+          <div
+            className="flex items-center gap-3 px-5 py-3 rounded-xl"
+            style={{ backgroundColor: "#273140", color: "#ebf1ff" }}
+          >
+            <span className="material-symbols-outlined text-xl">timer</span>
+            <span className="font-mono text-xl font-bold tracking-tight">
+              {String(timerMinutes).padStart(2, "0")}:{String(timerSeconds).padStart(2, "0")}
+            </span>
+          </div>
         </div>
 
-        {/* Submit */}
-        <div className="sticky bottom-4 rounded-2xl border border-border-primary bg-white p-4 shadow-card md:p-5">
-          <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-            <div className="text-center sm:text-left">
-              <p className="text-sm font-medium text-content-primary">
-                {answeredCount === questions.length
-                  ? "All questions answered"
-                  : `${skippedCount} question${skippedCount > 1 ? "s" : ""} skipped`}
-              </p>
-              <p className="text-xs text-content-muted">
-                {flaggedCount > 0 ? `${flaggedCount} flagged for review · ` : ""}
-                Tap any question above to review your answer
-              </p>
+        {/* Questions List */}
+        <div className="space-y-6 pb-40">
+          {displayedQuestions.map((q, i) => {
+            const isAnswered = !!answers[q.id]
+            const isFlagged = flagged.has(q.id)
+            const selectedOption = q.options.find((opt) => opt.id === answers[q.id])
+
+            let borderClass = "border border-transparent"
+            if (isFlagged) {
+              borderClass = "border-2"
+            } else if (!isAnswered) {
+              borderClass = "border-2 border-dashed"
+            }
+
+            let borderStyle: React.CSSProperties = {}
+            if (isFlagged) {
+              borderStyle = { borderColor: "rgba(186, 26, 26, 0.1)" }
+            } else if (!isAnswered) {
+              borderStyle = { borderColor: "#bbcabf" }
+            } else {
+              borderStyle = { borderColor: "transparent" }
+            }
+
+            return (
+              <div
+                key={q.id}
+                className="bg-white rounded-2xl overflow-hidden group cursor-pointer transition-all duration-300"
+                style={{
+                  boxShadow: "0 4px 6px -1px rgba(55, 65, 81, 0.08)",
+                  ...borderStyle,
+                }}
+                onClick={() => navigateToQuestion(q.id)}
+                onMouseEnter={(e) => {
+                  if (isAnswered) {
+                    e.currentTarget.style.transform = "translateY(-4px)"
+                    e.currentTarget.style.boxShadow =
+                      "0 10px 25px -5px rgba(55, 65, 81, 0.12)"
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0px)"
+                  e.currentTarget.style.boxShadow =
+                    "0 4px 6px -1px rgba(55, 65, 81, 0.08)"
+                }}
+              >
+                <div className="p-8 flex flex-col gap-5">
+                  {/* Header row */}
+                  <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="h-8 w-8 flex items-center justify-center rounded-lg font-bold text-sm"
+                        style={{ backgroundColor: "#121c2a", color: "#f9f9ff" }}
+                      >
+                        {String(i + 1).padStart(2, "0")}
+                      </div>
+                      {isFlagged ? (
+                        <span
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+                          style={{
+                            color: "#ba1a1a",
+                            backgroundColor: "rgba(255, 218, 214, 0.1)",
+                          }}
+                        >
+                          <span
+                            className="material-symbols-outlined text-xs"
+                            style={{
+                              fontVariationSettings: "'FILL' 1, 'wght' 400",
+                            }}
+                          >
+                            flag
+                          </span>
+                          Flagged
+                        </span>
+                      ) : isAnswered ? (
+                        <span className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#006c49]">
+                          <span
+                            className="material-symbols-outlined text-sm"
+                            style={{
+                              fontVariationSettings: "'FILL' 1, 'wght' 400",
+                            }}
+                          >
+                            check_circle
+                          </span>
+                          Answered
+                        </span>
+                      ) : (
+                        <span
+                          className="font-bold text-[10px] uppercase tracking-widest px-2 py-1 rounded-full"
+                          style={{
+                            color: "#ba1a1a",
+                            backgroundColor: "rgba(255, 218, 214, 0.05)",
+                          }}
+                        >
+                          Unanswered
+                        </span>
+                      )}
+                    </div>
+                    <span
+                      className="material-symbols-outlined transition-colors"
+                      style={{
+                        color: "#bbcabf",
+                        fontVariationSettings: "'FILL' 0, 'wght' 400",
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.color = "#006c49"
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.color = "#bbcabf"
+                      }}
+                    >
+                      edit
+                    </span>
+                  </div>
+
+                  {/* Question text */}
+                  <h3
+                    className="text-[24px] font-semibold leading-snug"
+                    style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+                  >
+                    {q.text}
+                  </h3>
+
+                  {/* Answer display */}
+                  {isAnswered && selectedOption ? (
+                    <div
+                      className="p-5 rounded-xl flex items-center gap-4"
+                      style={{
+                        backgroundColor: "rgba(0, 108, 73, 0.05)",
+                        border: "1px solid rgba(0, 108, 73, 0.1)",
+                      }}
+                    >
+                      <span
+                        className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0"
+                        style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+                      >
+                        {OPTION_LABELS[q.options.indexOf(selectedOption)] ||
+                          selectedOption.label}
+                      </span>
+                      <span className="font-medium" style={{ color: "#121c2a" }}>
+                        {selectedOption.text}
+                      </span>
+                    </div>
+                  ) : (
+                    <div
+                      className="p-5 rounded-xl italic flex items-center gap-3"
+                      style={{
+                        backgroundColor: "rgba(217, 227, 247, 0.2)",
+                        color: "#3c4a42",
+                        border: "1px solid rgba(108, 122, 113, 0.3)",
+                      }}
+                    >
+                      <span
+                        className="material-symbols-outlined"
+                        style={{
+                          color: "#6c7a71",
+                          fontVariationSettings: "'FILL' 0, 'wght' 400",
+                        }}
+                      >
+                        error
+                      </span>
+                      No answer selected yet. Click to choose an option.
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
+
+          {/* View remaining questions */}
+          {!showAllQuestions && hiddenCount > 0 && (
+            <div className="pt-8 text-center">
+              <button
+                type="button"
+                onClick={() => setShowAllQuestions(true)}
+                className="group inline-flex flex-col items-center gap-3 transition-all"
+              >
+                <span
+                  className="text-sm font-semibold tracking-[0.02em] transition-colors group-hover:text-[#006c49]"
+                  style={{ color: "#3c4a42" }}
+                >
+                  View remaining {hiddenCount} question{hiddenCount > 1 ? "s" : ""}
+                </span>
+                <div
+                  className="p-3 rounded-full transition-all shadow-md"
+                  style={{ backgroundColor: "#d9e3f7", color: "#3c4a42" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#006c49"
+                    e.currentTarget.style.color = "#ffffff"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#d9e3f7"
+                    e.currentTarget.style.color = "#3c4a42"
+                  }}
+                >
+                  <span
+                    className="material-symbols-outlined align-middle transition-transform group-hover:translate-y-1"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 400" }}
+                  >
+                    expand_more
+                  </span>
+                </div>
+              </button>
             </div>
-            <Button
-              variant="primary"
-              size="lg"
+          )}
+        </div>
+      </main>
+
+      {/* Fixed Bottom Action Bar */}
+      <div
+        className="fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t py-8 z-50"
+        style={{
+          backgroundColor: "rgba(249, 249, 255, 0.9)",
+          borderColor: "rgba(187, 202, 191, 0.3)",
+        }}
+      >
+        <div className="max-w-4xl mx-auto px-4 md:px-10 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-3">
+            <div
+              className="h-3 w-3 rounded-full animate-pulse"
+              style={{ backgroundColor: "#10b981" }}
+            />
+            <span
+              className="text-sm font-bold uppercase tracking-widest"
+              style={{ color: "#3c4a42" }}
+            >
+              Final Review Stage
+            </span>
+          </div>
+          <div className="flex gap-4 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => router.push(`/exam/${exam.id}/take`)}
+              className="flex-1 md:flex-none px-10 py-4 rounded-xl font-bold text-sm border-2 transition-all active:scale-95"
+              style={{ borderColor: "#6c7a71", color: "#121c2a" }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(217, 227, 247, 0.3)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+              }}
+            >
+              Back to Exam
+            </button>
+            <button
+              type="button"
               onClick={() => setShowConfirm(true)}
-              leftIcon={<Send size={18} />}
-              className="w-full sm:w-auto"
+              className="flex-1 md:flex-none px-14 py-4 rounded-xl font-bold text-sm transition-all active:scale-95"
+              style={{
+                backgroundColor: "#006c49",
+                color: "#ffffff",
+                boxShadow: "0 8px 25px rgba(0, 108, 73, 0.4)",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = "scale(1.03)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = "scale(1)"
+              }}
             >
               Submit Exam
-            </Button>
+            </button>
           </div>
         </div>
       </div>
+
+      {/* Submission Modal */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: "rgba(18, 28, 42, 0.6)",
+              backdropFilter: "blur(8px)",
+            }}
+            onClick={() => setShowConfirm(false)}
+          />
+          <div
+            className="relative rounded-3xl p-10 max-w-md w-full mx-4 shadow-2xl border"
+            style={{
+              backgroundColor: "#f9f9ff",
+              borderColor: "rgba(187, 202, 191, 0.2)",
+            }}
+          >
+            <div className="text-center">
+              <div
+                className="h-20 w-20 rounded-full flex items-center justify-center mx-auto mb-6"
+                style={{ backgroundColor: "rgba(0, 108, 73, 0.1)" }}
+              >
+                <span
+                  className="material-symbols-outlined text-5xl"
+                  style={{
+                    color: "#006c49",
+                    fontVariationSettings: "'FILL' 1, 'wght' 400",
+                  }}
+                >
+                  rocket_launch
+                </span>
+              </div>
+              <h2
+                className="text-[32px] font-bold mb-3"
+                style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+              >
+                Ready to Submit?
+              </h2>
+              <p className="text-base mb-10 leading-relaxed" style={{ color: "#3c4a42" }}>
+                You&apos;ve answered {answeredCount}/{questions.length} questions. Please ensure
+                all your responses are final as they cannot be changed after submission.
+              </p>
+              <div className="flex flex-col gap-4">
+                <button
+                  type="button"
+                  onClick={handleSubmit}
+                  className="w-full py-5 rounded-2xl font-bold text-sm transition-transform hover:scale-[1.02]"
+                  style={{
+                    backgroundColor: "#006c49",
+                    color: "#ffffff",
+                    boxShadow: "0 8px 25px rgba(0, 108, 73, 0.3)",
+                  }}
+                >
+                  Confirm Submission
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm(false)}
+                  className="w-full py-4 font-bold text-sm transition-colors"
+                  style={{ color: "#3c4a42" }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#006c49"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "#3c4a42"
+                  }}
+                >
+                  Go back to Review
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
