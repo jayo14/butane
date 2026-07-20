@@ -10,7 +10,7 @@ export default async function DashboardPage() {
       api.auth.profile().catch(() => null),
     ])
 
-    const students = (studentsRes || []).map(transformStudent)
+    const students = (studentsRes?.results || []).map(transformStudent)
     const exams = (examsRes?.results || []).map(transformExam)
     const activeCourses = new Set(exams.map((e) => e.course)).size
 

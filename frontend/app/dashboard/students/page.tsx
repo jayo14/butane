@@ -4,7 +4,7 @@ import { StudentsPageClient } from "./page-client"
 export default async function StudentsPage() {
   try {
     const studentsRes = await api.students.list()
-    const students = (studentsRes || []).map(transformStudent)
+    const students = (studentsRes?.results || []).map(transformStudent)
 
     const transformed = students.map((s) => ({
       id: s.id,

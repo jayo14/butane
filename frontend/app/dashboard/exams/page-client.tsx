@@ -27,6 +27,7 @@ import {
   LayoutGrid,
   Link2,
   Check,
+  User,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -341,6 +342,12 @@ export function ExamsPageClient() {
                         <p className="text-xs text-content-secondary mb-3">
                           {exam.course} <span className="text-content-muted">·</span> {exam.courseCode}
                         </p>
+                        {exam.createdBy && (
+                          <p className="text-xs text-content-muted mb-3 flex items-center gap-1">
+                            <User size={12} className="text-content-muted/70" />
+                            {exam.createdBy}
+                          </p>
+                        )}
                         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-content-muted mb-4">
                           <span className="flex items-center gap-1">
                             <Calendar size={12} className="text-content-muted/70" />
@@ -411,6 +418,12 @@ export function ExamsPageClient() {
                           <p className="mt-1 text-sm text-content-secondary">
                             {exam.course} <span className="text-content-muted">·</span> {exam.courseCode}
                           </p>
+                          {exam.createdBy && (
+                            <p className="mt-1 text-xs text-content-muted flex items-center gap-1">
+                              <User size={12} className="text-content-muted/70" />
+                              {exam.createdBy}
+                            </p>
+                          )}
                           <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-content-muted">
                             <span className="flex items-center gap-1.5">
                               <Calendar size={14} className="text-content-muted/70" />

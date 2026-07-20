@@ -32,8 +32,8 @@ export default async function ReportsPage() {
       { range: "90-100%", count: scores.filter((s) => s >= 90).length, color: "bg-success" },
     ]
 
-    const studentsRes = await api.students.list().catch(() => [])
-    const totalStudents = (studentsRes || []).length
+    const studentsRes = await api.students.list().catch(() => ({ results: [] }))
+    const totalStudents = (studentsRes?.results || []).length
 
     return (
       <ReportsClient

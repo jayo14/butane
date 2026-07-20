@@ -11,7 +11,7 @@ export default async function StudentProfilePage({
 
   try {
     const studentsRes = await api.students.list()
-    const apiStudent = (studentsRes || []).find((s) => s.id === id || s.student_id === id)
+    const apiStudent = (studentsRes?.results || []).find((s) => s.id === id || s.student_id === id)
     if (!apiStudent) notFound()
 
     const student = transformStudent(apiStudent)

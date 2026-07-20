@@ -46,36 +46,42 @@ export function CoursesPageClient() {
   useEffect(() => {
     let cancelled = false
     async function load() {
-      try {
-        const [subjectList, examsRes] = await Promise.all([
-          api.subjects.list(),
-          api.exams.list(),
-        ])
-        if (cancelled) return
+      let subjectList: ApiSubject[] = []
+      let examCountBySubject = new Map<string, number>()
 
-        const examCountBySubject = new Map<string, number>()
-        for (const e of examsRes?.results || []) {
-          const key = e.subject
-          if (key) {
-            examCountBySubject.set(key, (examCountBySubject.get(key) || 0) + 1)
+      try {
+        subjectList = await api.subjects.list()
+      } catch (err) {
+        console.error("Failed to load subjects", err)
+      }
+
+      try {
+        const examsRes = await api.exams.list()
+        if (!cancelled && examsRes?.results) {
+          for (const e of examsRes.results) {
+            const key = e.subject
+            if (key) {
+              examCountBySubject.set(key, (examCountBySubject.get(key) || 0) + 1)
+            }
           }
         }
-
-        const items: SubjectItem[] = (subjectList || []).map((s: ApiSubject) => ({
-          id: s.id,
-          name: s.name,
-          code: s.code,
-          description: s.description,
-          examCount: examCountBySubject.get(s.name) || 0,
-          createdAt: s.created_at,
-        }))
-
-        setSubjects(items)
-      } catch {
-        // silently fail
-      } finally {
-        if (!cancelled) setLoading(false)
+      } catch (err) {
+        console.error("Failed to load exams for subject count", err)
       }
+
+      if (cancelled) return
+
+      const items: SubjectItem[] = (subjectList || []).map((s: ApiSubject) => ({
+        id: s.id,
+        name: s.name,
+        code: s.code,
+        description: s.description,
+        examCount: examCountBySubject.get(s.name) || 0,
+        createdAt: s.created_at,
+      }))
+
+      setSubjects(items)
+      setLoading(false)
     }
     load()
     return () => { cancelled = true }

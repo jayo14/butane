@@ -380,6 +380,7 @@ export interface ExamSummary {
   enrolledStudents: number
   shortCode?: string
   isPublic?: boolean
+  createdBy?: string
 }
 
 export interface StudentSummary {
@@ -425,6 +426,7 @@ export function transformExam(api: ApiExam): ExamSummary {
     enrolledStudents: 0,
     shortCode: api.short_code,
     isPublic: api.is_public,
+    createdBy: api.created_by,
   }
 }
 
@@ -491,7 +493,7 @@ export const api = {
 
   students: {
     list: (params?: { grade?: string; status?: string; search?: string }) =>
-      apiFetch<ApiStudent[]>(`accounts/students/${buildQuery(params || {})}`),
+      apiFetch<PaginatedResponse<ApiStudent>>(`accounts/students/${buildQuery(params || {})}`),
   },
 
   gradeLevels: {
@@ -591,7 +593,7 @@ export async function fetchExam(id: string): Promise<ExamSummary | null> {
 
 export async function fetchStudents(): Promise<StudentSummary[]> {
   const res = await api.students.list()
-  return res.map(transformStudent)
+  return (res.results || []).map(transformStudent)
 }
 
 export async function fetchExamAttempts(examId: string): Promise<AttemptSummary[]> {

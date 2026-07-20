@@ -47,6 +47,7 @@ class ExamListSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.user.full_name", read_only=True)
     question_count = serializers.IntegerField(read_only=True)
     is_public = serializers.BooleanField(read_only=True)
+    short_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -56,6 +57,9 @@ class ExamListSerializer(serializers.ModelSerializer):
             "passing_percentage", "is_public", "created_by", "question_count",
             "short_code", "short_url", "published_at", "created_at",
         ]
+
+    def get_short_url(self, obj: Exam) -> str | None:
+        return obj.public_url(raw_token=None)
 
 
 class ExamDetailSerializer(serializers.ModelSerializer):

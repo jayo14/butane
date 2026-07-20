@@ -64,6 +64,7 @@ export interface Exam {
   enrolledStudents: number
   shortCode?: string
   isPublic?: boolean
+  createdBy?: string
 }
 
 export interface Toast {

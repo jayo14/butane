@@ -28,6 +28,7 @@ class TeacherListView(generics.ListAPIView):
     queryset = Teacher.objects.filter(is_deleted=False)
     serializer_class = TeacherSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
 
 @extend_schema(
@@ -38,3 +39,4 @@ class StudentListView(generics.ListAPIView):
     queryset = Student.objects.filter(is_deleted=False)
     serializer_class = StudentSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
