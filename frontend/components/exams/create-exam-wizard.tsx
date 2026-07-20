@@ -253,7 +253,10 @@ export function CreateExamWizard() {
     setPublishError("")
     if (currentStep === 0) {
       const isValid = await form.trigger()
-      if (!isValid) return
+      if (!isValid) {
+        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        return
+      }
       const basicInfo = form.getValues()
       const updated = { ...draft, basicInfo }
       setDraft(updated)
@@ -261,7 +264,10 @@ export function CreateExamWizard() {
     }
     if (currentStep === 1) {
       const isValid = questionBuilderRef.current?.validate() ?? false
-      if (!isValid) return
+      if (!isValid) {
+        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+        return
+      }
     }
     if (currentStep < STEPS.length - 1) goToStep(currentStep + 1)
   }
@@ -720,6 +726,7 @@ export function CreateExamWizard() {
                 )}
                 {currentStep < STEPS.length - 1 ? (
                   <button
+                    type="button"
                     onClick={handleNext}
                     className="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
                     style={{
@@ -733,6 +740,7 @@ export function CreateExamWizard() {
                   </button>
                 ) : (
                   <button
+                    type="button"
                     onClick={handlePublish}
                     disabled={isPublishing}
                     className="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"

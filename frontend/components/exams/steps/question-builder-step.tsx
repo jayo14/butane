@@ -55,6 +55,7 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
 
     useImperativeHandle(ref, () => ({
       validate() {
+        if (questions.length === 0) return false
         const newErrors: Record<string, Partial<Record<string, string>>> = {}
         for (const q of questions) {
           const errs: Partial<Record<string, string>> = {}
