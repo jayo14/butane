@@ -8,6 +8,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libjpeg62-turbo-dev \
+    libpq-dev \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,6 +24,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libjpeg62-turbo \
+    libpq5 \
     zlib1g \
     && rm -rf /var/lib/apt/lists/*
 
