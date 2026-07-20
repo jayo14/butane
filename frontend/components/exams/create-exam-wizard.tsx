@@ -286,11 +286,15 @@ export function CreateExamWizard() {
     triggerSave()
 
     try {
-      const payload = {
+      const courseCode = draft.basicInfo.subject.toUpperCase().slice(0, 6)
+
+      const created = await api.exams.create({
         title: draft.basicInfo.title,
         subject: draft.basicInfo.subject,
         class_group: draft.basicInfo.class,
         term: draft.basicInfo.term,
+        course: draft.basicInfo.subject,
+        course_code: courseCode,
         duration_minutes: draft.basicInfo.duration,
         passing_percentage: draft.settings.passMark,
         shuffle_questions: draft.settings.shuffleQuestions,
@@ -298,20 +302,23 @@ export function CreateExamWizard() {
         show_result: draft.settings.showResult,
         allow_review: draft.settings.allowReview,
         instructions: draft.basicInfo.instructions || "",
-        questions: draft.questions.map((q, i) => ({
+      })
+
+      for (const [i, q] of draft.questions.entries()) {
+        await api.questions.create(created.id, {
           order: i + 1,
           text: q.text,
-          type: "single_choice" as const,
+          type: "single_choice",
           marks: 1,
           choices: q.options.map((opt, oi) => ({
+            id: opt.id,
             label: String.fromCharCode(65 + oi),
             text: opt.text,
             is_correct: opt.id === q.correctAnswerId,
           })),
-        })),
+        })
       }
 
-      const created = await api.exams.create(payload)
       const published = await api.exams.publish(created.id)
       const url = published.public_url || `${window.location.origin}/exam/${created.id}`
       setPublishedUrl(url)
