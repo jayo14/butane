@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+<head>
+<meta charset="utf-8" />
+<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+<title>Exam Builder — Questions</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        colors: {
+          background: "#fcfbf7",
+          "on-tertiary": "#ffffff",
+          "tertiary-fixed": "#e4e2de",
+          "primary-container": "#10b981",
+          "inverse-primary": "#4edea3",
+          "on-tertiary-fixed": "#1b1c1a",
+          "on-secondary-fixed-variant": "#005137",
+          outline: "#6c7a71",
+          "secondary-fixed-dim": "#68dba9",
+          "on-primary": "#ffffff",
+          "error-container": "#ffdad6",
+          "tertiary-container": "#a4a39f",
+          "secondary-fixed": "#85f8c4",
+          "on-secondary-container": "#00714e",
+          "surface-variant": "#d9e3f7",
+          "on-surface-variant": "#3c4a42",
+          "primary-fixed": "#6ffbbe",
+          "on-primary-fixed": "#002113",
+          "secondary-container": "#82f5c1",
+          "surface-container-low": "#eff3ff",
+          "on-tertiary-fixed-variant": "#474744",
+          primary: "#006c49",
+          tertiary: "#5e5e5c",
+          "on-error": "#ffffff",
+          "on-surface": "#121c2a",
+          "on-secondary-fixed": "#002114",
+          "inverse-surface": "#273140",
+          "on-background": "#121c2a",
+          "surface-container": "#e6eeff",
+          "on-tertiary-container": "#393937",
+          "surface-container-highest": "#d9e3f7",
+          "on-secondary": "#ffffff",
+          "surface-bright": "#f9f9ff",
+          "surface-dim": "#d0daef",
+          "surface-tint": "#006c49",
+          surface: "#f9f9ff",
+          "outline-variant": "#bbcabf",
+          "on-error-container": "#93000a",
+          "primary-fixed-dim": "#4edea3",
+          "tertiary-fixed-dim": "#c8c6c3",
+          "on-primary-container": "#00422b",
+          "inverse-on-surface": "#ebf1ff",
+          secondary: "#006c4a",
+          "on-primary-fixed-variant": "#005236",
+          "surface-container-lowest": "#ffffff",
+          error: "#ba1a1a",
+          "surface-container-high": "#dee9fd",
+        },
+        borderRadius: {
+            DEFAULT: "0.25rem",
+            lg: "0.5rem",
+            xl: "0.75rem",
+            full: "9999px",
+          "2xl": "1rem",
+          "3xl": "1.5rem",
+        },
+      },
+    },
+  }
+</script>
+<style>
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  }
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 12px 32px -4px rgba(55, 65, 81, 0.08);
+  }
+  .step-content {
+    animation: fadeInSlideUp 0.35s ease-out;
+  }
+  @keyframes fadeInSlideUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .tactile-card {
+    background-color: #ffffff;
+    box-shadow: 0 12px 24px -2px rgba(55, 65, 81, 0.08);
+    border: 1px solid #eef2f6;
+    position: relative;
+    overflow: hidden;
+  }
+  .tactile-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/linen.png");
+    opacity: 0.02;
+    pointer-events: none;
+  }
+  .stitch-border {
+    border: 2px dashed #005137;
+    position: relative;
+  }
+  .squircle {
+    border-radius: 1.5rem;
+  }
+  .pressed-input {
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+    background-color: #fcfcfd;
+  }
+</style>
+</head>
+<body class="bg-[#fcfbf7] text-on-background font-['Plus_Jakarta_Sans',sans-serif] min-h-screen">
+
+<!-- Full-screen fixed overlay matching wizard -->
+<div class="fixed inset-0 z-50 flex flex-col overflow-y-auto"
+     style="background-color:#fcfbf7;background-image:radial-gradient(circle at 50% 50%,rgba(255,255,255,0.4) 0%,transparent 100%)">
+
+  <!-- Top Navigation — wizard pill style -->
+  <div class="fixed top-0 left-0 z-10 w-full px-4 py-6 md:px-10">
+    <div class="mx-auto flex w-full max-w-[1200px] flex-col items-center justify-between gap-6 md:flex-row">
+      <div class="flex items-center gap-2" style="font-family:'Source Serif 4',serif;font-size:24px;font-weight:700;color:#006c49">
+        <span class="material-symbols-outlined text-[28px]">school</span>
+        Exam Builder
+      </div>
+      <nav class="flex items-center gap-4 rounded-full border bg-white p-2 shadow-sm" style="border-color:#bbcabf">
+        <div class="flex items-center">
+          <a href="basic-info.html" class="rounded-full px-4 py-2 text-sm font-semibold tracking-[0.02em] block cursor-pointer opacity-70 hover:opacity-100" style="background-color:transparent;color:#3c4a42">Basic Info</a>
+          <div class="mx-2 h-px w-3" style="background-color:#bbcabf"></div>
+        </div>
+        <div class="flex items-center">
+          <button type="button" class="rounded-full px-4 py-2 text-sm font-semibold tracking-[0.02em] text-white" style="background-color:#006c49">Questions</button>
+          <div class="mx-2 h-px w-3" style="background-color:#bbcabf"></div>
+        </div>
+        <div class="flex items-center">
+          <button type="button" class="rounded-full px-4 py-2 text-sm font-semibold tracking-[0.02em] cursor-default opacity-70" style="background-color:transparent;color:#3c4a42">Settings</button>
+          <div class="mx-2 h-px w-3" style="background-color:#bbcabf"></div>
+        </div>
+        <div class="flex items-center">
+          <button type="button" class="rounded-full px-4 py-2 text-sm font-semibold tracking-[0.02em] cursor-default opacity-70" style="background-color:transparent;color:#3c4a42">Review &amp; Publish</button>
+        </div>
+      </nav>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="flex w-full flex-grow flex-col items-center px-4 pb-12 pt-[140px] md:px-10 md:pt-[120px]">
+    <div class="w-full max-w-3xl">
+
+      <!-- Glass Panel Card -->
+      <section class="glass-panel overflow-hidden rounded-xl border border-white">
+
+        <!-- Step Header -->
+        <div class="border-b px-6 py-10 text-center md:px-12" style="border-color:#dee9fd;background-color:#eff3ff">
+          <h1 class="mb-2" style="font-family:'Source Serif 4',serif;font-size:32px;line-height:40px;font-weight:700;letter-spacing:-0.01em;color:#121c2a">
+            Add Questions
+          </h1>
+          <p class="mx-auto max-w-md text-sm leading-relaxed" style="color:#3c4a42">
+            Create and organize your exam questions. Each question can have up to four answer options with one correct answer.
+          </p>
+          <!-- Autosave status + Clear -->
+          <div class="mt-4 flex items-center justify-center gap-3">
+            <span class="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider" style="border-color:#6c7a71;color:#6c7a71">
+              <span class="material-symbols-outlined text-xs">cloud_off</span>
+              Unsaved
+            </span>
+            <button type="button" class="flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors" style="border-color:#bbcabf;color:#6c7a71">
+              <span class="material-symbols-outlined text-xs">delete</span>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Form Content — Curate Your Questions -->
+        <div class="space-y-8 p-6 md:p-8">
+          <div class="step-content">
+            <div class="flex flex-col gap-8">
+
+              <!-- Section Header -->
+              <div class="flex items-center justify-between">
+                <div>
+                  <h1 class="text-[32px] font-bold leading-10 tracking-[-0.01em]" style="font-family:'Source Serif 4',serif;color:#121c2a">
+                    Curate Your Questions
+                  </h1>
+                  <p class="mt-1 text-base leading-6" style="color:#3c4a42">
+                    Build your assessment by adding multiple-choice or open-ended questions.
+                  </p>
+                </div>
+                <button type="button" class="group relative overflow-hidden squircle transition-all active:scale-95 hover:brightness-105" style="background-color:#10b981">
+                  <div class="flex items-center gap-2 squircle px-6 py-3 text-sm font-semibold tracking-[0.02em]" style="background-color:#10b981;color:#00422b">
+                    <span class="material-symbols-outlined text-xl">add_circle</span>
+                    Add Question
+                    <div class="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed opacity-20" style="border-color:#005137"></div>
+                  </div>
+                </button>
+              </div>
+
+              <!-- Question Card 1 — Multiple Choice -->
+              <div class="tactile-card rounded-[1.5rem] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div class="relative z-10 flex items-start gap-4">
+                  <div class="flex flex-col items-center gap-2">
+                    <span class="flex size-7 items-center justify-center rounded-full text-xs font-bold" style="background-color:#006c49;color:white">1</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="mb-3 flex items-center gap-3">
+                      <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider" style="background-color:#e6eeff;border-color:#bbcabf;color:#006c49">
+                        Multiple Choice
+                      </span>
+                      <span class="text-xs font-semibold tracking-[0.02em]" style="color:#3c4a42">Q1 &middot; 5 Points</span>
+                    </div>
+                    <h3 class="mb-4 text-xl font-semibold leading-tight" style="color:#121c2a;font-family:'Source Serif 4',serif">
+                      What is the primary function of the mitochondrion in a eukaryotic cell?
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div class="flex items-center gap-3 p-3 rounded-lg" style="background-color:#eff3ff;border:1px solid rgba(187,202,191,0.3)">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2" style="border-color:#006c49;color:#006c49">A</span>
+                        <span class="text-sm" style="color:#121c2a">Protein Synthesis</span>
+                      </div>
+                      <div class="flex items-center gap-3 p-3 rounded-lg" style="background-color:rgba(0,108,73,0.05);border:1px solid rgba(0,108,73,0.3)">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style="background-color:#006c49">B</span>
+                        <span class="text-sm font-semibold" style="color:#121c2a">ATP Production</span>
+                        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wider" style="color:#006c49">Correct</span>
+                      </div>
+                      <div class="flex items-center gap-3 p-3 rounded-lg" style="background-color:#eff3ff;border:1px solid rgba(187,202,191,0.3)">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2" style="border-color:#006c49;color:#006c49">C</span>
+                        <span class="text-sm" style="color:#121c2a">Lipid Storage</span>
+                      </div>
+                      <div class="flex items-center gap-3 p-3 rounded-lg" style="background-color:#eff3ff;border:1px solid rgba(187,202,191,0.3)">
+                        <span class="flex size-7 shrink-0 items-center justify-center rounded-full text-xs font-bold border-2" style="border-color:#006c49;color:#006c49">D</span>
+                        <span class="text-sm" style="color:#121c2a">Genetic Material</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 flex-col gap-1">
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[#e6eeff]" style="color:#3c4a42" aria-label="Edit question">
+                      <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[rgba(186,26,26,0.1)] hover:text-[#ba1a1a]" style="color:#3c4a42" aria-label="Delete question">
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[#e6eeff]" style="color:#3c4a42" aria-label="Duplicate question">
+                      <span class="material-symbols-outlined text-lg">content_copy</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Question Card 2 — True / False -->
+              <div class="tactile-card rounded-[1.5rem] p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-xl">
+                <div class="relative z-10 flex items-start gap-4">
+                  <div class="flex flex-col items-center gap-2">
+                    <span class="flex size-7 items-center justify-center rounded-full text-xs font-bold" style="background-color:#006c49;color:white">2</span>
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <div class="mb-3 flex items-center gap-3">
+                      <span class="rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider" style="background-color:#e6eeff;border-color:#bbcabf;color:#006c49">
+                        True / False
+                      </span>
+                      <span class="text-xs font-semibold tracking-[0.02em]" style="color:#3c4a42">Q2 &middot; 2 Points</span>
+                    </div>
+                    <h3 class="mb-4 text-xl font-semibold leading-tight" style="color:#121c2a;font-family:'Source Serif 4',serif">
+                      Photosynthesis occurs in the nucleus of plant cells.
+                    </h3>
+                    <div class="flex gap-4">
+                      <div class="flex items-center gap-3 p-3 rounded-lg min-w-[120px]" style="background-color:#eff3ff;border:1px solid rgba(187,202,191,0.3)">
+                        <span class="text-sm" style="color:#121c2a">True</span>
+                      </div>
+                      <div class="flex items-center gap-3 p-3 rounded-lg min-w-[120px]" style="background-color:rgba(0,108,73,0.05);border:1px solid rgba(0,108,73,0.3)">
+                        <span class="text-sm font-semibold" style="color:#121c2a">False</span>
+                        <span class="shrink-0 text-[10px] font-bold uppercase tracking-wider" style="color:#006c49">Correct</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="flex shrink-0 flex-col gap-1">
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[#e6eeff]" style="color:#3c4a42" aria-label="Edit question">
+                      <span class="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[rgba(186,26,26,0.1)] hover:text-[#ba1a1a]" style="color:#3c4a42" aria-label="Delete question">
+                      <span class="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                    <button type="button" class="flex size-9 items-center justify-center rounded-lg transition-colors hover:bg-[#e6eeff]" style="color:#3c4a42" aria-label="Duplicate question">
+                      <span class="material-symbols-outlined text-lg">content_copy</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Drop zone (empty state infill) -->
+              <div class="flex items-center justify-between rounded-xl border-2 border-dashed p-6 transition-colors hover:border-[#006c49]/30" style="border-color:#bbcabf">
+                <div class="flex items-center gap-2 text-sm" style="color:#3c4a42">
+                  <span class="opacity-60 text-lg">+</span>
+                  <span class="opacity-70 font-semibold tracking-[0.02em]">Ready for more? Drop your next question here.</span>
+                </div>
+                <button type="button" class="rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:brightness-105 active:scale-95" style="background-color:#10b981;color:#00422b">
+                  Add Question
+                </button>
+              </div>
+
+              <!-- Question count + validation hint -->
+              <div class="flex items-center justify-between px-1">
+                <span class="text-xs font-semibold tracking-[0.02em]" style="color:#6c7a71">2 questions</span>
+                <span class="flex items-center gap-1 text-xs font-semibold" style="color:#ba1a1a">
+                  <span class="material-symbols-outlined text-xs">warning</span>
+                  Some questions are incomplete
+                </span>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Actions — wizard pattern -->
+        <div class="flex items-center justify-between border-t px-6 py-5 md:px-8" style="border-color:#dee9fd;background-color:#eff3ff">
+          <a href="/dashboard/exams">
+            <button type="button" class="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80" style="color:#6c7a71">
+              <span class="material-symbols-outlined text-lg">close</span>
+              Cancel
+            </button>
+          </a>
+          <div class="flex items-center gap-3">
+            <button type="button" class="flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all" style="background-color:transparent;border:1px solid #bbcabf;color:#3c4a42">
+              <span class="material-symbols-outlined text-lg">arrow_back</span>
+              Back
+            </button>
+            <button type="button" class="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]" style="background-color:#10b981;color:#00422b;box-shadow:0 4px 12px rgba(0,108,73,0.2)">
+              Next Step
+              <span class="material-symbols-outlined text-lg">arrow_forward</span>
+            </button>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- Tips Section — 3-column grid -->
+      <div class="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3" style="opacity:0.8">
+        <div class="flex items-start gap-3">
+          <div class="flex size-8 shrink-0 items-center justify-center rounded-full" style="background-color:#82f5c1">
+            <span class="material-symbols-outlined text-sm" style="color:#006c49">lightbulb</span>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider" style="color:#121c2a">Naming Tip</p>
+            <p class="text-xs leading-relaxed" style="color:#3c4a42">Clear titles help students locate the correct exam in their dashboard quickly.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="flex size-8 shrink-0 items-center justify-center rounded-full" style="background-color:#82f5c1">
+            <span class="material-symbols-outlined text-sm" style="color:#006c49">auto_awesome</span>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider" style="color:#121c2a">Auto-Save</p>
+            <p class="text-xs leading-relaxed" style="color:#3c4a42">Your progress is automatically saved to drafts as you work through each step.</p>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <div class="flex size-8 shrink-0 items-center justify-center rounded-full" style="background-color:#82f5c1">
+            <span class="material-symbols-outlined text-sm" style="color:#006c49">shield</span>
+          </div>
+          <div class="space-y-1">
+            <p class="text-xs font-bold uppercase tracking-wider" style="color:#121c2a">Privacy</p>
+            <p class="text-xs leading-relaxed" style="color:#3c4a42">Exams are private by default and only visible to students once published.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+</div>
+
+</body>
+</html>
