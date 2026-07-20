@@ -1,19 +1,9 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Check, Copy, ExternalLink, Clock, Users, Shuffle, Eye, Lock, Calendar } from "lucide-react"
+import { useState } from "react"
+import { Clock, Users, Shuffle, Eye, Lock, Calendar } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 import type { Question, ExamSettings } from "@/types/exam"
-
-const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
-
-function generateShortCode(): string {
-  let code = ""
-  for (let i = 0; i < 8; i++) {
-    code += CODE_CHARS[Math.floor(Math.random() * CODE_CHARS.length)]
-  }
-  return code
-}
 
 interface ReviewPublishStepProps {
   basicInfo: BasicInfoValues
@@ -49,50 +39,8 @@ const termLabels: Record<string, string> = {
 
 export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPublishStepProps) {
   const [showPreview, setShowPreview] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [copiedCode, setCopiedCode] = useState(false)
-  const shortCode = useMemo(() => generateShortCode(), [])
 
   const totalMarks = questions.length
-
-  const examLink =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/exam/${basicInfo.title.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`
-      : ""
-
-  async function copyLink() {
-    try {
-      await navigator.clipboard.writeText(examLink)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      const input = document.createElement("input")
-      input.value = examLink
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand("copy")
-      document.body.removeChild(input)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    }
-  }
-
-  async function copyCode() {
-    try {
-      await navigator.clipboard.writeText(shortCode)
-      setCopiedCode(true)
-      setTimeout(() => setCopiedCode(false), 2000)
-    } catch {
-      const input = document.createElement("input")
-      input.value = shortCode
-      document.body.appendChild(input)
-      input.select()
-      document.execCommand("copy")
-      document.body.removeChild(input)
-      setCopiedCode(true)
-      setTimeout(() => setCopiedCode(false), 2000)
-    }
-  }
 
   const configItems = [
     { label: `Time Limit: ${basicInfo.duration} Minutes`, enabled: true },
@@ -403,94 +351,7 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
           </div>
         </div>
 
-        {/* Link preview */}
-        <div className="mt-6 space-y-3">
-          <div
-            className="flex items-center gap-3 rounded-xl border p-4"
-            style={{ borderColor: "rgba(187,202,191,0.3)", backgroundColor: "#eff3ff" }}
-          >
-            <div
-              className="flex size-10 items-center justify-center rounded-lg shrink-0"
-              style={{ backgroundColor: "rgba(0,108,73,0.1)" }}
-            >
-              <ExternalLink size={18} style={{ color: "#006c49" }} />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold" style={{ color: "#6c7a71" }}>
-                Generated Exam Link
-              </p>
-              <p className="truncate text-sm" style={{ color: "#121c2a" }}>
-                {examLink || "Link will be generated on publish"}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={copyLink}
-              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:brightness-105 active:scale-95 shrink-0"
-              style={{
-                backgroundColor: copied ? "#006c49" : "#10b981",
-                color: "#00422b",
-              }}
-            >
-              {copied ? (
-                <>
-                  <Check size={14} /> Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Copy
-                </>
-              )}
-            </button>
-          </div>
 
-          <div
-            className="flex items-center gap-3 rounded-xl border p-4"
-            style={{ borderColor: "rgba(187,202,191,0.3)", backgroundColor: "#eff3ff" }}
-          >
-            <div
-              className="flex size-10 items-center justify-center rounded-lg shrink-0"
-              style={{ backgroundColor: "rgba(0,108,73,0.1)" }}
-            >
-              <span
-                className="material-symbols-outlined"
-                style={{ color: "#006c49", fontVariationSettings: "'FILL' 0, 'wght' 400" }}
-              >
-                qr_code
-              </span>
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold" style={{ color: "#6c7a71" }}>
-                Exam Access Code
-              </p>
-              <p
-                className="text-lg font-bold tracking-[0.15em]"
-                style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
-              >
-                {shortCode}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={copyCode}
-              className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:brightness-105 active:scale-95 shrink-0"
-              style={{
-                backgroundColor: copiedCode ? "#006c49" : "#10b981",
-                color: "#00422b",
-              }}
-            >
-              {copiedCode ? (
-                <>
-                  <Check size={14} /> Copied
-                </>
-              ) : (
-                <>
-                  <Copy size={14} /> Copy
-                </>
-              )}
-            </button>
-          </div>
-        </div>
 
         {/* Preview exam button */}
         <div className="mt-6 flex justify-center">

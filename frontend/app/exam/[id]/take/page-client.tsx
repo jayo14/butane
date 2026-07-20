@@ -23,13 +23,15 @@ interface TakeQuestion {
 interface ExamTakeClientProps {
   exam: TakeExam
   questions: TakeQuestion[]
+  studentName: string
+  admissionNumber: string
 }
 
 const STORAGE_KEY_PREFIX = "exam-take-"
 
 const OPTION_LABELS = ["A", "B", "C", "D"]
 
-export function ExamTakeClient({ exam, questions }: ExamTakeClientProps) {
+export function ExamTakeClient({ exam, questions, studentName, admissionNumber }: ExamTakeClientProps) {
   const router = useRouter()
   const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
 

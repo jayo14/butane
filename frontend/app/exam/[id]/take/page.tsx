@@ -4,11 +4,11 @@ import { notFound } from "next/navigation"
 
 interface TakePageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ token?: string }>
+  searchParams: Promise<{ token?: string; name?: string; admission?: string }>
 }
 
 export default async function ExamTakePage({ params, searchParams }: TakePageProps) {
-  const [{ id }, { token }] = await Promise.all([params, searchParams])
+  const [{ id }, { token, name, admission }] = await Promise.all([params, searchParams])
   try {
     const exam = await api.public.exam(token || id)
     return (
@@ -27,6 +27,8 @@ export default async function ExamTakePage({ params, searchParams }: TakePagePro
           options: q.options,
           correctAnswerId: "",
         }))}
+        studentName={name || ""}
+        admissionNumber={admission || ""}
       />
     )
   } catch {
