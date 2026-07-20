@@ -6,13 +6,6 @@ services:
     branch: main
     rootDir: backend
     dockerfilePath: ./Dockerfile
-
-databases:
-  - name: butane-db
-    plan: free
-    region: oregon
-    databaseName: butane
-    ipAllowList: []
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: core.settings
@@ -66,3 +59,10 @@ databases:
         value: HTTP_X_FORWARDED_PROTO,https
       - key: DJANGO_LOG_LEVEL
         value: INFO
+
+databases:
+  - name: butane-db
+    plan: free
+    region: oregon
+    databaseName: butane
+    ipAllowList: []
