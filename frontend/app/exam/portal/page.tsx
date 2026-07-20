@@ -43,8 +43,8 @@ export default function ExamPortalPage() {
     setLoading(true)
     setError("")
     try {
-      await api.public.codeLookup(cleaned)
-      router.push(`/exam/${cleaned}`)
+      const exam = await api.public.codeLookup(cleaned)
+      router.push(`/exam/${exam.id}?token=${encodeURIComponent(cleaned)}`)
     } catch (err) {
       if (err instanceof ApiError && err.status === 404) {
         setError("No exam found with this code. Check the code and try again.")

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation"
 
 interface TakePageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ token?: string; name?: string }>
+  searchParams: Promise<{ token?: string; name?: string; attemptId?: string; accessToken?: string }>
 }
 
 function getMockExam(id: string) {
@@ -73,7 +73,7 @@ function getMockExam(id: string) {
 }
 
 export default async function ExamTakePage({ params, searchParams }: TakePageProps) {
-  const [{ id }, { token, name }] = await Promise.all([params, searchParams])
+  const [{ id }, { token, name, attemptId, accessToken }] = await Promise.all([params, searchParams])
   try {
     const exam = await api.public.exam(token || id)
     return (
@@ -95,6 +95,8 @@ export default async function ExamTakePage({ params, searchParams }: TakePagePro
           correctAnswerId: "",
         }))}
         studentName={name || ""}
+        attemptId={attemptId || ""}
+        accessToken={accessToken || ""}
       />
     )
   } catch {
@@ -119,6 +121,8 @@ export default async function ExamTakePage({ params, searchParams }: TakePagePro
           correctAnswerId: "",
         }))}
         studentName={name || ""}
+        attemptId={attemptId || ""}
+        accessToken={accessToken || ""}
       />
     )
   }

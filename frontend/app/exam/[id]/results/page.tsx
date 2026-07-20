@@ -4,11 +4,11 @@ import { notFound } from "next/navigation"
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ token?: string }>
+  searchParams: Promise<{ token?: string; attemptId?: string; accessToken?: string }>
 }
 
 export default async function ExamResultsPage({ params, searchParams }: ResultsPageProps) {
-  const [{ id }, { token }] = await Promise.all([params, searchParams])
+  const [{ id }, { token, attemptId, accessToken }] = await Promise.all([params, searchParams])
   try {
     const exam = await api.public.exam(token || id)
     return (

@@ -2,7 +2,12 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { api, ApiError } from "@/lib/api"
 import type { ApiPublicExam } from "@/lib/api"
+
+interface ExamWithToken extends ApiPublicExam {
+  token: string
+}
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   scheduled: { label: "Scheduled", className: "bg-[#D97706]/20 text-[#D97706]" },
@@ -23,22 +28,42 @@ const subjectLabels: Record<string, string> = {
 }
 
 interface StudentWelcomePageClientProps {
-  exam: ApiPublicExam
+  exam: ApiPublicExam & { token: string }
 }
 
 export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps) {
   const router = useRouter()
   const [studentName, setStudentName] = useState("")
+  const [admissionNumber, setAdmissionNumber] = useState("")
+  const [starting, setStarting] = useState(false)
+  const [startError, setStartError] = useState("")
 
   const config = statusConfig[exam.status] ?? { label: exam.status, className: "bg-[#006c49]/10 text-[#006c49]" }
-  const canStart = exam.status === "scheduled" || exam.status === "ongoing"
+  const canStart = (exam.status === "scheduled" || exam.status === "ongoing") && !starting
 
-  function handleBegin() {
-    if (!studentName.trim()) return
-    const params = new URLSearchParams({
-      name: studentName.trim(),
-    })
-    router.push(`/exam/${exam.id}/take?${params.toString()}`)
+  async function handleBegin() {
+    if (!studentName.trim() || starting) return
+    setStarting(true)
+    setStartError("")
+    try {
+      const attempt = await api.public.startAttempt(exam.token, {
+        student_name: studentName.trim(),
+        admission_number: admissionNumber.trim() || `STU-${Date.now()}`,
+      })
+      const params = new URLSearchParams({
+        attemptId: attempt.id,
+        accessToken: attempt.access_token || "",
+        name: studentName.trim(),
+      })
+      router.push(`/exam/${exam.id}/take?${params.toString()}`)
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setStartError(err.message)
+      } else {
+        setStartError("Failed to start exam. Please try again.")
+      }
+      setStarting(false)
+    }
   }
 
   return (
@@ -194,12 +219,38 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   />
                 </div>
 
+                <div className="space-y-1.5">
+                  <label
+                    className="flex items-center gap-2 ml-1 text-sm font-semibold tracking-[0.02em]"
+                    style={{ color: "#3c4a42" }}
+                  >
+                    <span className="material-symbols-outlined text-sm">badge</span>
+                    Admission Number <span className="text-xs font-normal opacity-60">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={admissionNumber}
+                    onChange={(e) => setAdmissionNumber(e.target.value)}
+                    placeholder="e.g. STU-2024-001"
+                    className="w-full p-4 rounded-full border text-base transition-all outline-none"
+                    style={{
+                      borderColor: "rgba(187,202,191,0.4)",
+                      backgroundColor: "#ffffff",
+                      color: "#121c2a",
+                      boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
+                    }}
+                  />
+                </div>
+
 
               </div>
             </div>
 
             {/* Action */}
             <div className="w-full text-center pt-8 pb-14 px-8">
+              {startError && (
+                <p className="mb-4 text-sm" style={{ color: "#ba1a1a" }}>{startError}</p>
+              )}
               <button
                 type="button"
                 onClick={handleBegin}
@@ -210,7 +261,13 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   color: "#ffffff",
                 }}
               >
-                {canStart ? "Begin Exam" : "Exam Not Available"}
+                {starting ? (
+                  <>Starting...</>
+                ) : canStart ? (
+                  "Begin Exam"
+                ) : (
+                  "Exam Not Available"
+                )}
                 <span
                   className="material-symbols-outlined transition-transform group-hover:translate-x-1"
                   style={{ fontVariationSettings: "'FILL' 0, 'wght' 500" }}

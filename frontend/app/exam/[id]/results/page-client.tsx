@@ -81,6 +81,15 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [revealed, setRevealed] = useState(false)
+  const [resultData, setResultData] = useState<{
+    score: number
+    total_marks: number
+    percentage: number
+    passed: boolean
+    correct_count: number
+    incorrect_count: number
+    unanswered_count: number
+  } | null>(null)
 
   useEffect(() => {
     try {
@@ -91,7 +100,15 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
         if (parsed.timeLeft != null) setTimeLeft(parsed.timeLeft)
       }
     } catch {}
-  }, [storageKey])
+
+    try {
+      const resultSaved = localStorage.getItem(`exam-result-${exam.id}`)
+      if (resultSaved) {
+        const parsed = JSON.parse(resultSaved)
+        setResultData(parsed)
+      }
+    } catch {}
+  }, [storageKey, exam.id])
 
   useEffect(() => {
     const timer = setTimeout(() => setRevealed(true), 600)
@@ -99,10 +116,10 @@ export function ExamResultsClient({ exam, questions }: ExamResultsClientProps) {
   }, [])
 
   const totalPossible = questions.length
-  const correctCount = questions.filter((q) => answers[q.id] && answers[q.id] === q.correctAnswerId).length
-  const incorrectCount = questions.filter((q) => answers[q.id] && answers[q.id] !== q.correctAnswerId).length
-  const skippedCount = questions.filter((q) => !answers[q.id]).length
-  const score = totalPossible > 0 ? Math.round((correctCount / totalPossible) * 100) : 0
+  const correctCount = resultData?.correct_count ?? questions.filter((q) => answers[q.id] && answers[q.id] === q.correctAnswerId).length
+  const incorrectCount = resultData?.incorrect_count ?? questions.filter((q) => answers[q.id] && answers[q.id] !== q.correctAnswerId).length
+  const skippedCount = resultData?.unanswered_count ?? questions.filter((q) => !answers[q.id]).length
+  const score = resultData?.percentage ?? (totalPossible > 0 ? Math.round((correctCount / totalPossible) * 100) : 0)
 
   const timeSpentSeconds = timeLeft != null ? exam.duration * 60 - timeLeft : null
   const timeSpentMinutes = timeSpentSeconds != null ? Math.floor(timeSpentSeconds / 60) : null

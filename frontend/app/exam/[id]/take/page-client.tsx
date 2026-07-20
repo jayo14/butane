@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { api } from "@/lib/api"
 import type { ApiPublicQuestion } from "@/lib/api"
 
 interface TakeExam {
@@ -26,13 +27,15 @@ interface ExamTakeClientProps {
   exam: TakeExam
   questions: TakeQuestion[]
   studentName: string
+  attemptId?: string
+  accessToken?: string
 }
 
 const STORAGE_KEY_PREFIX = "exam-take-"
 
 const OPTION_LABELS = ["A", "B", "C", "D"]
 
-export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientProps) {
+export function ExamTakeClient({ exam, questions, studentName, attemptId, accessToken }: ExamTakeClientProps) {
   const router = useRouter()
   const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
 
@@ -40,14 +43,28 @@ export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientP
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [timeLeft, setTimeLeft] = useState(exam.duration * 60)
   const mainRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
   const flaggedRef = useRef(flagged)
   const timeLeftRef = useRef(timeLeft)
+  const attemptIdRef = useRef(attemptId)
+  const accessTokenRef = useRef(accessToken)
   answersRef.current = answers
   flaggedRef.current = flagged
   timeLeftRef.current = timeLeft
+  attemptIdRef.current = attemptId
+  accessTokenRef.current = accessToken
+
+  const answersForApi = useCallback(
+    () =>
+      questions.map((q) => ({
+        question: q.id,
+        selected_choice: answersRef.current[q.id] || null,
+      })),
+    [questions],
+  )
 
   // Restore state from localStorage
   useEffect(() => {
@@ -67,11 +84,33 @@ export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientP
     } catch {}
   }, [storageKey, exam.id, router])
 
-  // Autosave
+  // Autosave to localStorage
   useEffect(() => {
     const data = { answers, flagged: [...flagged], currentIndex, timeLeft }
     localStorage.setItem(storageKey, JSON.stringify(data))
   }, [answers, flagged, currentIndex, timeLeft, storageKey])
+
+  // Auto-save to API (debounced)
+  const apiSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (!attemptIdRef.current || !accessTokenRef.current) return
+    if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
+    apiSaveTimerRef.current = setTimeout(async () => {
+      try {
+        await api.public.saveAttempt(attemptIdRef.current!, accessTokenRef.current!, {
+          answers: questions.map((q) => ({
+            question: q.id,
+            selected_choice: answers[q.id] || null,
+          })),
+        })
+      } catch {
+        // Silently fail — answers are still in localStorage
+      }
+    }, 5000)
+    return () => {
+      if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
+    }
+  }, [answers, questions])
 
   // Timer
   const timerInterval = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -103,8 +142,26 @@ export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientP
     )
   }, [storageKey])
 
-  const goToReview = useCallback(() => {
+  const goToReview = useCallback(async () => {
     saveState()
+    if (attemptIdRef.current && accessTokenRef.current) {
+      try {
+        const result = await api.public.submitAttempt(attemptIdRef.current, accessTokenRef.current, {
+          answers: questions.map((q) => ({
+            question: q.id,
+            selected_choice: answersRef.current[q.id] || null,
+          })),
+        })
+        if (result) {
+          localStorage.setItem(
+            `exam-result-${exam.id}`,
+            JSON.stringify(result),
+          )
+        }
+      } catch {
+        // Fall back to local submit
+      }
+    }
     if (!exam.allowReview && !exam.showResult) {
       router.push(`/exam/${exam.id}/submitted`)
     } else if (!exam.allowReview) {
@@ -112,7 +169,7 @@ export function ExamTakeClient({ exam, questions, studentName }: ExamTakeClientP
     } else {
       router.push(`/exam/${exam.id}/review`)
     }
-  }, [saveState, router, exam.id, exam.allowReview, exam.showResult])
+  }, [saveState, router, exam.id, exam.allowReview, exam.showResult, questions])
 
   const handleSubmitClick = useCallback(() => {
     setShowSubmitConfirm(true)

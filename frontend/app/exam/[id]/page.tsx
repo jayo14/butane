@@ -2,9 +2,10 @@ import { api } from "@/lib/api"
 import { StudentWelcomePageClient } from "./page-client"
 import { notFound } from "next/navigation"
 
-function getMockExam(id: string) {
+function getMockExam(id: string, token?: string) {
   return {
     id,
+    token: token || id,
     title: "Sample Exam (Dev Mode)",
     description: "This is a sample exam for development and testing purposes.",
     instructions: "Read each question carefully and select the best answer.",
@@ -37,9 +38,9 @@ export default async function ExamWelcomePage({ params, searchParams }: ExamPage
   const lookupToken = token || id
   try {
     const exam = await api.public.exam(lookupToken)
-    return <StudentWelcomePageClient exam={exam} />
+    return <StudentWelcomePageClient exam={{ ...exam, token: lookupToken }} />
   } catch {
-    const mock = getMockExam(id)
+    const mock = getMockExam(id, token)
     return <StudentWelcomePageClient exam={mock} />
   }
 }
