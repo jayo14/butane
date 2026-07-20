@@ -107,7 +107,7 @@ export default function ExamPortalPage() {
               letterSpacing: "-0.01em",
             }}
           >
-            ExamCore
+            Dee Soar CBT
           </h1>
         </div>
       </header>

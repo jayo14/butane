@@ -547,7 +547,7 @@ export function CreateExamWizard() {
         <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center justify-between gap-6 md:flex-row">
           <div className="flex items-center gap-2" style={{ fontFamily: "'Source Serif 4', serif", fontSize: "24px", fontWeight: 700, color: "#006c49" }}>
             <School size={28} color="#006c49" />
-            Exam Builder
+            Dee Soar CBT
           </div>
 
           <nav className="flex items-center gap-4 rounded-full border bg-white p-2 shadow-sm" style={{ borderColor: "#bbcabf" }}>
