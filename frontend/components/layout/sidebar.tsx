@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import React, { useMemo } from "react"
+import { useState, useMemo } from "react"
 import { cn, getInitials } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-media-query"
 import { useDisclosure } from "@/hooks/use-disclosure"
@@ -39,7 +39,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const { isOpen, onToggle, onClose } = useDisclosure(false)
-  const [collapsed, setCollapsed] = React.useState(false)
+  const [collapsed, setCollapsed] = useState(false)
   const { user } = useAuth()
 
   const visibleItems = useMemo(
