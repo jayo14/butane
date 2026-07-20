@@ -1,10 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Check, Copy, CheckCheck, Eye, ExternalLink, Calendar, Clock, Users, Shuffle, Percent, Lock } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Check, Copy, ExternalLink, Clock, Users, Shuffle, Eye, Lock, Calendar } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 import type { Question, ExamSettings } from "@/types/exam"
 
@@ -43,9 +40,13 @@ const termLabels: Record<string, string> = {
 export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPublishStepProps) {
   const [showPreview, setShowPreview] = useState(false)
   const [copied, setCopied] = useState(false)
-  const [published, setPublished] = useState(false)
 
-  const examLink = `https://deesoar.edu/exam/${basicInfo.title.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`
+  const totalMarks = questions.length
+
+  const examLink =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/exam/${basicInfo.title.toLowerCase().replace(/\s+/g, "-")}-${Date.now().toString(36)}`
+      : ""
 
   async function copyLink() {
     try {
@@ -64,71 +65,47 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
     }
   }
 
-  const OPTION_LABELS = ["A", "B", "C", "D"]
-  const totalMarks = questions.length
-
-  if (published) {
-    return (
-      <div className="flex flex-col items-center justify-center py-12 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="mb-6 flex size-20 items-center justify-center rounded-full bg-success-light text-success">
-          <CheckCheck size={44} />
-        </div>
-        <h2 className="text-xl font-bold text-content-primary">Exam Published Successfully</h2>
-        <p className="mt-2 max-w-sm text-sm text-content-secondary">
-          Your exam is now available for students. Share the link below to give them access.
-        </p>
-
-        <div className="mt-8 w-full max-w-md">
-          <label className="mb-1.5 block text-left text-xs font-medium text-content-muted">
-            Exam Link
-          </label>
-          <div className="flex items-center gap-2">
-            <div className="flex flex-1 items-center gap-2 rounded-xl border border-border-primary bg-surface-secondary px-4 py-2.5">
-              <ExternalLink size={16} className="shrink-0 text-content-muted" />
-              <span className="truncate text-sm text-content-primary">{examLink}</span>
-            </div>
-            <Button
-              variant="primary"
-              size="md"
-              onClick={copyLink}
-              leftIcon={copied ? <Check size={18} /> : <Copy size={18} />}
-              className={cn(copied && "bg-success hover:bg-success")}
-            >
-              {copied ? "Copied" : "Copy"}
-            </Button>
-          </div>
-        </div>
-
-        <div className="mt-6 flex gap-3">
-          <Button variant="outline" onClick={() => setPublished(false)}>
-            Back to Review
-          </Button>
-          <Button variant="primary" onClick={copyLink}>
-            Copy Link
-          </Button>
-        </div>
-      </div>
-    )
-  }
+  const configItems = [
+    { label: `Time Limit: ${basicInfo.duration} Minutes`, enabled: true },
+    { label: "Shuffle Question Order", enabled: settings.shuffleQuestions },
+    { label: "Shuffle Answer Order", enabled: settings.shuffleAnswers },
+    { label: "Results visible immediately", enabled: settings.showResult },
+    { label: "Allow Review", enabled: settings.allowReview },
+  ]
 
   if (showPreview) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-content-primary">Exam Preview</h2>
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(false)}>
+          <h2 className="text-lg font-semibold" style={{ color: "#121c2a" }}>
+            Exam Preview
+          </h2>
+          <button
+            type="button"
+            onClick={() => setShowPreview(false)}
+            className="rounded-full border px-5 py-2 text-sm font-semibold transition-all"
+            style={{ borderColor: "#bbcabf", color: "#3c4a42" }}
+          >
             Back to Review
-          </Button>
+          </button>
         </div>
 
-        <div className="rounded-xl border border-border-primary bg-surface-secondary p-4">
-          <h3 className="font-semibold text-content-primary">{basicInfo.title}</h3>
-          <p className="mt-1 text-xs text-content-secondary">
-            {subjectLabels[basicInfo.subject] || basicInfo.subject} &middot; {classLabels[basicInfo.class] || basicInfo.class}
+        <div
+          className="rounded-xl border p-4"
+          style={{ borderColor: "#bbcabf", backgroundColor: "#eff3ff" }}
+        >
+          <h3 className="font-semibold" style={{ color: "#121c2a" }}>
+            {basicInfo.title}
+          </h3>
+          <p className="mt-1 text-xs" style={{ color: "#3c4a42" }}>
+            {subjectLabels[basicInfo.subject] || basicInfo.subject} &middot;{" "}
+            {classLabels[basicInfo.class] || basicInfo.class}
           </p>
           {basicInfo.instructions && (
-            <div className="mt-3 rounded-lg bg-white p-3 text-sm text-content-secondary">
-              <p className="text-xs font-medium text-content-muted mb-1">Instructions:</p>
+            <div className="mt-3 rounded-lg bg-white p-3 text-sm" style={{ color: "#3c4a42" }}>
+              <p className="mb-1 text-xs font-medium" style={{ color: "#6c7a71" }}>
+                Instructions:
+              </p>
               <p>{basicInfo.instructions}</p>
             </div>
           )}
@@ -136,39 +113,52 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
 
         <div className="space-y-4">
           {questions.map((q, i) => (
-            <div key={q.id} className="rounded-xl border border-border-primary bg-white p-5">
+            <div
+              key={q.id}
+              className="rounded-xl border bg-white p-5"
+              style={{ borderColor: "#bbcabf" }}
+            >
               <div className="mb-3 flex items-center gap-3">
-                <span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-xs font-semibold text-primary">
+                <span
+                  className="flex size-7 items-center justify-center rounded-lg text-xs font-semibold"
+                  style={{ backgroundColor: "rgba(0,108,73,0.1)", color: "#006c49" }}
+                >
                   {i + 1}
                 </span>
-                <p className="text-sm font-medium text-content-primary">{q.text}</p>
-                <span className="ml-auto text-xs text-content-muted">{totalMarks > 0 ? `${1} mark` : ""}</span>
+                <p className="text-sm font-medium" style={{ color: "#121c2a" }}>
+                  {q.text}
+                </p>
+                <span className="ml-auto text-xs" style={{ color: "#6c7a71" }}>
+                  {totalMarks > 0 ? `${1} mark` : ""}
+                </span>
               </div>
               <div className="space-y-2">
-                {q.options.map((opt, oi) => (
-                  <div
-                    key={opt.id}
-                    className={cn(
-                      "flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm",
-                      opt.id === q.correctAnswerId
-                        ? "border-success/50 bg-success-light/50 text-success"
-                        : "border-border-primary text-content-primary",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "flex size-7 items-center justify-center rounded-lg text-xs font-medium",
-                        opt.id === q.correctAnswerId ? "bg-success text-white" : "bg-surface-secondary text-content-muted",
-                      )}
+                {q.options.map((opt, oi) => {
+                  const isCorrect = opt.id === q.correctAnswerId
+                  return (
+                    <div
+                      key={opt.id}
+                      className="flex items-center gap-3 rounded-xl border px-4 py-2.5 text-sm"
+                      style={{
+                        borderColor: isCorrect ? "rgba(0,108,73,0.5)" : "#bbcabf",
+                        backgroundColor: isCorrect ? "rgba(0,108,73,0.05)" : "transparent",
+                        color: isCorrect ? "#006c49" : "#121c2a",
+                      }}
                     >
-                      {OPTION_LABELS[oi]}
-                    </span>
-                    {opt.text}
-                    {opt.id === q.correctAnswerId && (
-                      <Check size={14} className="ml-auto shrink-0" />
-                    )}
-                  </div>
-                ))}
+                      <span
+                        className="flex size-7 items-center justify-center rounded-lg text-xs font-medium"
+                        style={{
+                          backgroundColor: isCorrect ? "#006c49" : "#eff3ff",
+                          color: isCorrect ? "white" : "#6c7a71",
+                        }}
+                      >
+                        {["A", "B", "C", "D"][oi]}
+                      </span>
+                      {opt.text}
+                      {isCorrect && <Check size={14} className="ml-auto shrink-0" />}
+                    </div>
+                  )
+                })}
               </div>
             </div>
           ))}
@@ -178,132 +168,269 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-content-primary">Review & Publish</h2>
-        <p className="mt-0.5 text-sm text-content-secondary">
-          Review all exam details before publishing
-        </p>
-      </div>
+    <div
+      className="rounded-xl border p-6 md:p-8 relative overflow-hidden"
+      style={{
+        borderColor: "rgba(187,202,191,0.3)",
+        backgroundImage:
+          "url('https://www.transparenttextures.com/patterns/natural-linen.png')",
+        backgroundBlendMode: "overlay",
+        backgroundColor: "#ffffff",
+        boxShadow: "0 12px 24px -10px rgba(55,65,81,0.12)",
+      }}
+    >
+      {/* Decorative accent */}
+      <div
+        className="absolute top-0 right-0 w-32 h-32 rounded-full pointer-events-none"
+        style={{
+          background: "rgba(111,251,190,0.15)",
+          filter: "blur(48px)",
+          transform: "translate(20%, -20%)",
+        }}
+      />
 
-      {/* Basic Info Summary */}
-      <div className="rounded-xl border border-border-primary p-5">
-        <h3 className="mb-3 text-sm font-semibold text-content-primary">Exam Information</h3>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <InfoRow label="Title" value={basicInfo.title} />
-          <InfoRow label="Subject" value={subjectLabels[basicInfo.subject] || basicInfo.subject} />
-          <InfoRow label="Class" value={classLabels[basicInfo.class] || basicInfo.class} />
-          <InfoRow label="Term" value={termLabels[basicInfo.term] || basicInfo.term} />
-        </div>
-        {basicInfo.instructions && (
-          <div className="mt-3 rounded-lg bg-surface-secondary p-3">
-            <span className="text-xs font-medium text-content-muted">Instructions:</span>
-            <p className="mt-0.5 text-sm text-content-primary">{basicInfo.instructions}</p>
+      <div className="relative z-10">
+        {/* Summary bento grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Primary Identity Card full width */}
+          <div
+            className="md:col-span-2 rounded-xl border p-6"
+            style={{
+              borderColor: "rgba(187,202,191,0.5)",
+              backgroundColor: "#eff3ff",
+              boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.05)",
+            }}
+          >
+            <div className="flex items-start justify-between">
+              <div>
+                <span
+                  className="text-xs font-bold uppercase tracking-widest"
+                  style={{ color: "#006c49" }}
+                >
+                  Exam Title
+                </span>
+                <h2
+                  className="mt-1 text-xl font-semibold"
+                  style={{
+                    color: "#121c2a",
+                    fontFamily: "'Source Serif 4', serif",
+                  }}
+                >
+                  {basicInfo.title}
+                </h2>
+                {basicInfo.instructions && (
+                  <p className="mt-2 text-sm" style={{ color: "#3c4a42" }}>
+                    {basicInfo.instructions}
+                  </p>
+                )}
+              </div>
+              <div
+                className="flex size-12 items-center justify-center rounded-xl shrink-0"
+                style={{ backgroundColor: "rgba(16,185,129,0.15)" }}
+              >
+                <span
+                  className="material-symbols-outlined text-3xl"
+                  style={{ color: "#006c49", fontVariationSettings: "'FILL' 0, 'wght' 300" }}
+                >
+                  school
+                </span>
+              </div>
+            </div>
           </div>
-        )}
-      </div>
 
-      {/* Stats Summary */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { icon: <Clock size={16} />, label: "Duration", value: `${basicInfo.duration} min` },
-          { icon: <Users size={16} />, label: "Questions", value: questions.length.toString() },
-          { icon: <Percent size={16} />, label: "Total Marks", value: totalMarks.toString() },
-          { icon: <Calendar size={16} />, label: "Pass Mark", value: `${settings.passMark}%` },
-        ].map((item) => (
-          <div key={item.label} className="rounded-xl border border-border-primary bg-surface-secondary p-3 text-center">
-            <div className="mb-1 flex justify-center text-primary">{item.icon}</div>
-            <p className="text-xs text-content-muted">{item.label}</p>
-            <p className="text-sm font-semibold text-content-primary">{item.value}</p>
+          {/* Subject & Class */}
+          <div className="space-y-6">
+            <div
+              className="rounded-xl border bg-white p-6 flex items-center gap-4"
+              style={{ borderColor: "rgba(187,202,191,0.3)" }}
+            >
+              <div
+                className="flex size-12 items-center justify-center rounded-lg"
+                style={{ backgroundColor: "#d9e3f7" }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: "#3c4a42", fontVariationSettings: "'FILL' 0, 'wght' 400" }}
+                >
+                  subject
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#3c4a42" }}>
+                  Subject
+                </p>
+                <p className="text-sm font-semibold" style={{ color: "#121c2a" }}>
+                  {subjectLabels[basicInfo.subject] || basicInfo.subject}
+                </p>
+              </div>
+            </div>
+
+            <div
+              className="rounded-xl border bg-white p-6 flex items-center gap-4"
+              style={{ borderColor: "rgba(187,202,191,0.3)" }}
+            >
+              <div
+                className="flex size-12 items-center justify-center rounded-lg"
+                style={{ backgroundColor: "#d9e3f7" }}
+              >
+                <span
+                  className="material-symbols-outlined"
+                  style={{ color: "#3c4a42", fontVariationSettings: "'FILL' 0, 'wght' 400" }}
+                >
+                  quiz
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#3c4a42" }}>
+                  Questions
+                </p>
+                <p className="text-sm font-semibold" style={{ color: "#121c2a" }}>
+                  {questions.length} Multiple Choice
+                </p>
+              </div>
+            </div>
           </div>
-        ))}
-      </div>
 
-      {/* Settings Summary */}
-      <div className="rounded-xl border border-border-primary p-5">
-        <h3 className="mb-3 text-sm font-semibold text-content-primary">Configuration</h3>
-        <div className="space-y-2">
-          <ConfigRow icon={<Shuffle size={14} />} label="Shuffle Questions" enabled={settings.shuffleQuestions} />
-          <ConfigRow icon={<Shuffle size={14} />} label="Shuffle Answers" enabled={settings.shuffleAnswers} />
-          <ConfigRow icon={<Eye size={14} />} label="Show Results Immediately" enabled={settings.showResult} />
-          <ConfigRow icon={<Lock size={14} />} label="Allow Review" enabled={settings.allowReview} />
-          <ConfigRow
-            icon={<Calendar size={14} />}
-            label="Availability"
-            value={
-              settings.availableFrom && settings.availableTo
-                ? `${new Date(settings.availableFrom).toLocaleDateString()} - ${new Date(settings.availableTo).toLocaleDateString()}`
-                : "Not set"
-            }
-          />
+          {/* Configuration */}
+          <div
+            className="rounded-xl border bg-white p-6"
+            style={{ borderColor: "rgba(187,202,191,0.3)" }}
+          >
+            <p
+              className="text-xs font-bold uppercase tracking-wider mb-4"
+              style={{ color: "#3c4a42" }}
+            >
+              Configuration
+            </p>
+            <ul className="space-y-4">
+              {configItems
+                .filter((item) => item.enabled)
+                .map((item) => (
+                  <li key={item.label} className="flex items-center gap-3">
+                    <span
+                      className="material-symbols-outlined text-sm shrink-0"
+                      style={{ color: "#006c49", fontVariationSettings: "'FILL' 1, 'wght' 400" }}
+                    >
+                      check_circle
+                    </span>
+                    <span className="text-sm" style={{ color: "#121c2a" }}>
+                      {item.label}
+                    </span>
+                  </li>
+                ))}
+              {configItems.filter((item) => item.enabled).length === 0 && (
+                <li className="text-sm" style={{ color: "#6c7a71" }}>
+                  No special configuration enabled
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
-      </div>
 
-      {/* Generated Link Preview */}
-      <div className="rounded-xl border border-border-primary bg-surface-secondary p-5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-            <ExternalLink size={20} />
+        {/* Stats bar */}
+        <div
+          className="mt-6 grid grid-cols-3 gap-4 rounded-xl border p-4"
+          style={{ borderColor: "rgba(187,202,191,0.3)", backgroundColor: "#fcfbf7" }}
+        >
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
+              Duration
+            </p>
+            <p
+              className="mt-1 text-lg font-bold"
+              style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
+            >
+              {basicInfo.duration}
+              <span className="text-sm font-semibold" style={{ color: "#3c4a42" }}>
+                {" "}
+                min
+              </span>
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
+              Questions
+            </p>
+            <p
+              className="mt-1 text-lg font-bold"
+              style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
+            >
+              {questions.length}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
+              Pass Mark
+            </p>
+            <p
+              className="mt-1 text-lg font-bold"
+              style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
+            >
+              {settings.passMark}
+              <span className="text-sm font-semibold" style={{ color: "#3c4a42" }}>
+                %
+              </span>
+            </p>
+          </div>
+        </div>
+
+        {/* Link preview */}
+        <div
+          className="mt-6 flex items-center gap-3 rounded-xl border p-4"
+          style={{ borderColor: "rgba(187,202,191,0.3)", backgroundColor: "#eff3ff" }}
+        >
+          <div
+            className="flex size-10 items-center justify-center rounded-lg shrink-0"
+            style={{ backgroundColor: "rgba(0,108,73,0.1)" }}
+          >
+            <ExternalLink size={18} style={{ color: "#006c49" }} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-content-muted">Generated Exam Link</p>
-            <p className="truncate text-sm text-content-primary">{examLink}</p>
+            <p className="text-xs font-semibold" style={{ color: "#6c7a71" }}>
+              Generated Exam Link
+            </p>
+            <p className="truncate text-sm" style={{ color: "#121c2a" }}>
+              {examLink || "Link will be generated on publish"}
+            </p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
+          <button
+            type="button"
             onClick={copyLink}
-            leftIcon={copied ? <Check size={14} /> : <Copy size={14} />}
-            className={cn(copied && "text-success border-success")}
+            className="flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:brightness-105 active:scale-95 shrink-0"
+            style={{
+              backgroundColor: copied ? "#006c49" : "#10b981",
+              color: "#00422b",
+            }}
           >
-            {copied ? "Copied" : "Copy"}
-          </Button>
+            {copied ? (
+              <>
+                <Check size={14} /> Copied
+              </>
+            ) : (
+              <>
+                <Copy size={14} /> Copy
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* Preview exam button */}
+        <div className="mt-6 flex justify-center">
+          <button
+            type="button"
+            onClick={() => setShowPreview(true)}
+            className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all"
+            style={{
+              backgroundColor: "transparent",
+              border: "1px solid #bbcabf",
+              color: "#3c4a42",
+            }}
+          >
+            <Eye size={18} />
+            Preview Full Exam
+          </button>
         </div>
       </div>
-
-      {/* Actions */}
-      <div className="flex justify-center">
-        <Button variant="outline" onClick={() => setShowPreview(true)} leftIcon={<Eye size={18} />}>
-          Preview Exam
-        </Button>
-      </div>
-    </div>
-  )
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <span className="text-xs text-content-muted">{label}</span>
-      <p className="text-sm font-medium text-content-primary">{value}</p>
-    </div>
-  )
-}
-
-function ConfigRow({
-  icon,
-  label,
-  enabled,
-  value,
-}: {
-  icon: React.ReactNode
-  label: string
-  enabled?: boolean
-  value?: string
-}) {
-  return (
-    <div className="flex items-center gap-3 rounded-lg px-1">
-      <span className="text-content-muted">{icon}</span>
-      <span className="flex-1 text-sm text-content-primary">{label}</span>
-      {enabled !== undefined ? (
-        enabled ? (
-          <Badge variant="success" size="sm">Enabled</Badge>
-        ) : (
-          <Badge variant="primary" size="sm">Disabled</Badge>
-        )
-      ) : (
-        <span className="text-xs text-content-muted">{value}</span>
-      )}
     </div>
   )
 }
