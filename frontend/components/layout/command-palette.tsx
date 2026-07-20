@@ -6,9 +6,7 @@ import { useRouter } from "next/navigation"
 import { NAV_ITEMS } from "@/lib/constants"
 
 const extraCommands = [
-  { label: "View Results", href: "/dashboard/results", icon: "bar-chart-3" },
-  { label: "Create Exam", href: "/dashboard/exams", icon: "clipboard-list" },
-  { label: "Add Student", href: "/dashboard/students", icon: "users" },
+  { label: "Create Exam", href: "/dashboard/exams/create", icon: "clipboard-list" },
 ]
 
 export function CommandPalette() {
