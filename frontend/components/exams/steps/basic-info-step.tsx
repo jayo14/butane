@@ -1,7 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { useFormContext } from "react-hook-form"
-import { PenLine, ChevronDown } from "lucide-react"
+import { PenLine, ChevronDown, ImagePlus } from "lucide-react"
 import type { BasicInfoValues } from "../create-exam-wizard"
 
 interface BasicInfoStepProps {
@@ -10,11 +11,12 @@ interface BasicInfoStepProps {
   terms: { label: string; value: string }[]
 }
 
-export function BasicInfoStep({ subjects, classes }: BasicInfoStepProps) {
+export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) {
   const {
     register,
     formState: { errors },
   } = useFormContext<BasicInfoValues>()
+  const [showImage, setShowImage] = useState(true)
 
   return (
     <div className="space-y-8">
@@ -101,6 +103,38 @@ export function BasicInfoStep({ subjects, classes }: BasicInfoStepProps) {
         </div>
       </div>
 
+      {/* Hidden fields for schema-required but not visible inputs */}
+      <input type="hidden" {...register("term")} />
+      <input type="hidden" {...register("duration")} />
+      <input type="hidden" {...register("questionCount")} />
+
+      {/* Term selector */}
+      <div className="space-y-2">
+        <label htmlFor="term" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+          Term
+        </label>
+        <div className="relative max-w-xs">
+          <select
+            {...register("term")}
+            id="term"
+            className="form-well w-full appearance-none rounded-xl border bg-white px-6 py-4 text-base text-[#121c2a] transition-all duration-200 focus:border-[#006c49] focus:outline-none focus:ring-2 focus:ring-[#006c49]"
+            style={{ borderColor: errors.term ? "#ba1a1a" : "#bbcabf" }}
+          >
+            {terms.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+          <div className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-[#6c7a71]">
+            <ChevronDown size={20} />
+          </div>
+        </div>
+        {errors.term && (
+          <p className="ml-1 mt-1 text-xs" style={{ color: "#ba1a1a" }} role="alert">
+            {errors.term.message}
+          </p>
+        )}
+      </div>
+
       {/* Description */}
       <div className="space-y-2">
         <label htmlFor="description" className="ml-1 block text-sm font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
@@ -121,33 +155,33 @@ export function BasicInfoStep({ subjects, classes }: BasicInfoStepProps) {
         )}
       </div>
 
-      {/* Visual Anchor (Image) */}
-      <div className="relative h-40 overflow-hidden rounded-xl">
-        <img
-          className="size-full object-cover"
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDURkBFI0ZXnYvLf3AWy4RuiGltLMsGpEq6gPpRHx4fpXcSfEhpCiyvUPJEiImnd2LvhIclJBvL_fUTc9e0opk0JZgDOuD9OtHjI1J1ARcFki_lEXyKY-XIsaw9ShveLL_MGnvqPE7bZxhwgWhomwR3KdjECWG68zBrZhPNBd27npsyo1UGxiQRKzxiH9t2lFF4m7jHe2CJhwa2EjUQRsDVmaGnIWyFQQL-6x7SL-Yrrbso5oV7oFgiQQ"
-          alt=""
-          onError={(e) => {
-            const target = e.currentTarget
-            target.style.display = "none"
-            const parent = target.parentElement
-            if (parent) {
-              parent.style.background = "linear-gradient(135deg, #d9e3f7 0%, #82f5c1 50%, #fcfbf7 100%)"
-            }
-          }}
-        />
-        <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "rgba(0,108,73,0.1)" }}>
-          <span
-            className="rounded-full border px-4 py-2 text-xs font-bold uppercase tracking-widest"
-            style={{
-              backgroundColor: "rgba(255,255,255,0.9)",
-              borderColor: "rgba(0,108,73,0.2)",
-              color: "#006c49",
+      {/* Visual Anchor with toggle */}
+      <div className="relative h-40 overflow-hidden rounded-xl" style={{ backgroundColor: "#d9e3f7" }}>
+        {showImage && (
+          <img
+            className="size-full object-cover transition-opacity duration-300"
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuDURkBFI0ZXnYvLf3AWy4RuiGltLMsGpEq6gPpRHx4fpXcSfEhpCiyvUPJEiImnd2LvhIclJBvL_fUTc9e0opk0JZgDOuD9OtHjI1J1ARcFki_lEXyKY-XIsaw9ShveLL_MGnvqPE7bZxhwgWhomwR3KdjECWG68zBrZhPNBd27npsyo1UGxiQRKzxiH9t2lFF4m7jHe2CJhwa2EjUQRsDVmaGnIWyFQQL-6x7SL-Yrrbso5oV7oFgiQQ"
+            alt=""
+            onError={(e) => {
+              const target = e.currentTarget
+              target.style.display = "none"
             }}
-          >
-            STEP 1: IDENTITY
-          </span>
-        </div>
+          />
+        )}
+        {!showImage && (
+          <div className="size-full flex items-center justify-center" style={{ background: "linear-gradient(135deg, #d9e3f7 0%, #82f5c1 50%, #fcfbf7 100%)" }}>
+            <span className="text-sm font-semibold" style={{ color: "#006c49" }}>Ready for your cover image</span>
+          </div>
+        )}
+        <button
+          type="button"
+          onClick={() => setShowImage((v) => !v)}
+          className="absolute top-3 right-3 flex items-center gap-1.5 rounded-full border bg-white/90 px-3 py-1.5 text-[11px] font-bold uppercase tracking-wider shadow-sm transition-all hover:bg-white active:scale-95"
+          style={{ borderColor: "#bbcabf", color: "#006c49" }}
+        >
+          <ImagePlus size={14} />
+          {showImage ? "Hide Image" : "Show Image"}
+        </button>
       </div>
     </div>
   )

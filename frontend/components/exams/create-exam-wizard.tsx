@@ -251,25 +251,29 @@ export function CreateExamWizard() {
 
   async function handleNext() {
     setPublishError("")
-    if (currentStep === 0) {
-      const isValid = await form.trigger()
-      if (!isValid) {
-        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-        return
+    try {
+      if (currentStep === 0) {
+        const isValid = await form.trigger()
+        if (!isValid) {
+          contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+          return
+        }
+        const basicInfo = form.getValues()
+        const updated = { ...draft, basicInfo }
+        setDraft(updated)
+        saveDraftToStorage(updated)
       }
-      const basicInfo = form.getValues()
-      const updated = { ...draft, basicInfo }
-      setDraft(updated)
-      saveDraftToStorage(updated)
-    }
-    if (currentStep === 1) {
-      const isValid = questionBuilderRef.current?.validate() ?? false
-      if (!isValid) {
-        contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
-        return
+      if (currentStep === 1) {
+        const isValid = questionBuilderRef.current?.validate() ?? false
+        if (!isValid) {
+          contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+          return
+        }
       }
+      if (currentStep < STEPS.length - 1) goToStep(currentStep + 1)
+    } catch (err) {
+      setPublishError(err instanceof Error ? err.message : "An unexpected error occurred. Please try again.")
     }
-    if (currentStep < STEPS.length - 1) goToStep(currentStep + 1)
   }
 
   function handleBack() {
