@@ -130,6 +130,7 @@ export function QuestionCard({ question, index, errors, onChange, onDuplicate, o
                   checked={isCorrect}
                   onChange={() => setCorrect(option.id)}
                   className="sr-only"
+                  tabIndex={-1}
                   aria-label={`Mark option ${OPTION_LABELS[oi]} as correct answer`}
                 />
                 {OPTION_LABELS[oi]}
