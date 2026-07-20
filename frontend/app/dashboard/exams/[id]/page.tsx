@@ -1,6 +1,4 @@
-import { mockExams } from "@/data/mock/exams"
-import { mockQuestions } from "@/data/mock/exam-questions"
-import { studentResults } from "@/data/mock/student-results"
+import { api, transformExam } from "@/lib/api"
 import { notFound } from "next/navigation"
 import { ExamDetailClient } from "./page-client"
 
@@ -10,27 +8,49 @@ export default async function ExamDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
-  const exam = mockExams.find((e) => e.id === id)
-  if (!exam) notFound()
 
-  const relatedAttempts = studentResults.flatMap((s) =>
-    s.attempts.filter((a) => a.examId === id).map((a) => ({
-      ...a,
-      studentName: `${s.firstName} ${s.lastName}`,
-      studentGrade: s.grade,
-    })),
-  )
+  try {
+    const [examApi, questions, results] = await Promise.all([
+      api.exams.get(id),
+      api.questions.list(id).catch(() => []),
+      api.results.list({ exam: id }).catch(() => ({ results: [] })),
+    ])
 
-  const questions = mockQuestions.filter((q) => q.examId === id)
+    const exam = transformExam(examApi)
+    if (!exam) notFound()
 
-  const stats = {
-    totalAttempts: relatedAttempts.length,
-    passed: relatedAttempts.filter((a) => a.passed).length,
-    failed: relatedAttempts.filter((a) => !a.passed).length,
-    averageScore: relatedAttempts.length > 0
-      ? Math.round(relatedAttempts.reduce((sum, a) => sum + (a.score / a.totalMarks) * 100, 0) / relatedAttempts.length)
-      : 0,
+    const allAttempts = results.results.map((r) => ({
+      id: r.id,
+      examId: r.exam,
+      examTitle: r.exam_title,
+      course: r.course,
+      date: r.graded_at,
+      score: r.score,
+      totalMarks: r.total_marks,
+      passed: r.passed,
+      duration: 0,
+      studentName: r.student_name,
+      studentGrade: "",
+    }))
+
+    const stats = {
+      totalAttempts: allAttempts.length,
+      passed: allAttempts.filter((a) => a.passed).length,
+      failed: allAttempts.filter((a) => !a.passed).length,
+      averageScore: allAttempts.length > 0
+        ? Math.round(allAttempts.reduce((sum, a) => sum + (a.score / a.totalMarks) * 100, 0) / allAttempts.length)
+        : 0,
+    }
+
+    return (
+      <ExamDetailClient
+        exam={exam}
+        questions={questions.map((q) => ({ id: q.id, number: q.order, text: q.text }))}
+        attempts={allAttempts}
+        stats={stats}
+      />
+    )
+  } catch {
+    notFound()
   }
-
-  return <ExamDetailClient exam={exam} questions={questions} attempts={relatedAttempts} stats={stats} />
 }

@@ -30,6 +30,7 @@ import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
 import { Dropdown } from "@/components/ui/dropdown"
 import { formatDate, formatDuration } from "@/lib/utils"
+import { api, transformExam } from "@/lib/api"
 import type { Exam } from "@/types"
 
 const statusConfig: Record<string, { label: string; variant: "info" | "warning" | "success" | "danger" }> = {
@@ -80,30 +81,27 @@ export function ExamsPageClient({ exams: initialExams }: { exams: Exam[] }) {
     { label: "Cancelled", value: "cancelled" },
   ]
 
-  function handleDelete(id: string) {
-    setExams((prev) => prev.filter((e) => e.id !== id))
+  async function handleDelete(id: string) {
+    try {
+      await api.exams.delete(id)
+      setExams((prev) => prev.filter((e) => e.id !== id))
+    } catch {}
   }
 
-  function handleDuplicate(id: string) {
-    const source = exams.find((e) => e.id === id)
-    if (!source) return
-    const dupe: Exam = {
-      ...source,
-      id: `${source.id}-copy-${Date.now().toString(36)}`,
-      title: `${source.title} (Copy)`,
-      status: "scheduled",
-    }
-    setExams((prev) => [...prev, dupe])
+  async function handleDuplicate(id: string) {
+    try {
+      const created = await api.exams.duplicate(id)
+      setExams((prev) => [...prev, transformExam(created)])
+    } catch {}
   }
 
-  function handleToggleStatus(id: string) {
-    setExams((prev) =>
-      prev.map((e) =>
-        e.id === id
-          ? { ...e, status: e.status === "completed" ? "scheduled" as const : "completed" as const }
-          : e,
-      ),
-    )
+  async function handleToggleStatus(id: string) {
+    try {
+      const updated = await api.exams.publish(id)
+      setExams((prev) =>
+        prev.map((e) => (e.id === id ? transformExam(updated) : e)),
+      )
+    } catch {}
   }
 
   function clearFilters() {

@@ -1,6 +1,11 @@
-import { mockExams } from "@/data/mock/exams"
+import { fetchExams } from "@/lib/api"
 import { ExamsPageClient } from "./page-client"
 
-export default function ExamsPage() {
-  return <ExamsPageClient exams={mockExams} />
+export default async function ExamsPage() {
+  try {
+    const exams = await fetchExams()
+    return <ExamsPageClient exams={exams} />
+  } catch {
+    return <ExamsPageClient exams={[]} />
+  }
 }
