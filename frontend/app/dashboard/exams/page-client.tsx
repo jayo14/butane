@@ -22,6 +22,8 @@ import {
   FileText,
   GraduationCap,
   Loader2,
+  LayoutList,
+  LayoutGrid,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -44,6 +46,8 @@ const statusConfig: Record<string, { label: string; variant: "info" | "warning" 
 
 const ITEMS_PER_PAGE = 6
 
+type LayoutMode = "list" | "grid"
+
 export function ExamsPageClient() {
   const router = useRouter()
   const [exams, setExams] = useState<Exam[]>([])
@@ -51,6 +55,7 @@ export function ExamsPageClient() {
   const [search, setSearch] = useState("")
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
+  const [layout, setLayout] = useState<LayoutMode>("list")
 
   useEffect(() => {
     fetchExams()
@@ -184,6 +189,30 @@ export function ExamsPageClient() {
               Clear
             </button>
           )}
+          <div className="flex items-center gap-1 ml-auto">
+            <button
+              type="button"
+              onClick={() => setLayout("list")}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-lg text-content-muted transition-colors",
+                layout === "list" ? "bg-surface-secondary text-content-primary" : "hover:bg-surface-secondary hover:text-content-primary",
+              )}
+              aria-label="List view"
+            >
+              <LayoutList size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setLayout("grid")}
+              className={cn(
+                "flex size-9 items-center justify-center rounded-lg text-content-muted transition-colors",
+                layout === "grid" ? "bg-surface-secondary text-content-primary" : "hover:bg-surface-secondary hover:text-content-primary",
+              )}
+              aria-label="Grid view"
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
         </div>
       </Card>
 
@@ -231,7 +260,7 @@ export function ExamsPageClient() {
       {/* Exam Cards */}
       {!isEmpty && exams.length > 0 && (
         <>
-          <div className="space-y-4">
+          <div className={layout === "grid" ? "grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4" : "space-y-4"}>
             {paginated.map((exam, i) => {
               const config = statusConfig[exam.status] ?? { label: exam.status, variant: "primary" as const }
               const statusColors: Record<string, { border: string; bg: string; text: string; dot: string }> = {
@@ -242,6 +271,105 @@ export function ExamsPageClient() {
                 cancelled: { border: "border-l-rose-500", bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500" },
               }
               const sc = statusColors[exam.status] || statusColors.draft
+
+              if (layout === "grid") {
+                return (
+                  <div
+                    key={exam.id}
+                    className={cn(
+                      "group relative flex flex-col rounded-xl border border-border-primary bg-white transition-all duration-200",
+                      "hover:shadow-lg hover:border-primary/20 hover:-translate-y-0.5",
+                      sc.border,
+                      "border-l-4",
+                    )}
+                    style={{ animationDelay: `${i * 60}ms` }}
+                  >
+                    <div className="p-5 flex flex-col flex-1">
+                      <div className="flex items-start justify-between gap-3 mb-3">
+                        <div className={cn(
+                          "flex size-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold",
+                          sc.bg, sc.text
+                        )}>
+                          {exam.title.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase().slice(0, 2)}
+                        </div>
+                        <Dropdown
+                          items={[
+                            { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
+                            { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
+                            { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
+                            { key: "divider1", label: "", divider: true },
+                            { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
+                            { key: "divider2", label: "", divider: true },
+                            { key: "delete", label: "Delete", icon: <Trash2 size={14} />, danger: true },
+                          ]}
+                          onAction={(key) => {
+                            if (key === "delete") handleDelete(exam.id)
+                            if (key === "duplicate") handleDuplicate(exam.id)
+                            if (key === "toggle-status") handleToggleStatus(exam.id)
+                            if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
+                            if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          label=""
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex size-8 cursor-pointer items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+                              aria-label="Exam actions"
+                            >
+                              <MoreHorizontal size={16} />
+                            </button>
+                          }
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                          <h3 className="truncate text-sm font-semibold text-content-primary">
+                            {exam.title}
+                          </h3>
+                        </div>
+                        <p className="text-xs text-content-secondary mb-3">
+                          {exam.course} <span className="text-content-muted">·</span> {exam.courseCode}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-content-muted mb-4">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={12} className="text-content-muted/70" />
+                            {formatDate(exam.date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={12} className="text-content-muted/70" />
+                            {formatDuration(exam.duration)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <FileText size={12} className="text-content-muted/70" />
+                            {exam.questionCount} {exam.questionCount === 1 ? "question" : "questions"}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Users size={12} className="text-content-muted/70" />
+                            {exam.enrolledStudents} {exam.enrolledStudents === 1 ? "student" : "students"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-3 border-t border-border-primary/60">
+                        <Link href={`/dashboard/exams/${exam.id}`} className="flex-1">
+                          <Button variant="ghost" size="sm" className="w-full text-content-muted hover:text-content-primary justify-center">
+                            <Eye size={14} />
+                            <span className="ml-1.5 text-xs">View</span>
+                          </Button>
+                        </Link>
+                        <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold", sc.bg, sc.text)}>
+                          <span className={cn("size-1.5 rounded-full", sc.dot)} />
+                          {config.label}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )
+              }
+
               return (
                 <div
                   key={exam.id}
