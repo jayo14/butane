@@ -1,13 +1,13 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-class ApiError extends Error {
+export class ApiError extends Error {
   constructor(public status: number, message: string) {
     super(message)
     this.name = "ApiError"
   }
 }
 
-async function request<T>(
+export async function apiFetch<T>(
   endpoint: string,
   options: RequestInit = {},
 ): Promise<T> {
@@ -41,134 +41,292 @@ function buildQuery(params: Record<string, string | number | boolean | undefined
   return "?" + new URLSearchParams(entries.map(([k, v]) => [k, String(v)])).toString()
 }
 
+// ---- Backend API response shapes (snake_case) ----
+
+export interface ApiUser {
+  id: string
+  email: string
+  first_name: string
+  last_name: string
+  full_name: string
+  role: "admin" | "teacher" | "student"
+  is_active: boolean
+}
+
+export interface ApiStudent {
+  id: string
+  user: ApiUser
+  full_name: string
+  student_id: string
+  phone: string
+  grade: string
+  status: "active" | "inactive" | "suspended"
+  enrollment_date: string
+  avatar: string | null
+}
+
+export interface ApiTeacher {
+  id: string
+  user: ApiUser
+  full_name: string
+  department: string
+  title: string
+}
+
+export interface ApiExam {
+  id: string
+  title: string
+  course: string
+  course_code: string
+  subject: string
+  class_group: string
+  term: string
+  status: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled"
+  duration_minutes: number
+  total_marks: number
+  passing_marks: number
+  passing_percentage: number
+  is_public: boolean
+  created_by: string
+  question_count: number
+  created_at: string
+  published_at: string | null
+  description?: string
+  instructions?: string
+  available_from?: string
+  available_to?: string
+  shuffle_questions?: boolean
+  shuffle_answers?: boolean
+  show_result?: boolean
+  allow_review?: boolean
+  public_url?: string
+}
+
+export interface ApiQuestion {
+  id: string
+  exam: string
+  order: number
+  text: string
+  type: "single_choice" | "multiple_choice" | "true_false"
+  marks: number
+  explanation: string
+  choices: { id: string; label: string; text: string; is_correct: boolean }[]
+}
+
+export interface ApiAttempt {
+  id: string
+  exam: string
+  student: string
+  student_name: string
+  status: "in_progress" | "submitted" | "graded" | "abandoned"
+  started_at: string
+  submitted_at: string | null
+  duration_seconds: number
+}
+
+export interface ApiResult {
+  id: string
+  attempt: string
+  exam: string
+  student: string
+  student_name: string
+  exam_title: string
+  course: string
+  score: number
+  total_marks: number
+  percentage: number
+  passed: boolean
+  correct_count: number
+  incorrect_count: number
+  unanswered_count: number
+  graded_at: string
+}
+
+export interface PaginatedResponse<T> {
+  count: number
+  next: string | null
+  previous: string | null
+  results: T[]
+}
+
+// ---- Frontend-friendly types (camelCase) ----
+
+export interface ExamSummary {
+  id: string
+  title: string
+  course: string
+  courseCode: string
+  date: string
+  duration: number
+  totalMarks: number
+  passingMarks: number
+  status: "scheduled" | "ongoing" | "completed" | "cancelled" | "draft"
+  questionCount: number
+  enrolledStudents: number
+}
+
+export interface StudentSummary {
+  id: string
+  firstName: string
+  lastName: string
+  email: string
+  grade: string
+  status: "active" | "inactive" | "suspended"
+  enrollmentDate: string
+  studentId: string
+}
+
+export interface AttemptSummary {
+  id: string
+  examId: string
+  examTitle: string
+  course: string
+  date: string
+  score: number
+  totalMarks: number
+  passed: boolean
+  duration: number
+  studentName?: string
+  studentGrade?: string
+}
+
+// ---- Transform functions ----
+
+export function transformExam(api: ApiExam): ExamSummary {
+  return {
+    id: api.id,
+    title: api.title,
+    course: api.course,
+    courseCode: api.course_code,
+    date: api.created_at,
+    duration: api.duration_minutes,
+    totalMarks: api.total_marks,
+    passingMarks: api.passing_marks,
+    status: api.status === "draft" ? "scheduled" : api.status,
+    questionCount: api.question_count,
+    enrolledStudents: 0,
+  }
+}
+
+export function transformStudent(api: ApiStudent): StudentSummary {
+  return {
+    id: api.id,
+    firstName: api.user.first_name,
+    lastName: api.user.last_name,
+    email: api.user.email,
+    grade: api.grade,
+    status: api.status,
+    enrollmentDate: api.enrollment_date,
+    studentId: api.student_id,
+  }
+}
+
+export function transformAttempt(api: ApiResult, studentName?: string, studentGrade?: string): AttemptSummary {
+  return {
+    id: api.id,
+    examId: api.exam,
+    examTitle: api.exam_title || "",
+    course: api.course || "",
+    date: api.graded_at,
+    score: api.score,
+    totalMarks: api.total_marks,
+    passed: api.passed,
+    duration: 0,
+    studentName,
+    studentGrade,
+  }
+}
+
+// ---- API functions ----
+
 export const api = {
   auth: {
     login: (email: string, password: string) =>
-      request<{ access: string; refresh: string }>("accounts/auth/login/", {
+      apiFetch<{ access: string; refresh: string }>("accounts/auth/login/", {
         method: "POST",
         body: JSON.stringify({ email, password }),
       }),
-    logout: () =>
-      request<void>("accounts/auth/logout/", { method: "POST" }),
+    logout: () => apiFetch<void>("accounts/auth/logout/", { method: "POST" }),
     refresh: (refresh: string) =>
-      request<{ access: string }>("accounts/auth/refresh/", {
+      apiFetch<{ access: string }>("accounts/auth/refresh/", {
         method: "POST",
         body: JSON.stringify({ refresh }),
       }),
-    me: () => request<{ id: string; email: string; name: string; role: string }>("accounts/me/"),
-    profile: () => request<{ id: string; email: string; name: string; role: string }>("accounts/profile/"),
+    me: () => apiFetch<ApiUser>("accounts/me/"),
+    profile: () => apiFetch<ApiUser>("accounts/profile/"),
   },
 
   teachers: {
-    list: () => request<{ id: string; name: string; email: string }[]>("accounts/teachers/"),
+    list: () => apiFetch<ApiTeacher[]>("accounts/teachers/"),
   },
 
   students: {
     list: (params?: { grade?: string; status?: string; search?: string }) =>
-      request<{ id: string; firstName: string; lastName: string; email: string; grade: string; status: string }[]>(
-        `accounts/students/${buildQuery(params || {})}`,
-      ),
+      apiFetch<ApiStudent[]>(`accounts/students/${buildQuery(params || {})}`),
   },
 
   exams: {
     list: (params?: { status?: string; search?: string; page?: number }) =>
-      request<{ results: any[]; count: number; next: string | null; previous: string | null }>(
-        `exams/${buildQuery(params || {})}`,
-      ),
-    get: (id: string) => request<any>(`exams/${id}/`),
-    create: (data: any) =>
-      request<any>("exams/", { method: "POST", body: JSON.stringify(data) }),
-    update: (id: string, data: any) =>
-      request<any>(`exams/${id}/`, { method: "PUT", body: JSON.stringify(data) }),
-    partialUpdate: (id: string, data: any) =>
-      request<any>(`exams/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
-    delete: (id: string) =>
-      request<void>(`exams/${id}/`, { method: "DELETE" }),
-    publish: (id: string) =>
-      request<any>(`exams/${id}/publish/`, { method: "POST" }),
-    duplicate: (id: string) =>
-      request<any>(`exams/${id}/duplicate/`, { method: "POST" }),
-    archive: (id: string) =>
-      request<any>(`exams/${id}/archive/`, { method: "POST" }),
-    generatePublicToken: (id: string) =>
-      request<{ token: string }>(`exams/${id}/generate-public-token/`, { method: "POST" }),
-    revokePublicToken: (id: string) =>
-      request<void>(`exams/${id}/revoke-public-token/`, { method: "POST" }),
+      apiFetch<PaginatedResponse<ApiExam>>(`exams/${buildQuery(params || {})}`),
+    get: (id: string) => apiFetch<ApiExam>(`exams/${id}/`),
+    create: (data: Partial<ApiExam>) =>
+      apiFetch<ApiExam>("exams/", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: Partial<ApiExam>) =>
+      apiFetch<ApiExam>(`exams/${id}/`, { method: "PUT", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`exams/${id}/`, { method: "DELETE" }),
+    publish: (id: string) => apiFetch<ApiExam>(`exams/${id}/publish/`, { method: "POST" }),
+    duplicate: (id: string) => apiFetch<ApiExam>(`exams/${id}/duplicate/`, { method: "POST" }),
+    archive: (id: string) => apiFetch<ApiExam>(`exams/${id}/archive/`, { method: "POST" }),
   },
 
   questions: {
-    list: (examId: string) =>
-      request<any[]>(`exams/${examId}/questions/`),
-    create: (examId: string, data: any) =>
-      request<any>(`exams/${examId}/questions/`, { method: "POST", body: JSON.stringify(data) }),
-    get: (examId: string, questionId: string) =>
-      request<any>(`exams/${examId}/questions/${questionId}/`),
-    update: (examId: string, questionId: string, data: any) =>
-      request<any>(`exams/${examId}/questions/${questionId}/`, { method: "PUT", body: JSON.stringify(data) }),
-    partialUpdate: (examId: string, questionId: string, data: any) =>
-      request<any>(`exams/${examId}/questions/${questionId}/`, { method: "PATCH", body: JSON.stringify(data) }),
-    delete: (examId: string, questionId: string) =>
-      request<void>(`exams/${examId}/questions/${questionId}/`, { method: "DELETE" }),
-    reorder: (examId: string, questionIds: string[]) =>
-      request<any>(`exams/${examId}/questions/reorder/`, {
-        method: "POST",
-        body: JSON.stringify({ question_ids: questionIds }),
-      }),
-    duplicate: (examId: string, questionId: string) =>
-      request<any>(`exams/${examId}/questions/${questionId}/duplicate/`, { method: "POST" }),
-    markCorrect: (examId: string, questionId: string) =>
-      request<any>(`exams/${examId}/questions/${questionId}/mark-correct/`, { method: "PATCH" }),
+    list: (examId: string) => apiFetch<ApiQuestion[]>(`exams/${examId}/questions/`),
+    create: (examId: string, data: Partial<ApiQuestion>) =>
+      apiFetch<ApiQuestion>(`exams/${examId}/questions/`, { method: "POST", body: JSON.stringify(data) }),
   },
 
   attempts: {
     list: (params?: { exam?: string; student?: string }) =>
-      request<{ results: any[]; count: number }>(`attempts/${buildQuery(params || {})}`),
-    get: (id: string) => request<any>(`attempts/${id}/`),
-    create: (data: { exam: string; student: string }) =>
-      request<any>("attempts/", { method: "POST", body: JSON.stringify(data) }),
-    submit: (id: string, answers: Record<string, string>) =>
-      request<any>(`attempts/${id}/submit/`, {
-        method: "POST",
-        body: JSON.stringify({ answers }),
-      }),
+      apiFetch<PaginatedResponse<ApiAttempt>>(`attempts/${buildQuery(params || {})}`),
+    get: (id: string) => apiFetch<ApiAttempt>(`attempts/${id}/`),
   },
 
   results: {
     list: (params?: { exam?: string; student?: string; passed?: boolean; page?: number }) =>
-      request<{ results: any[]; count: number }>(`results/${buildQuery(params || {})}`),
-  },
-
-  public: {
-    examDetail: (token: string) =>
-      request<any>(`public/exams/${token}/`),
-    startAttempt: (token: string, studentName: string) =>
-      request<any>(`public/exams/${token}/start/`, {
-        method: "POST",
-        body: JSON.stringify({ student_name: studentName }),
-      }),
-    resumeAttempt: (attemptId: string, token: string) =>
-      request<any>(`public/attempts/${attemptId}/?token=${token}`),
-    saveAnswers: (attemptId: string, token: string, answers: Record<string, string>) =>
-      request<any>(`public/attempts/${attemptId}/save/`, {
-        method: "POST",
-        body: JSON.stringify({ answers, token }),
-      }),
-    submitAttempt: (attemptId: string, token: string, answers: Record<string, string>) =>
-      request<any>(`public/attempts/${attemptId}/submit/`, {
-        method: "POST",
-        body: JSON.stringify({ answers, token }),
-      }),
+      apiFetch<PaginatedResponse<ApiResult>>(`results/${buildQuery(params || {})}`),
   },
 
   reports: {
-    examStats: (examId: string) =>
-      request<any>(`reports/exams/${examId}/`),
-    questionStats: (examId: string) =>
-      request<any[]>(`reports/exams/${examId}/questions/`),
-    studentHistory: (studentId: string) =>
-      request<any>(`reports/students/${studentId}/`),
+    examStats: (examId: string) => apiFetch<any>(`reports/exams/${examId}/`),
+    questionStats: (examId: string) => apiFetch<any[]>(`reports/exams/${examId}/questions/`),
+    studentHistory: (studentId: string) => apiFetch<any>(`reports/students/${studentId}/`),
   },
 
-  health: () =>
-    request<{ status: string; database: string }>("health/"),
+  health: () => apiFetch<{ status: string; database: string }>("health/"),
+}
+
+// ---- Server-side data fetching helpers ----
+
+export async function fetchExams(): Promise<ExamSummary[]> {
+  const res = await api.exams.list()
+  return res.results.map(transformExam)
+}
+
+export async function fetchExam(id: string): Promise<ExamSummary | null> {
+  try {
+    const api = await apiFetch<ApiExam>(`exams/${id}/`)
+    return transformExam(api)
+  } catch {
+    return null
+  }
+}
+
+export async function fetchStudents(): Promise<StudentSummary[]> {
+  const res = await api.students.list()
+  return res.map(transformStudent)
+}
+
+export async function fetchExamAttempts(examId: string): Promise<AttemptSummary[]> {
+  const res = await api.results.list({ exam: examId })
+  return res.results.map((r) => transformAttempt(r))
 }
