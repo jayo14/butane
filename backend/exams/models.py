@@ -72,6 +72,12 @@ class Exam(SoftDeleteModel):
     published_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was published.")
     archived_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was archived.")
 
+    # Short shareable code (8-char alphanumeric) for easy student access.
+    short_code = models.CharField(
+        max_length=8, unique=True, null=True, blank=True, db_index=True,
+        help_text="Short 8-char code for quick exam lookup.",
+    )
+
     class Meta:
         db_table = "exams_exam"
         ordering = ["-created_at"]
@@ -103,8 +109,20 @@ class Exam(SoftDeleteModel):
         path = f"/exam/{self.id}?token={token}"
         return f"{site}{path}" if site else path
 
-    def publish(self) -> str | None:
-        """Move a draft/scheduled exam to published (ongoing) state. Returns the public URL."""
+    def generate_short_code(self) -> str:
+        """Generate an 8-char unambiguous alphanumeric short code."""
+        from django.utils.crypto import get_random_string
+
+        chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+        for _ in range(100):
+            code = get_random_string(8, allowed_chars=chars)
+            if not Exam.objects.filter(short_code=code, is_deleted=False).exists():
+                return code
+        return get_random_string(8, allowed_chars=chars)
+
+    def publish(self) -> tuple[str | None, str | None]:
+        """Move a draft/scheduled exam to published (ongoing) state.
+        Returns (public_url, short_code)."""
         from django.utils import timezone
 
         self.status = "ongoing"
@@ -112,10 +130,11 @@ class Exam(SoftDeleteModel):
         raw_token = None
         if not self.public_token_hash:
             raw_token = self.generate_public_token()
-        self.save(update_fields=["status", "published_at", "public_token_hash", "is_public", "updated_at"])
-        if raw_token:
-            return self.public_url(raw_token)
-        return None
+        if not self.short_code:
+            self.short_code = self.generate_short_code()
+        self.save(update_fields=["status", "published_at", "public_token_hash", "is_public", "short_code", "updated_at"])
+        public_url = self.public_url(raw_token) if raw_token else None
+        return (public_url, self.short_code)
 
     def archive(self) -> None:
         """Archive a published exam; archived exams are hidden from active lists."""
