@@ -91,5 +91,6 @@ export interface NavItem {
   href: string
   icon: string
   badge?: number
+  roles?: ("admin" | "teacher")[]
   children?: NavItem[]
 }

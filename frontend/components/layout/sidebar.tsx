@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useMemo } from "react"
 import { cn, getInitials } from "@/lib/utils"
 import { useIsMobile } from "@/hooks/use-media-query"
 import { useDisclosure } from "@/hooks/use-disclosure"
@@ -20,6 +21,7 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  Shield,
 } from "lucide-react"
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -37,6 +39,11 @@ export function Sidebar() {
   const isMobile = useIsMobile()
   const { isOpen, onToggle, onClose } = useDisclosure(false)
   const { user } = useAuth()
+
+  const visibleItems = useMemo(
+    () => NAV_ITEMS.filter((item) => !item.roles || (user && item.roles.includes(user.role as "admin" | "teacher"))),
+    [user],
+  )
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -62,7 +69,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto p-3 scrollbar-thin">
-        {NAV_ITEMS.map((item, i) => {
+        {visibleItems.map((item) => {
           const isActive = pathname === item.href
           return (
             <Link

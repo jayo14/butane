@@ -5,9 +5,8 @@ import { useRouter, usePathname } from "next/navigation"
 import { useAuth } from "@/lib/auth-context"
 import { Loader2 } from "lucide-react"
 
-const TEACHER_ROUTES = [
-  "/dashboard/exams/create",
-  "/dashboard/settings",
+const ADMIN_ROUTES = [
+  "/dashboard/students",
 ]
 
 interface AuthGuardProps {
@@ -45,12 +44,12 @@ export function AuthGuard({ children }: AuthGuardProps) {
       return
     }
 
-    const isTeacherRoute = TEACHER_ROUTES.some((route) => pathname.startsWith(route))
-    if (isTeacherRoute && !hasRole("admin", "teacher")) {
+    const isAdminRoute = ADMIN_ROUTES.some((route) => pathname.startsWith(route))
+    if (isAdminRoute && user?.role !== "admin") {
       router.replace("/dashboard")
       return
     }
-  }, [isLoading, isAuthenticated, pathname, router, hasRole, redirectToLogin])
+  }, [isLoading, isAuthenticated, pathname, router, hasRole, redirectToLogin, user])
 
   if (isLoading) {
     return (
