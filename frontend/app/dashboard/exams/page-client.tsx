@@ -231,93 +231,108 @@ export function ExamsPageClient() {
       {/* Exam Cards */}
       {!isEmpty && exams.length > 0 && (
         <>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {paginated.map((exam, i) => {
               const config = statusConfig[exam.status] ?? { label: exam.status, variant: "primary" as const }
+              const statusColors: Record<string, { border: string; bg: string; text: string; dot: string }> = {
+                draft: { border: "border-l-blue-500", bg: "bg-blue-50", text: "text-blue-700", dot: "bg-blue-500" },
+                scheduled: { border: "border-l-indigo-500", bg: "bg-indigo-50", text: "text-indigo-700", dot: "bg-indigo-500" },
+                ongoing: { border: "border-l-amber-500", bg: "bg-amber-50", text: "text-amber-700", dot: "bg-amber-500" },
+                completed: { border: "border-l-emerald-500", bg: "bg-emerald-50", text: "text-emerald-700", dot: "bg-emerald-500" },
+                cancelled: { border: "border-l-rose-500", bg: "bg-rose-50", text: "text-rose-700", dot: "bg-rose-500" },
+              }
+              const sc = statusColors[exam.status] || statusColors.draft
               return (
                 <div
                   key={exam.id}
                   className={cn(
-                    "group rounded-xl border border-border-primary bg-white p-5 transition-all duration-200 hover:border-primary/20 hover:shadow-card",
+                    "group relative rounded-xl border border-border-primary bg-white transition-all duration-200",
+                    "hover:shadow-lg hover:border-primary/20 hover:-translate-y-0.5",
+                    sc.border,
+                    "border-l-4",
                   )}
                   style={{ animationDelay: `${i * 60}ms` }}
                 >
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-start gap-4 min-w-0 flex-1">
-                      <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary/5 text-primary">
-                        <FileText size={22} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="truncate text-base font-semibold text-content-primary">
-                            {exam.title}
-                          </h3>
-                          <Badge variant={config.variant} size="sm">
-                            {config.label}
-                          </Badge>
+                  <div className="p-5 sm:p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="flex items-start gap-4 min-w-0 flex-1">
+                        <div className={cn(
+                          "flex size-12 shrink-0 items-center justify-center rounded-xl text-lg font-bold",
+                          sc.bg, sc.text
+                        )}>
+                          {exam.title.split(" ").slice(0, 2).map(w => w[0]).join("").toUpperCase().slice(0, 2)}
                         </div>
-                        <p className="mt-0.5 text-sm text-content-secondary">
-                          {exam.course} &middot; {exam.courseCode}
-                        </p>
-                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-content-muted">
-                          <span className="flex items-center gap-1">
-                            <Calendar size={12} />
-                            {formatDate(exam.date)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} />
-                            {formatDuration(exam.duration)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <FileText size={12} />
-                            {exam.questionCount} questions
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Users size={12} />
-                            {exam.enrolledStudents} students
-                          </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2.5 flex-wrap">
+                            <h3 className="truncate text-base font-semibold text-content-primary">
+                              {exam.title}
+                            </h3>
+                            <span className={cn("inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold", sc.bg, sc.text)}>
+                              <span className={cn("size-1.5 rounded-full", sc.dot)} />
+                              {config.label}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-sm text-content-secondary">
+                            {exam.course} <span className="text-content-muted">·</span> {exam.courseCode}
+                          </p>
+                          <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-content-muted">
+                            <span className="flex items-center gap-1.5">
+                              <Calendar size={14} className="text-content-muted/70" />
+                              {formatDate(exam.date)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Clock size={14} className="text-content-muted/70" />
+                              {formatDuration(exam.duration)}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <FileText size={14} className="text-content-muted/70" />
+                              {exam.questionCount} {exam.questionCount === 1 ? "question" : "questions"}
+                            </span>
+                            <span className="flex items-center gap-1.5">
+                              <Users size={14} className="text-content-muted/70" />
+                              {exam.enrolledStudents} {exam.enrolledStudents === 1 ? "student" : "students"}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-2 sm:shrink-0">
-                      <Link href={`/dashboard/exams/${exam.id}`}>
-                        <Button variant="ghost" size="sm" isIconOnly aria-label="View exam">
-                          <Eye size={16} />
-                        </Button>
-                      </Link>
-                      <Dropdown
-                        items={[
-                          { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
-                          { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
-                          { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
-                          { key: "divider1", label: "", divider: true },
-                          { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
-                          { key: "divider2", label: "", divider: true },
-                          { key: "delete", label: "Delete", icon: <Trash2 size={14} />, danger: true },
-                        ]}
-                        onAction={(key) => {
-                          if (key === "delete") handleDelete(exam.id)
-                          if (key === "duplicate") handleDuplicate(exam.id)
-                          if (key === "toggle-status") handleToggleStatus(exam.id)
-                          if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
-                          if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
-                        }}
-                        variant="ghost"
-                        size="sm"
-                        label=""
-                        trigger={
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { const btn = e.currentTarget.closest('[data-trigger]'); if (btn) (btn as HTMLElement).click() } }}
-                            className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
-                            aria-label="Exam actions"
-                          >
-                            <MoreHorizontal size={18} />
-                          </span>
-                        }
-                      />
+                      <div className="flex items-center gap-1.5 sm:shrink-0 sm:pl-4 sm:border-l sm:border-border-primary/60">
+                        <Link href={`/dashboard/exams/${exam.id}`}>
+                          <Button variant="ghost" size="sm" isIconOnly aria-label="View exam" className="text-content-muted hover:text-content-primary">
+                            <Eye size={16} />
+                          </Button>
+                        </Link>
+                        <Dropdown
+                          items={[
+                            { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
+                            { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
+                            { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
+                            { key: "divider1", label: "", divider: true },
+                            { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
+                            { key: "divider2", label: "", divider: true },
+                            { key: "delete", label: "Delete", icon: <Trash2 size={14} />, danger: true },
+                          ]}
+                          onAction={(key) => {
+                            if (key === "delete") handleDelete(exam.id)
+                            if (key === "duplicate") handleDuplicate(exam.id)
+                            if (key === "toggle-status") handleToggleStatus(exam.id)
+                            if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
+                            if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
+                          }}
+                          variant="ghost"
+                          size="sm"
+                          label=""
+                          trigger={
+                            <button
+                              type="button"
+                              className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+                              aria-label="Exam actions"
+                            >
+                              <MoreHorizontal size={18} />
+                            </button>
+                          }
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
