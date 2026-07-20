@@ -260,16 +260,6 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
               </div>
             </div>
 
-            {/* Image placeholder */}
-            <div
-              className="w-full h-48 md:h-80 rounded-xl mb-6 overflow-hidden"
-              style={{ backgroundColor: "#e6eeff", border: "1px solid #bbcabf" }}
-            >
-              <div className="w-full h-full flex items-center justify-center">
-                <span className="text-sm" style={{ color: "#6c7a71" }}>Image display area</span>
-              </div>
-            </div>
-
             {/* Options */}
             <div className="space-y-3">
               {question?.options.map((option, i) => {
@@ -410,6 +400,24 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
         style={{ backgroundColor: "#ffffff", borderColor: "#bbcabf" }}
       >
         <div className="flex flex-col w-full h-full p-6 md:p-8">
+          {/* Student name */}
+          {studentName && (
+            <div className="mb-6 text-center">
+              <span
+                className="text-[10px] font-bold uppercase tracking-widest"
+                style={{ color: "#6c7a71" }}
+              >
+                Student
+              </span>
+              <p
+                className="text-sm font-semibold truncate mt-1"
+                style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+              >
+                {studentName}
+              </p>
+            </div>
+          )}
+
           {/* Timer */}
           <div className="mb-8 text-center">
             <div
