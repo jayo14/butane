@@ -15,8 +15,7 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { Plus, AlertCircle, HelpCircle } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Plus, AlertCircle, FilePlus } from "lucide-react"
 import { QuestionCard } from "./question-card"
 import type { Question } from "@/types/exam"
 
@@ -125,38 +124,57 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
     )
 
     return (
-      <div>
-        <div className="mb-6 flex items-center justify-between">
+      <div className="flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-content-primary">Questions</h2>
-            <p className="mt-0.5 text-sm text-content-secondary">
-              Add and arrange your exam questions
+            <h1
+              className="text-[32px] font-bold leading-10 tracking-[-0.01em]"
+              style={{ fontFamily: "'Source Serif 4', serif", color: "#121c2a" }}
+            >
+              Curate Your Questions
+            </h1>
+            <p className="mt-1 text-base leading-6" style={{ color: "#3c4a42" }}>
+              Build your assessment by adding multiple-choice or open-ended questions.
             </p>
           </div>
-          {questions.length > 0 && (
-            <Button onClick={addQuestion} variant="primary" leftIcon={<Plus size={18} />}>
+          <button
+            type="button"
+            onClick={addQuestion}
+            className="group relative overflow-hidden rounded-[1.5rem] p-px transition-all active:scale-95 hover:brightness-105"
+            style={{ backgroundColor: "#10b981" }}
+          >
+            <div
+              className="flex items-center gap-2 rounded-[1.5rem] px-6 py-3 text-sm font-semibold tracking-[0.02em]"
+              style={{ backgroundColor: "#10b981", color: "#00422b" }}
+            >
+              <Plus size={20} />
               Add Question
-            </Button>
-          )}
+              <div
+                className="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed opacity-20"
+                style={{ borderColor: "#005137" }}
+              />
+            </div>
+          </button>
         </div>
 
+        {/* Question List or Empty State */}
         {questions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex size-16 items-center justify-center rounded-2xl bg-surface-secondary text-content-muted">
-              <HelpCircle size={32} />
-            </div>
-            <h3 className="text-base font-semibold text-content-primary">No questions yet</h3>
-            <p className="mt-1 max-w-xs text-sm text-content-secondary">
-              Click below to start building your exam. Each question has four answer options.
+          <div
+            className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-12"
+            style={{ borderColor: "#bbcabf", color: "#3c4a42" }}
+          >
+            <span className="mb-2 text-4xl opacity-60" style={{ color: "#6c7a71" }}>
+              <FilePlus size={40} />
+            </span>
+            <p className="text-sm font-semibold tracking-[0.02em] opacity-60" style={{ color: "#3c4a42" }}>
+              Ready for more? Drop your next question here.
             </p>
-            <Button onClick={addQuestion} variant="primary" leftIcon={<Plus size={18} />} className="mt-6">
-              Add Your First Question
-            </Button>
           </div>
         ) : (
           <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext items={questions.map((q) => q.id)} strategy={verticalListSortingStrategy}>
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {questions.map((q, i) => (
                   <QuestionCard
                     key={q.id}
@@ -173,23 +191,64 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
           </DndContext>
         )}
 
+        {/* Bottom area */}
         {questions.length > 0 && (
-          <div className="mt-4 flex items-center justify-between text-xs text-content-muted">
-            <span>{questions.length} question{questions.length !== 1 ? "s" : ""}</span>
-            {hasErrors && (
-              <span className="flex items-center gap-1 text-warning">
-                <AlertCircle size={12} />
-                Some questions are incomplete
+          <div className="flex flex-col gap-4">
+            <div
+              className="flex items-center justify-between rounded-xl border-2 border-dashed p-6 transition-colors hover:border-primary/30"
+              style={{ borderColor: "#bbcabf" }}
+            >
+              <div className="flex items-center gap-2 text-sm" style={{ color: "#3c4a42" }}>
+                <span className="opacity-60 text-lg">+</span>
+                <span className="opacity-70 font-semibold tracking-[0.02em]">
+                  Ready for more? Drop your next question here.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={addQuestion}
+                className="rounded-full px-5 py-2 text-xs font-bold uppercase tracking-wider transition-all hover:brightness-105 active:scale-95"
+                style={{ backgroundColor: "#10b981", color: "#00422b" }}
+              >
+                Add Question
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between px-1">
+              <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#6c7a71" }}>
+                {questions.length} question{questions.length !== 1 ? "s" : ""}
               </span>
-            )}
+              {hasErrors && (
+                <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: "#ba1a1a" }}>
+                  <AlertCircle size={12} />
+                  Some questions are incomplete
+                </span>
+              )}
+            </div>
           </div>
         )}
 
-        {questions.length > 0 && (
-          <div className="mt-4 flex justify-center">
-            <Button onClick={addQuestion} variant="outline" leftIcon={<Plus size={18} />} size="sm">
-              Add Another Question
-            </Button>
+        {/* Add first question button when empty */}
+        {questions.length === 0 && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={addQuestion}
+              className="group relative overflow-hidden rounded-[1.5rem] p-px transition-all active:scale-95 hover:brightness-105"
+              style={{ backgroundColor: "#10b981" }}
+            >
+              <div
+                className="flex items-center gap-2 rounded-[1.5rem] px-8 py-4 text-base font-semibold tracking-[0.02em]"
+                style={{ backgroundColor: "#10b981", color: "#00422b" }}
+              >
+                <Plus size={22} />
+                Add Your First Question
+                <div
+                  className="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed opacity-20"
+                  style={{ borderColor: "#005137" }}
+                />
+              </div>
+            </button>
           </div>
         )}
       </div>
