@@ -32,7 +32,8 @@ if DEBUG:
 
 # Render.com automatically injects RENDER_EXTERNAL_HOSTNAME.
 # Include it so the app works without hardcoding every possible domain.
-if render_hostname := env("RENDER_EXTERNAL_HOSTNAME", default=""):
+render_hostname = env("RENDER_EXTERNAL_HOSTNAME", default="")
+if render_hostname:
     if render_hostname not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(render_hostname)
 
@@ -44,7 +45,7 @@ if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
 SITE_URL = env("SITE_URL", default="")
 
 # On Render, derive the site URL from the automatically-injected hostname.
-if not SITE_URL and (render_hostname := env("RENDER_EXTERNAL_HOSTNAME", default="")):
+if not SITE_URL and render_hostname:
     SITE_URL = f"https://{render_hostname}"
 
 CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
@@ -105,26 +106,38 @@ ASGI_APPLICATION = "core.asgi.application"
 
 
 # --- Database ---------------------------------------------------------------
-DB_ENGINE = env("DB_ENGINE", default="sqlite")
-if DB_ENGINE == "postgresql":
+import dj_database_url
+
+database_url = env("DATABASE_URL", default="")
+if database_url:
     DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME", default="butane"),
-            "USER": env("DB_USER", default="butane"),
-            "PASSWORD": env("DB_PASSWORD", default="butane"),
-            "HOST": env("DB_HOST", default="localhost"),
-            "PORT": env("DB_PORT", default="5432"),
-            "CONN_MAX_AGE": 60,
-        }
+        "default": dj_database_url.config(
+            default=database_url,
+            conn_max_age=60,
+            conn_health_checks=True,
+        )
     }
 else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / env("DB_NAME", default="db.sqlite3"),
+    DB_ENGINE = env("DB_ENGINE", default="sqlite")
+    if DB_ENGINE == "postgresql":
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.postgresql",
+                "NAME": env("DB_NAME", default="butane"),
+                "USER": env("DB_USER", default="butane"),
+                "PASSWORD": env("DB_PASSWORD", default="butane"),
+                "HOST": env("DB_HOST", default="localhost"),
+                "PORT": env("DB_PORT", default="5432"),
+                "CONN_MAX_AGE": 60,
+            }
         }
-    }
+    else:
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": BASE_DIR / env("DB_NAME", default="db.sqlite3"),
+            }
+        }
 
 
 # --- Password validation ----------------------------------------------------
