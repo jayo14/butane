@@ -18,6 +18,7 @@ import { SettingsStep } from "./steps/settings-step"
 import { ReviewPublishStep } from "./steps/review-publish-step"
 import type { Question, ExamSettings } from "@/types/exam"
 import { api, ApiError } from "@/lib/api"
+import type { ApiExam } from "@/lib/api"
 
 const DRAFT_STORAGE_KEY = "exam-wizard-draft"
 const STEP_STORAGE_KEY = "exam-wizard-step"
@@ -159,6 +160,25 @@ const STEP_HEADERS = [
   },
 ]
 
+const EDIT_STEP_HEADERS = [
+  {
+    title: "Edit Exam Details",
+    description: "Update the exam title, subject, class, term, and other basic information.",
+  },
+  {
+    title: "Edit Questions",
+    description: "Modify your exam questions. Each question can have up to four answer options with one correct answer.",
+  },
+  {
+    title: "Update Settings",
+    description: "Adjust passing marks, time limits, and other preferences.",
+  },
+  {
+    title: "Review Changes",
+    description: "Double-check all updated exam details, questions, and settings before saving.",
+  },
+]
+
 const TIPS = [
   { icon: Lightbulb, title: "Naming Tip", text: "Clear titles help students locate the correct exam in their dashboard quickly." },
   { icon: Sparkles, title: "Auto-Save", text: "Your progress is automatically saved to drafts as you work through each step." },
@@ -186,7 +206,7 @@ function useKeyboard(handlers: Record<string, () => void>) {
   }, [handlers])
 }
 
-export function CreateExamWizard() {
+export function CreateExamWizard({ initialExam }: { initialExam?: ApiExam } = {}) {
   const [currentStep, setCurrentStep] = useState(loadStep)
   const [draft, setDraft] = useState<ExamDraft>(loadDraft)
   const [isPublishing, setIsPublishing] = useState(false)
@@ -200,6 +220,69 @@ export function CreateExamWizard() {
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [copiedShort, setCopiedShort] = useState(false)
+  const [loadedExam, setLoadedExam] = useState(false)
+
+  const isEditMode = !!initialExam && !loadedExam
+
+  useEffect(() => {
+    if (!initialExam) return
+    const examId = initialExam.id
+    let cancelled = false
+    async function loadExam() {
+      try {
+        const [fullExam, questions] = await Promise.all([
+          api.exams.get(examId),
+          api.questions.list(examId),
+        ])
+        if (cancelled) return
+
+        const basicInfo: BasicInfoValues = {
+          title: fullExam.title,
+          subject: fullExam.subject,
+          class: fullExam.class_group,
+          term: fullExam.term,
+          duration: fullExam.duration_minutes,
+          questionCount: fullExam.question_count,
+          instructions: fullExam.instructions || "",
+        }
+
+        const mappedQuestions: Question[] = (questions || []).map((q, i) => ({
+          id: q.id,
+          number: q.order || i + 1,
+          text: q.text,
+          options: q.choices.map((c) => ({
+            id: c.id,
+            label: c.label,
+            text: c.text,
+          })),
+          correctAnswerId: q.choices.find((c) => c.is_correct)?.id || "",
+          points: q.marks,
+          difficulty: "medium",
+        }))
+
+        const settings: ExamSettings = {
+          shuffleQuestions: fullExam.shuffle_questions || false,
+          shuffleAnswers: fullExam.shuffle_answers || false,
+          passMark: fullExam.passing_percentage || 50,
+          availableFrom: fullExam.available_from || "",
+          availableTo: fullExam.available_to || "",
+          timeLimit: fullExam.duration_minutes || 60,
+          showResult: fullExam.show_result ?? true,
+          allowReview: fullExam.allow_review ?? false,
+        }
+
+        const examDraft: ExamDraft = { basicInfo, questions: mappedQuestions, settings }
+        setDraft(examDraft)
+        saveDraftToStorage(examDraft)
+        form.reset(basicInfo)
+        setLoadedExam(true)
+      } catch {
+        // If fetch fails, keep default empty state
+      }
+    }
+    loadExam()
+    return () => { cancelled = true }
+  }, [initialExam?.id])
 
   useEffect(() => {
     const saved = loadDraft()
@@ -292,7 +375,7 @@ export function CreateExamWizard() {
         throw new Error("At least one question is required to publish.")
       }
 
-      const created = await api.exams.create({
+      const payload = {
         title: draft.basicInfo.title,
         subject: draft.basicInfo.subject,
         class_group: draft.basicInfo.class,
@@ -317,12 +400,28 @@ export function CreateExamWizard() {
             is_correct: opt.id === q.correctAnswerId,
           })),
         })),
-      } as any)
+      } as any
 
-      const published = await api.exams.publish(created.id)
-      const url = published.public_url || `${window.location.origin}/exam/${created.id}`
-      setPublishedUrl(url)
-      setShortCode(published.short_code || "")
+      let examId = initialExam?.id
+      if (isEditMode && examId) {
+        const updated = await api.exams.update(examId, payload)
+        examId = updated.id
+        if (updated.status === "scheduled" || updated.status === "ongoing" || updated.status === "completed") {
+          const published = await api.exams.publish(updated.id)
+          setPublishedUrl(published.public_url || `${window.location.origin}/exam/${updated.id}`)
+          setShortCode(published.short_code || "")
+        } else {
+          setPublishedUrl(`${window.location.origin}/dashboard/exams/${updated.id}`)
+          setShortCode("")
+        }
+      } else {
+        const created = await api.exams.create(payload)
+        examId = created.id
+        const published = await api.exams.publish(created.id)
+        setPublishedUrl(published.public_url || `${window.location.origin}/exam/${created.id}`)
+        setShortCode(published.short_code || "")
+      }
+
       clearDraftFromStorage()
       setPublished(true)
     } catch (err) {
@@ -400,10 +499,10 @@ export function CreateExamWizard() {
               className="text-[40px] md:text-[64px] font-bold leading-tight"
               style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
             >
-              Exam Published Successfully!
+              {isEditMode ? "Exam Updated Successfully!" : "Exam Published Successfully!"}
             </h1>
             <p className="text-base max-w-md mx-auto" style={{ color: "#3c4a42" }}>
-              Your exam is now live and ready for students. Share the details below to start the assessment.
+              {isEditMode ? "Your changes have been saved." : "Your exam is now live and ready for students. Share the details below to start the assessment."}
             </p>
           </div>
 
@@ -502,28 +601,30 @@ export function CreateExamWizard() {
                   color: "#ffffff",
                 }}
               >
-                Go to Dashboard
+                {isEditMode ? "Back to Exams" : "Go to Dashboard"}
                 <span className="material-symbols-outlined !text-xl">arrow_forward</span>
               </button>
             </Link>
-            <a
-              href={publishedUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full md:w-auto"
-            >
-              <button
-                className="w-full px-10 py-5 font-bold text-sm rounded-full transition-all active:scale-95 flex items-center justify-center gap-2"
-                style={{
-                  backgroundColor: "#e6eeff",
-                  border: "1px solid #bbcabf",
-                  color: "#121c2a",
-                }}
+            {!isEditMode && (
+              <a
+                href={publishedUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full md:w-auto"
               >
-                <span className="material-symbols-outlined !text-xl">visibility</span>
-                View Exam Preview
-              </button>
-            </a>
+                <button
+                  className="w-full px-10 py-5 font-bold text-sm rounded-full transition-all active:scale-95 flex items-center justify-center gap-2"
+                  style={{
+                    backgroundColor: "#e6eeff",
+                    border: "1px solid #bbcabf",
+                    color: "#121c2a",
+                  }}
+                >
+                  <span className="material-symbols-outlined !text-xl">visibility</span>
+                  View Exam Preview
+                </button>
+              </a>
+            )}
           </div>
         </div>
 
@@ -533,7 +634,7 @@ export function CreateExamWizard() {
   }
 
   const asConf = autosaveConfig[autosaveStatus]
-  const stepHeader = STEP_HEADERS[currentStep]
+  const stepHeader = isEditMode ? EDIT_STEP_HEADERS[currentStep] : STEP_HEADERS[currentStep]
 
   return (
     <div

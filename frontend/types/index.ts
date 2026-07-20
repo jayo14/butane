@@ -106,6 +106,7 @@ export interface ExamAttempt {
   totalMarks: number
   passed: boolean
   duration: number
+  studentName?: string
 }
 
 export interface StudentWithResults {

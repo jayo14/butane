@@ -54,7 +54,7 @@ export function ResultsPageClient() {
         totalMarks: r.total_marks,
         passed: r.passed,
         duration: 0,
-        studentName: r.student_name,
+        studentName: r.student_name || "",
       })))
       setStudents(students.map((s: any) => ({
         id: s.id,
@@ -108,12 +108,10 @@ export function ResultsPageClient() {
     setStatusFilter("all")
   }
 
-  function getStudentName(attemptId: string): string {
-    for (const s of students) {
-      if (s.attempts.some((a) => a.id === attemptId)) {
-        return `${s.firstName} ${s.lastName}`
-      }
-    }
+  function getStudentName(attempt: ExamAttempt): string {
+    if (attempt.studentName) return attempt.studentName
+    const s = students.find((s) => s.attempts.some((a) => a.id === attempt.id))
+    if (s) return `${s.firstName} ${s.lastName}`.trim() || "Unknown"
     return "Unknown"
   }
 
@@ -257,7 +255,7 @@ export function ResultsPageClient() {
               </thead>
               <tbody>
                 {paginated.map((attempt) => {
-                  const pct = Math.round((attempt.score / attempt.totalMarks) * 100)
+                  const pct = attempt.totalMarks > 0 ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0
                   return (
                     <tr
                       key={attempt.id}
@@ -265,7 +263,7 @@ export function ResultsPageClient() {
                     >
                       <td className="px-4 py-3.5 md:px-6">
                         <span className="text-sm font-medium text-content-primary">
-                          {getStudentName(attempt.id)}
+                          {getStudentName(attempt)}
                         </span>
                       </td>
                       <td className="px-4 py-3.5 md:px-6">
@@ -289,18 +287,24 @@ export function ResultsPageClient() {
                         <span className="text-sm text-content-muted">{formatDuration(attempt.duration)}</span>
                       </td>
                       <td className="px-4 py-3.5 md:px-6">
-                        {attempt.passed ? (
+                        {attempt.totalMarks > 0 && attempt.passed ? (
                           <Badge variant="success" size="sm">
                             <span className="flex items-center gap-1">
                               <CheckCircle2 size={10} />
                               Passed
                             </span>
                           </Badge>
-                        ) : (
+                        ) : attempt.totalMarks > 0 ? (
                           <Badge variant="danger" size="sm">
                             <span className="flex items-center gap-1">
                               <XCircle size={10} />
                               Failed
+                            </span>
+                          </Badge>
+                        ) : (
+                          <Badge variant="warning" size="sm">
+                            <span className="flex items-center gap-1">
+                              N/A
                             </span>
                           </Badge>
                         )}
