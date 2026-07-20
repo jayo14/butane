@@ -7,6 +7,7 @@ from rest_framework.routers import DefaultRouter
 from .views import AttemptViewSet, ExamViewSet, ResultViewSet
 from .question_views import QuestionViewSet
 from .public_views import (
+    CodeLookupView,
     PublicExamDetailView,
     StartAttemptView,
     ResumeAttemptView,
@@ -31,6 +32,7 @@ question_router.register(r"questions", QuestionViewSet, basename="exam-question"
 public_urlpatterns = [
     path("exams/<str:token>/", PublicExamDetailView.as_view(), name="public-exam-detail"),
     path("exams/<str:token>/start/", StartAttemptView.as_view(), name="public-start"),
+    path("code/<str:short_code>/", CodeLookupView.as_view(), name="public-code-lookup"),
     path("attempts/<uuid:attempt_id>/", ResumeAttemptView.as_view(), name="public-resume"),
     path("attempts/<uuid:attempt_id>/save/", SaveAttemptView.as_view(), name="public-save"),
     path("attempts/<uuid:attempt_id>/submit/", SubmitAttemptView.as_view(), name="public-submit"),

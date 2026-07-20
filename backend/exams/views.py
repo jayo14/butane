@@ -1,6 +1,7 @@
 """ViewSets for the exams domain."""
 from __future__ import annotations
 
+from django.conf import settings
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, serializers, status, viewsets
@@ -83,10 +84,14 @@ class ExamViewSet(viewsets.ModelViewSet):
                 {"detail": "Cannot publish an exam without questions."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        public_url = exam.publish()
+        public_url, short_code = exam.publish()
         data = ExamDetailSerializer(exam).data
         if public_url:
             data["public_url"] = public_url
+        if short_code:
+            data["short_code"] = short_code
+            site = getattr(settings, "SITE_URL", "").rstrip("/")
+            data["short_url"] = f"{site}/exam/c/{short_code}" if site else f"/exam/c/{short_code}"
         return Response(data)
 
     @transaction.atomic

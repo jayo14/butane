@@ -33,6 +33,8 @@ from core.throttling import LoginRateThrottle
 def _get_public_exam(token: str) -> Exam:
     exam = Exam.verify_public_token(token)
     if exam is None:
+        exam = Exam.objects.filter(short_code=token.upper(), is_deleted=False).first()
+    if exam is None:
         raise NotFound("Exam not found.")
     return exam
 
@@ -133,6 +135,27 @@ class PublicExamDetailView(APIView):
         exam = _get_public_exam(token)
         _validate_available(exam)
         # Never expose the public_token back to the client.
+        data = PublicExamSerializer(exam).data
+        return Response(data)
+
+
+@extend_schema(
+    responses=PublicExamSerializer,
+    tags=["Public"],
+)
+class CodeLookupView(APIView):
+    """GET /api/public/code/{short_code}/ — look up an exam by its 8-char short code."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request, short_code: str):
+        code = short_code.strip().upper()
+        if not code or len(code) != 8:
+            raise ValidationError("Invalid short code.")
+        exam = Exam.objects.filter(short_code=code, is_deleted=False).first()
+        if exam is None:
+            raise NotFound("No exam found with this code.")
+        _validate_available(exam)
         data = PublicExamSerializer(exam).data
         return Response(data)
 
