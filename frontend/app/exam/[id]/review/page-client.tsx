@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { api, ApiError } from "@/lib/api"
 
 interface ReviewExam {
   id: string
@@ -9,6 +10,8 @@ interface ReviewExam {
   duration: number
   totalMarks: number
   questionCount: number
+  allowReview: boolean
+  showResult: boolean
 }
 
 interface ReviewQuestion {
@@ -19,24 +22,71 @@ interface ReviewQuestion {
   correctAnswerId: string
 }
 
-interface ExamReviewClientProps {
-  exam: ReviewExam
-  questions: ReviewQuestion[]
-}
-
 const STORAGE_KEY_PREFIX = "exam-take-"
-
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"]
 
-export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
+export function ExamReviewClient() {
   const router = useRouter()
-  const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
+  const searchParams = useSearchParams()
+
+  const token = searchParams.get("token") || ""
+  const examId = searchParams.get("id") || ""
+
+  const [exam, setExam] = useState<ReviewExam | null>(null)
+  const [questions, setQuestions] = useState<ReviewQuestion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
 
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
   const [showAllQuestions, setShowAllQuestions] = useState(false)
+
+  // Fetch exam data
+  useEffect(() => {
+    async function loadExam() {
+      setLoading(true)
+      setError("")
+      try {
+        const examData = await api.public.exam(token || examId)
+        if (!examData.allow_review) {
+          if (!examData.show_result) {
+            router.push(`/exam/${examData.id}/submitted`)
+            return
+          } else {
+            router.push(`/exam/${examData.id}/results`)
+            return
+          }
+        }
+        setExam({
+          id: examData.id,
+          title: examData.title,
+          duration: examData.duration_minutes,
+          totalMarks: examData.total_marks,
+          questionCount: examData.question_count,
+          allowReview: examData.allow_review,
+          showResult: examData.show_result,
+        })
+        setQuestions(examData.questions.map((q) => ({
+          id: q.id,
+          number: q.number,
+          text: q.text,
+          options: q.options,
+          correctAnswerId: "",
+        })))
+      } catch (err) {
+        setError(err instanceof ApiError ? err.message : "Failed to load exam")
+      } finally {
+        setLoading(false)
+      }
+    }
+    if (token || examId) {
+      loadExam()
+    }
+  }, [token, examId, router])
 
   useEffect(() => {
     if (!showConfirm) return
@@ -48,6 +98,7 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
   }, [showConfirm])
 
   useEffect(() => {
+    if (!exam) return
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
@@ -61,14 +112,15 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
         }
       }
     } catch {}
-  }, [storageKey, exam.id, router])
+  }, [storageKey, exam, router])
 
   const answeredCount = questions.filter((q) => answers[q.id]).length
   const flaggedCount = flagged.size
-  const timerMinutes = timeLeft != null ? Math.floor(timeLeft / 60) : exam.duration
+  const timerMinutes = timeLeft != null ? Math.floor(timeLeft / 60) : exam?.duration || 0
   const timerSeconds = timeLeft != null ? timeLeft % 60 : 0
 
   function handleSubmit() {
+    if (!exam) return
     localStorage.setItem(
       storageKey,
       JSON.stringify({ answers, flagged: [...flagged], submitted: true }),
@@ -77,11 +129,47 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
   }
 
   function navigateToQuestion(questionId: string) {
+    if (!exam) return
     router.push(`/exam/${exam.id}/take?focus=${questionId}`)
   }
 
   const displayedQuestions = showAllQuestions ? questions : questions.slice(0, 4)
   const hiddenCount = questions.length - 4
+
+  if (loading) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f9f9ff" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-12 rounded-full border-4 border-[#006c49] border-t-transparent animate-spin" />
+          <p className="text-sm font-medium" style={{ color: "#3c4a42" }}>Loading review...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !exam) {
+    return (
+      <main className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#f9f9ff" }}>
+        <div className="flex flex-col items-center gap-4 max-w-md mx-auto px-4 text-center">
+          <div className="size-16 rounded-full bg-danger-light flex items-center justify-center">
+            <span className="text-3xl">!</span>
+          </div>
+          <h2 className="text-xl font-bold" style={{ color: "#121c2a" }}>Review Not Available</h2>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            {error || "Review could not be loaded. Please check the link and try again."}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/exam/portal")}
+            className="mt-4 px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:brightness-105"
+            style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+          >
+            Go to Exam Portal
+          </button>
+        </div>
+      </main>
+    )
+  }
 
   return (
     <div
@@ -227,13 +315,6 @@ export function ExamReviewClient({ exam, questions }: ExamReviewClientProps) {
             const isAnswered = !!answers[q.id]
             const isFlagged = flagged.has(q.id)
             const selectedOption = q.options.find((opt) => opt.id === answers[q.id])
-
-            let borderClass = "border border-transparent"
-            if (isFlagged) {
-              borderClass = "border-2"
-            } else if (!isAnswered) {
-              borderClass = "border-2 border-dashed"
-            }
 
             let borderStyle: React.CSSProperties = {}
             if (isFlagged) {
