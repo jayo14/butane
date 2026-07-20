@@ -7,7 +7,6 @@ import {
   DropdownItem,
 } from "@heroui/react"
 import type { ButtonVariant, Size } from "@/types"
-import { Button } from "./button"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -40,19 +39,29 @@ export function Dropdown({
   isLoading,
   disabled,
 }: DropdownProps) {
+  const sizeClasses = { sm: "h-8 px-3 text-xs gap-1.5", md: "h-10 px-4 text-sm gap-2", lg: "h-12 px-6 text-base gap-2.5" }
+  const variantClasses: Record<string, string> = {
+    primary: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+    secondary: "bg-content-primary text-white hover:bg-content-primary/90 shadow-sm",
+    outline: "border border-border-primary bg-white text-content-primary hover:bg-surface-secondary",
+    ghost: "text-content-primary hover:bg-surface-secondary",
+    danger: "bg-danger text-danger-foreground hover:bg-danger/90 shadow-sm",
+  }
   return (
     <HeroDropdown>
       <DropdownTrigger>
         {trigger || (
-          <Button
-            variant={variant}
-            size={size}
-            rightIcon={<ChevronDown size={size === "sm" ? 14 : 16} />}
-            isLoading={isLoading}
-            disabled={disabled}
+          <span
+            className={cn(
+              "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150 select-none",
+              "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
+              variantClasses[variant],
+              sizeClasses[size],
+            )}
           >
             {label}
-          </Button>
+            <ChevronDown size={size === "sm" ? 14 : 16} />
+          </span>
         )}
       </DropdownTrigger>
       <DropdownMenu

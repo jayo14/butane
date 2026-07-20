@@ -289,13 +289,15 @@ export function ExamsPageClient({ exams: initialExams }: { exams: Exam[] }) {
                         size="sm"
                         label=""
                         trigger={
-                          <button
-                            type="button"
-                            className="flex size-9 items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { const btn = e.currentTarget.closest('[data-trigger]'); if (btn) (btn as HTMLElement).click() } }}
+                            className="flex size-9 cursor-pointer items-center justify-center rounded-xl text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
                             aria-label="Exam actions"
                           >
                             <MoreHorizontal size={18} />
-                          </button>
+                          </span>
                         }
                       />
                     </div>
