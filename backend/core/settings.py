@@ -91,17 +91,26 @@ ASGI_APPLICATION = "core.asgi.application"
 
 
 # --- Database ---------------------------------------------------------------
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME": env("DB_NAME", default="butane"),
-        "USER": env("DB_USER", default="butane"),
-        "PASSWORD": env("DB_PASSWORD", default="butane"),
-        "HOST": env("DB_HOST", default="localhost"),
-        "PORT": env("DB_PORT", default="5432"),
-        "CONN_MAX_AGE": 60,
+DB_ENGINE = env("DB_ENGINE", default="sqlite")
+if DB_ENGINE == "postgresql":
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.postgresql",
+            "NAME": env("DB_NAME", default="butane"),
+            "USER": env("DB_USER", default="butane"),
+            "PASSWORD": env("DB_PASSWORD", default="butane"),
+            "HOST": env("DB_HOST", default="localhost"),
+            "PORT": env("DB_PORT", default="5432"),
+            "CONN_MAX_AGE": 60,
+        }
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / env("DB_NAME", default="db.sqlite3"),
+        }
+    }
 
 
 # --- Password validation ----------------------------------------------------
