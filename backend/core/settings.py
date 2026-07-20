@@ -45,13 +45,14 @@ if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
     raise RuntimeError("DJANGO_SECRET_KEY must be set to a secure value in production.")
 
 # Base site URL used to build shareable public exam links.
-SITE_URL = env("SITE_URL", default="")
+SITE_URL = env("SITE_URL", default="https://butane.onrender.com")
 
-# On Render, derive the site URL from the automatically-injected hostname.
-if not SITE_URL and render_hostname:
-    SITE_URL = f"https://{render_hostname}"
-
-CSRF_TRUSTED_ORIGINS = [o.strip() for o in env("CSRF_TRUSTED_ORIGINS", default="").split(",") if o.strip()]
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://butane.vercel.app",
+    "https://butane.onrender.com",
+]
 if render_hostname:
     csrf_origin = f"https://{render_hostname}"
     if csrf_origin not in CSRF_TRUSTED_ORIGINS:
@@ -237,7 +238,12 @@ SPECTACULAR_SETTINGS = {
 
 
 # --- CORS ------------------------------------------------------------------
-CORS_ALLOWED_ORIGINS = [o.strip() for o in env("CORS_ALLOWED_ORIGINS", default="").split(",") if o.strip()]
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:8000",
+    "https://butane.vercel.app",
+    "https://butane.onrender.com",
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_ALL_ORIGINS = False
 
