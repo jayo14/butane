@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import Link from "next/link"
 import {
-  Check, ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, Trash2, FileText,
-  ExternalLink, Copy, CheckCheck, Plus, AlertCircle, Sparkles, ArrowLeft, Zap, ClipboardList,
+  ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, Trash2, FileText,
+  Copy, Plus, AlertCircle, Sparkles, ArrowLeft,
   ArrowRight, X, Lightbulb, ShieldCheck, GraduationCap, PenLine, School,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -365,143 +365,202 @@ export function CreateExamWizard() {
         className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 md:p-10"
         style={{
           backgroundColor: "#fcfbf7",
-          backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 100%)",
           fontFamily: "'Plus Jakarta Sans', sans-serif",
         }}
       >
-        <div className="mx-auto w-full max-w-2xl">
+        {/* Confetti canvas */}
+        <canvas id="confetti-canvas" className="fixed inset-0 pointer-events-none z-0" />
+
+        <div className="relative z-10 mx-auto w-full max-w-2xl flex flex-col items-center text-center">
+          {/* Success Illustration */}
+          <div className="mb-8">
+            <div
+              className="size-32 md:size-40 rounded-full flex items-center justify-center shadow-lg transition-transform hover:scale-105"
+              style={{ backgroundColor: "#10b981" }}
+            >
+              <span
+                className="material-symbols-outlined text-on-primary-container !text-6xl md:!text-7xl"
+                style={{ fontVariationSettings: "'FILL' 1", color: "#00422b", fontSize: "64px" }}
+              >
+                check_circle
+              </span>
+            </div>
+          </div>
+
+          {/* Title & Subtitle */}
+          <div className="space-y-4 mb-10">
+            <h1
+              className="text-[40px] md:text-[64px] font-bold leading-tight"
+              style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
+            >
+              Exam Published Successfully!
+            </h1>
+            <p className="text-base max-w-md mx-auto" style={{ color: "#3c4a42" }}>
+              Your exam is now live and ready for students. Share the details below to start the assessment.
+            </p>
+          </div>
+
+          {/* Sharing Section Card */}
           <div
-            className="overflow-hidden rounded-xl border border-white"
+            className="w-full border p-8 md:p-12 rounded-[2.5rem] mb-10 transition-all hover:shadow-xl"
             style={{
-              background: "rgba(255,255,255,0.95)",
-              backdropFilter: "blur(10px)",
+              backgroundColor: "#ffffff",
+              borderColor: "#bbcabf",
               boxShadow: "0 12px 32px -4px rgba(55,65,81,0.08)",
             }}
           >
-            <div className="flex flex-col items-center px-8 py-12 text-center md:px-12">
-              <div className="mb-6 flex size-20 items-center justify-center rounded-full" style={{ backgroundColor: "#82f5c1" }}>
-                <CheckCheck size={44} color="#006c49" />
-              </div>
-              <h2
-                style={{
-                  fontFamily: "'Source Serif 4', serif",
-                  fontSize: "32px",
-                  lineHeight: "40px",
-                  fontWeight: 700,
-                  letterSpacing: "-0.01em",
-                  color: "#121c2a",
-                }}
-              >
-                Exam Published Successfully
-              </h2>
-              <p className="mt-2 max-w-sm text-sm" style={{ color: "#3c4a42" }}>
-                Your exam &ldquo;{draft.basicInfo.title}&rdquo; is now available for students.
-              </p>
-
-              <div className="mt-8 w-full space-y-4">
-                <div>
-                  <label className="mb-1.5 block text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
-                    Share this link
-                  </label>
-                  <div className="flex items-center gap-2">
-                    <div className="flex flex-1 items-center gap-2.5 rounded-lg px-4 py-3" style={{ backgroundColor: "#eff3ff" }}>
-                      <ExternalLink size={16} className="shrink-0" style={{ color: "#6c7a71" }} />
-                      <span className="truncate text-sm font-medium" style={{ color: "#121c2a" }}>{publishedUrl}</span>
-                    </div>
-                    <button
-                      onClick={copyLink}
-                      className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-                      style={{
-                        backgroundColor: copied ? "#006c49" : "#10b981",
-                        color: "#00422b",
-                      }}
-                    >
-                      {copied ? <Check size={18} /> : <Copy size={18} />}
-                      {copied ? "Copied" : "Copy"}
-                    </button>
-                  </div>
-                </div>
-
-                {shortCode && (
-                  <div className="rounded-lg p-4" style={{ backgroundColor: "#d9e3f7" }}>
-                    <div className="flex items-center gap-3">
-                      <div className="flex size-10 items-center justify-center rounded-lg" style={{ backgroundColor: "#82f5c1" }}>
-                        <Zap size={20} color="#006c49" />
-                      </div>
-                      <div className="flex-1 text-left">
-                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#6c7a71" }}>Quick access code</p>
-                        <p className="text-lg font-bold tracking-wider" style={{ color: "#121c2a" }}>{shortCode}</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            await navigator.clipboard.writeText(shortCode)
-                            setCopiedShort(true)
-                            setTimeout(() => setCopiedShort(false), 2000)
-                          } catch {}
-                        }}
-                        className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-                        style={{
-                          backgroundColor: copiedShort ? "#006c49" : "#10b981",
-                          color: "#00422b",
-                        }}
-                      >
-                        {copiedShort ? <Check size={16} /> : <Copy size={16} />}
-                        {copiedShort ? "Copied" : "Copy"}
-                      </button>
-                    </div>
-                    <p className="mt-2 text-xs" style={{ color: "#3c4a42" }}>
-                      Students can enter this code at{" "}
-                      <a href="/exam/portal" className="font-medium underline" style={{ color: "#006c49" }}>
-                        deesoar.edu/exam/portal
-                      </a>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all"
+            <div className="grid grid-cols-1 gap-8">
+              {/* Access Code */}
+              <div className="flex flex-col items-center space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#3c4a42" }}>
+                  Access Code
+                </span>
+                <div
+                  className="flex items-center gap-4 px-6 py-4 rounded-xl w-full justify-between"
                   style={{
-                    backgroundColor: "transparent",
+                    backgroundColor: "#eff3ff",
                     border: "1px solid #bbcabf",
-                    color: "#3c4a42",
+                    boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
                   }}
                 >
-                  <Plus size={18} />
-                  Create Another
-                </button>
-                <Link href="/dashboard/exams">
-                  <button
-                    className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all"
-                    style={{
-                      backgroundColor: "transparent",
-                      border: "1px solid #bbcabf",
-                      color: "#3c4a42",
-                    }}
+                  <span
+                    className="text-[32px] font-bold tracking-[0.15em]"
+                    style={{ color: "#006c4a", fontFamily: "'Source Serif 4', serif" }}
                   >
-                    <ClipboardList size={18} />
-                    View All Exams
-                  </button>
-                </Link>
-                <a href={publishedUrl} target="_blank" rel="noopener noreferrer">
+                    {shortCode || "------"}
+                  </span>
                   <button
-                    className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
-                    style={{
-                      backgroundColor: "#10b981",
-                      color: "#00422b",
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(shortCode || "")
+                        setCopiedShort(true)
+                        setTimeout(() => setCopiedShort(false), 2000)
+                      } catch {}
                     }}
+                    className="flex items-center gap-2 text-sm font-semibold transition-colors group"
+                    style={{ color: "#006c49" }}
                   >
-                    Open Exam
-                    <ExternalLink size={18} />
+                    <span className="material-symbols-outlined !text-xl group-active:scale-90 transition-transform">
+                      {copiedShort ? "done" : "content_copy"}
+                    </span>
+                    <span>{copiedShort ? "Copied" : "Copy Code"}</span>
                   </button>
-                </a>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4 py-2">
+                <div className="h-px flex-1" style={{ backgroundColor: "#bbcabf" }} />
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6c7a71" }}>OR</span>
+                <div className="h-px flex-1" style={{ backgroundColor: "#bbcabf" }} />
+              </div>
+
+              {/* Exam Link */}
+              <div className="flex flex-col items-center space-y-3">
+                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#3c4a42" }}>
+                  Exam Link
+                </span>
+                <div
+                  className="flex items-center gap-3 px-6 py-3 rounded-full w-full justify-between overflow-hidden"
+                  style={{
+                    backgroundColor: "rgba(16,185,129,0.08)",
+                    border: "1px solid rgba(0,108,73,0.2)",
+                  }}
+                >
+                  <span className="text-sm italic truncate" style={{ color: "#00422b" }}>
+                    {shortUrl || publishedUrl}
+                  </span>
+                  <button
+                    onClick={copyLink}
+                    className="flex items-center gap-2 text-sm font-semibold transition-colors flex-shrink-0 group"
+                    style={{ color: "#006c4a" }}
+                  >
+                    <span className="material-symbols-outlined !text-xl group-active:scale-90 transition-transform">
+                      {copied ? "done" : "link"}
+                    </span>
+                    <span>{copied ? "Copied" : "Copy Link"}</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col md:flex-row items-center gap-6 w-full md:w-auto">
+            <Link href="/dashboard/exams" className="w-full md:w-auto">
+              <button
+                className="w-full px-10 py-5 font-bold text-sm rounded-full shadow-md transition-all active:scale-95 flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: "#006c49",
+                  color: "#ffffff",
+                }}
+              >
+                Go to Dashboard
+                <span className="material-symbols-outlined !text-xl">arrow_forward</span>
+              </button>
+            </Link>
+            <a
+              href={publishedUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full md:w-auto"
+            >
+              <button
+                className="w-full px-10 py-5 font-bold text-sm rounded-full transition-all active:scale-95 flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: "#e6eeff",
+                  border: "1px solid #bbcabf",
+                  color: "#121c2a",
+                }}
+              >
+                <span className="material-symbols-outlined !text-xl">visibility</span>
+                View Exam Preview
+              </button>
+            </a>
+          </div>
         </div>
+
+        {/* Confetti animation */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              setTimeout(() => {
+                const canvas = document.getElementById('confetti-canvas');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                const colors = ['#10b981','#006c49','#6ffbbe','#f9f9ff','#85f8c4'];
+                const pieces = Array.from({ length: 100 }, () => ({
+                  x: Math.random() * canvas.width,
+                  y: Math.random() * canvas.height - canvas.height,
+                  rotation: Math.random() * 360,
+                  color: colors[Math.floor(Math.random() * colors.length)],
+                  size: Math.random() * 8 + 4,
+                  speed: Math.random() * 3 + 2,
+                  rotationSpeed: Math.random() * 10 - 5,
+                }));
+                function animate() {
+                  if (!ctx) return;
+                  ctx.clearRect(0, 0, canvas.width, canvas.height);
+                  pieces.forEach(p => {
+                    p.y += p.speed;
+                    p.rotation += p.rotationSpeed;
+                    if (p.y > canvas.height) { p.y = -20; p.x = Math.random() * canvas.width; }
+                    ctx.save();
+                    ctx.translate(p.x, p.y);
+                    ctx.rotate(p.rotation * Math.PI / 180);
+                    ctx.fillStyle = p.color;
+                    ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+                    ctx.restore();
+                  });
+                  requestAnimationFrame(animate);
+                }
+                animate();
+              }, 100);
+            `,
+          }}
+        />
       </div>
     )
   }
