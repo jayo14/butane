@@ -27,6 +27,7 @@ from .public_serializers import (
     StartExamRequestSerializer,
 )
 from .serializers import ResultSerializer
+from core.throttling import LoginRateThrottle
 
 
 def _get_public_exam(token: str) -> Exam:
