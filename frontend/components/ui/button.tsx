@@ -7,26 +7,26 @@ import type { ButtonVariant, Size } from "@/types"
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm",
+    "bg-primary text-primary-foreground hover:bg-primary-hover shadow-sm shadow-primary/20",
   secondary:
-    "bg-content-primary text-white hover:bg-content-primary/90 shadow-sm",
+    "bg-dark text-white hover:bg-dark/90 shadow-sm",
   outline:
-    "border border-border-primary bg-white text-content-primary hover:bg-surface-secondary",
+    "border-2 border-border-primary bg-white text-content-primary hover:bg-surface-secondary hover:border-primary/40",
   ghost:
-    "text-content-primary hover:bg-surface-secondary",
+    "text-content-primary hover:bg-surface-secondary hover:text-primary",
   danger:
-    "bg-danger text-danger-foreground hover:bg-danger/90 shadow-sm",
+    "bg-danger text-danger-foreground hover:bg-danger/90 shadow-sm shadow-danger/20",
 }
 
 const sizeStyles: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5",
-  md: "h-10 px-4 text-sm gap-2",
-  lg: "h-12 px-6 text-base gap-2.5",
+  sm: "h-10 px-4 text-xs gap-1.5",
+  md: "h-12 px-6 text-sm gap-2",
+  lg: "h-14 px-8 text-base gap-2.5",
 }
 
 const iconSizeStyles: Record<Size, string> = {
-  sm: "size-7 p-0",
-  md: "size-10 p-0",
+  sm: "size-9 p-0",
+  md: "size-11 p-0",
   lg: "size-12 p-0",
 }
 
@@ -61,7 +61,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         aria-busy={isLoading || undefined}
         className={cn(
-          "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-150",
+          "inline-flex items-center justify-center font-semibold rounded-xl transition-all duration-200",
           "focus-visible:outline-2 focus-visible:outline-primary focus-visible:outline-offset-2",
           "disabled:pointer-events-none disabled:opacity-50",
           "select-none",

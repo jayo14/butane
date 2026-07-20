@@ -48,7 +48,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         )}
         <div className="relative">
           {leftIcon && (
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-content-muted">
+            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-content-muted">
               {leftIcon}
             </div>
           )}
@@ -58,16 +58,16 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={resolvedType}
             disabled={disabled}
             className={cn(
-              "block w-full rounded-lg border bg-white px-3 py-2.5 text-sm text-content-primary placeholder:text-content-secondary",
-              "transition-colors duration-150",
-              "hover:border-content-muted",
+              "block w-full rounded-xl border-2 bg-white px-4 py-3 text-sm text-content-primary placeholder:text-content-secondary",
+              "transition-all duration-200",
+              "hover:border-primary/40",
               "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-surface-secondary",
               "read-only:cursor-default read-only:bg-surface-secondary",
               error && "border-danger focus:border-danger focus:ring-danger/20",
               !error && "border-border-primary",
-              leftIcon && "pl-10",
-              (rightIcon || isPassword) && "pr-10",
+              leftIcon && "pl-12",
+              (rightIcon || isPassword) && "pr-12",
               className,
             )}
             aria-invalid={!!error}
@@ -78,15 +78,15 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted hover:text-content-primary"
+              className="absolute inset-y-0 right-0 flex items-center pr-4 text-content-muted hover:text-content-primary"
               tabIndex={-1}
               aria-label={showPassword ? "Hide password" : "Show password"}
             >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
             </button>
           )}
           {!isPassword && rightIcon && (
-            <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
+            <div className="absolute inset-y-0 right-0 flex items-center pr-4 text-content-muted">
               {rightIcon}
             </div>
           )}

@@ -3,19 +3,19 @@ import { cn } from "@/lib/utils"
 import type { BadgeVariant, Size } from "@/types"
 
 const variantStyles: Record<BadgeVariant, string> = {
-  primary: "bg-primary/10 text-primary",
+  primary: "bg-primary/15 text-primary",
   success: "bg-success-light text-success",
   warning: "bg-warning-light text-warning",
   danger: "bg-danger-light text-danger",
   info: "bg-info-light text-info",
-  mint: "bg-mint/30 text-content-primary",
-  pink: "bg-baby-pink/50 text-content-primary",
+  mint: "bg-mint/20 text-mint-foreground",
+  pink: "bg-baby-pink text-baby-pink-foreground",
 }
 
 const sizeStyles: Record<Size, string> = {
-  sm: "px-1.5 py-0.5 text-[10px] leading-4",
-  md: "px-2 py-0.5 text-[11px] leading-5",
-  lg: "px-2.5 py-1 text-xs leading-5",
+  sm: "px-2 py-0.5 text-[11px] leading-4",
+  md: "px-2.5 py-1 text-xs leading-5",
+  lg: "px-3 py-1.5 text-sm leading-5",
 }
 
 interface BadgeProps {

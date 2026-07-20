@@ -53,9 +53,9 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             value={value}
             onChange={(e) => onChange?.(e.target.value)}
             className={cn(
-              "block w-full appearance-none rounded-lg border bg-white px-3 py-2.5 pr-10 text-sm text-content-primary",
-              "transition-colors duration-150",
-              "hover:border-content-muted",
+              "block w-full appearance-none rounded-xl border-2 bg-white px-4 py-3 pr-12 text-sm text-content-primary",
+              "transition-all duration-200",
+              "hover:border-primary/40",
               "focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-surface-secondary",
               error && "border-danger focus:border-danger focus:ring-danger/20",
@@ -78,8 +78,8 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             ))}
           </select>
-          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3 text-content-muted">
-            <ChevronDown size={16} />
+          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-content-muted">
+            <ChevronDown size={18} />
           </div>
         </div>
         {error && (
