@@ -24,18 +24,21 @@ DEBUG = _as_bool(env("DJANGO_DEBUG", default="false"))
 
 SECRET_KEY = env("DJANGO_SECRET_KEY", default="insecure-dev-key-change-me")
 
-ALLOWED_HOSTS = [h.strip() for h in env("DJANGO_ALLOWED_HOSTS", default="").split(",") if h.strip()]
-if DEBUG:
-    ALLOWED_HOSTS += ["localhost", "127.0.0.1", "0.0.0.0", "testserver"]
-    if not ALLOWED_HOSTS:
-        ALLOWED_HOSTS = ["*"]
+ALLOWED_HOSTS = [
+    "localhost",
+    "127.0.0.1",
+    "0.0.0.0",
+    "testserver",
+    "butane.onrender.com",
+    ".onrender.com",
+    "butane.vercel.app",
+]
 
 # Render.com automatically injects RENDER_EXTERNAL_HOSTNAME.
-# Include it so the app works without hardcoding every possible domain.
+# Include it so the app works with any custom domain without hardcoding.
 render_hostname = env("RENDER_EXTERNAL_HOSTNAME", default="")
-if render_hostname:
-    if render_hostname not in ALLOWED_HOSTS:
-        ALLOWED_HOSTS.append(render_hostname)
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
 
 # Production guard: refuse to start with the insecure default secret in production.
 if not DEBUG and SECRET_KEY in {"insecure-dev-key-change-me"}:
