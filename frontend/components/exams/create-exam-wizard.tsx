@@ -4,15 +4,23 @@ import { useState, useCallback, useRef, useEffect } from "react"
 import { useForm, FormProvider, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Check, ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2 } from "lucide-react"
+import Link from "next/link"
+import {
+  Check, ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, Trash2, FileText,
+  ExternalLink, Copy, CheckCheck, Plus, AlertCircle, Sparkles, ArrowLeft, Zap, ClipboardList,
+  ArrowRight, X, Lightbulb, ShieldCheck, GraduationCap, PenLine, School,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
 import { useAutosave, type AutosaveStatus } from "@/hooks/use-autosave"
 import { BasicInfoStep } from "./steps/basic-info-step"
 import { QuestionBuilderStep, type QuestionBuilderHandle } from "./steps/question-builder-step"
 import { SettingsStep } from "./steps/settings-step"
 import { ReviewPublishStep } from "./steps/review-publish-step"
 import type { Question, ExamSettings } from "@/types/exam"
+import { api, ApiError } from "@/lib/api"
+
+const DRAFT_STORAGE_KEY = "exam-wizard-draft"
+const STEP_STORAGE_KEY = "exam-wizard-step"
 
 const basicInfoSchema = z.object({
   title: z.string().min(1, "Exam title is required").max(200, "Title is too long"),
@@ -48,13 +56,55 @@ const initialDraft: ExamDraft = {
     title: "",
     subject: "",
     class: "",
-    term: "",
+    term: "first-term",
     duration: 60,
     questionCount: 10,
     instructions: "",
   },
   questions: [],
   settings: defaultSettings,
+}
+
+function loadDraft(): ExamDraft {
+  if (typeof window === "undefined") return initialDraft
+  try {
+    const raw = localStorage.getItem(DRAFT_STORAGE_KEY)
+    if (!raw) return initialDraft
+    const parsed = JSON.parse(raw)
+    return { ...initialDraft, ...parsed, basicInfo: { ...initialDraft.basicInfo, ...parsed.basicInfo }, settings: { ...initialDraft.settings, ...parsed.settings } }
+  } catch {
+    return initialDraft
+  }
+}
+
+function saveDraftToStorage(draft: ExamDraft) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft))
+  } catch {}
+}
+
+function saveStepToStorage(step: number) {
+  if (typeof window === "undefined") return
+  try {
+    localStorage.setItem(STEP_STORAGE_KEY, String(step))
+  } catch {}
+}
+
+function loadStep(): number {
+  if (typeof window === "undefined") return 0
+  try {
+    const raw = localStorage.getItem(STEP_STORAGE_KEY)
+    return raw ? Math.min(Math.max(parseInt(raw, 10) || 0, 0), 3) : 0
+  } catch {
+    return 0
+  }
+}
+
+function clearDraftFromStorage() {
+  if (typeof window === "undefined") return
+  localStorage.removeItem(DRAFT_STORAGE_KEY)
+  localStorage.removeItem(STEP_STORAGE_KEY)
 }
 
 const subjects = [
@@ -83,30 +133,83 @@ const terms = [
   { label: "Third Term", value: "third-term" },
 ]
 
-const steps = [
-  { id: "basic-info", label: "Basic Information", description: "Exam details & settings" },
-  { id: "questions", label: "Questions", description: "Add exam questions" },
-  { id: "settings", label: "Settings", description: "Exam configuration" },
+const STEPS = [
+  { id: "basic-info", label: "Basic Info", description: "Exam info" },
+  { id: "questions", label: "Questions", description: "Add questions" },
+  { id: "settings", label: "Settings", description: "Configuration" },
   { id: "review", label: "Review & Publish", description: "Final review" },
 ]
 
-const autosaveStatusConfig: Record<AutosaveStatus, { icon: React.ReactNode; text: string; className: string }> = {
-  idle: { icon: <CloudOff size={14} />, text: "Unsaved", className: "text-content-muted" },
-  saving: { icon: <Loader2 size={14} className="animate-spin" />, text: "Saving...", className: "text-warning" },
-  saved: { icon: <Cloud size={14} />, text: "Saved", className: "text-success" },
-  error: { icon: <CloudOff size={14} />, text: "Save failed", className: "text-danger" },
+const STEP_HEADERS = [
+  {
+    title: "Build Your Assessment",
+    description: "Let's start with the fundamentals. Provide a clear title and description to help your students understand the scope of the exam.",
+  },
+  {
+    title: "Add Questions",
+    description: "Create and organize your exam questions. Each question can have up to four answer options with one correct answer.",
+  },
+  {
+    title: "Configure Settings",
+    description: "Set passing marks, time limits, and other preferences to control how the exam behaves for students.",
+  },
+  {
+    title: "Review & Publish",
+    description: "Double-check all exam details, questions, and settings before publishing it for your students.",
+  },
+]
+
+const TIPS = [
+  { icon: Lightbulb, title: "Naming Tip", text: "Clear titles help students locate the correct exam in their dashboard quickly." },
+  { icon: Sparkles, title: "Auto-Save", text: "Your progress is automatically saved to drafts as you work through each step." },
+  { icon: ShieldCheck, title: "Privacy", text: "Exams are private by default and only visible to students once published." },
+]
+
+const autosaveConfig: Record<AutosaveStatus, { icon: React.ReactNode; text: string; className: string }> = {
+  idle: { icon: <CloudOff size={12} />, text: "Unsaved", className: "text-[#6c7a71]" },
+  saving: { icon: <Loader2 size={12} className="animate-spin" />, text: "Saving...", className: "text-[#D97706]" },
+  saved: { icon: <Cloud size={12} />, text: "Saved", className: "text-[#006c49]" },
+  error: { icon: <CloudOff size={12} />, text: "Save failed", className: "text-[#ba1a1a]" },
+}
+
+function useKeyboard(handlers: Record<string, () => void>) {
+  useEffect(() => {
+    function handler(e: KeyboardEvent) {
+      const key = [e.ctrlKey || e.metaKey ? "mod" : "", e.key].filter(Boolean).join("+")
+      if (handlers[key]) {
+        e.preventDefault()
+        handlers[key]()
+      }
+    }
+    window.addEventListener("keydown", handler)
+    return () => window.removeEventListener("keydown", handler)
+  }, [handlers])
 }
 
 export function CreateExamWizard() {
-  const [currentStep, setCurrentStep] = useState(0)
-  const [draft, setDraft] = useState<ExamDraft>(initialDraft)
+  const [currentStep, setCurrentStep] = useState(loadStep)
+  const [draft, setDraft] = useState<ExamDraft>(loadDraft)
   const [isPublishing, setIsPublishing] = useState(false)
   const [published, setPublished] = useState(false)
+  const [publishedUrl, setPublishedUrl] = useState("")
+  const [shortCode, setShortCode] = useState("")
+  const [publishError, setPublishError] = useState("")
+  const [copied, setCopied] = useState(false)
+  const [restored, setRestored] = useState(false)
+  const [slideDir, setSlideDir] = useState<"left" | "right">("right")
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
   const contentRef = useRef<HTMLDivElement>(null)
+  const [copiedShort, setCopiedShort] = useState(false)
 
   useEffect(() => {
-    contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+    const saved = loadDraft()
+    if (saved !== initialDraft && (saved.basicInfo.title || saved.questions.length > 0)) {
+      setRestored(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    saveStepToStorage(currentStep)
   }, [currentStep])
 
   const form = useForm<BasicInfoValues>({
@@ -119,8 +222,8 @@ export function CreateExamWizard() {
   const watchedBasicInfo = watch()
 
   const saveDraft = useCallback(async (data: ExamDraft) => {
-    await new Promise((r) => setTimeout(r, 800))
     setDraft(data)
+    saveDraftToStorage(data)
   }, [])
 
   const { status: autosaveStatus, triggerSave } = useAutosave({
@@ -129,177 +232,549 @@ export function CreateExamWizard() {
     delay: 3000,
   })
 
+  function goToStep(target: number) {
+    if (target < 0 || target >= STEPS.length || target === currentStep) return
+    setSlideDir(target > currentStep ? "right" : "left")
+    setCurrentStep(target)
+    contentRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  function handleClearDraft() {
+    if (confirm("Clear the current exam draft? This cannot be undone.")) {
+      clearDraftFromStorage()
+      setDraft(initialDraft)
+      setCurrentStep(0)
+      form.reset(initialDraft.basicInfo)
+      setRestored(false)
+    }
+  }
+
   async function handleNext() {
+    setPublishError("")
     if (currentStep === 0) {
       const isValid = await form.trigger()
       if (!isValid) return
-      setDraft((prev) => ({ ...prev, basicInfo: form.getValues() }))
+      const basicInfo = form.getValues()
+      const updated = { ...draft, basicInfo }
+      setDraft(updated)
+      saveDraftToStorage(updated)
     }
-
     if (currentStep === 1) {
       const isValid = questionBuilderRef.current?.validate() ?? false
       if (!isValid) return
     }
-
-    if (currentStep < steps.length - 1) {
-      setCurrentStep((s) => s + 1)
-    }
+    if (currentStep < STEPS.length - 1) goToStep(currentStep + 1)
   }
 
   function handleBack() {
-    if (currentStep > 0) setCurrentStep((s) => s - 1)
+    if (currentStep > 0) goToStep(currentStep - 1)
   }
 
   async function handlePublish() {
     setIsPublishing(true)
+    setPublishError("")
     triggerSave()
-    await new Promise((r) => setTimeout(r, 2000))
-    setIsPublishing(false)
-    setPublished(true)
+
+    try {
+      const payload = {
+        title: draft.basicInfo.title,
+        subject: draft.basicInfo.subject,
+        class_group: draft.basicInfo.class,
+        term: draft.basicInfo.term,
+        duration_minutes: draft.basicInfo.duration,
+        passing_percentage: draft.settings.passMark,
+        shuffle_questions: draft.settings.shuffleQuestions,
+        shuffle_answers: draft.settings.shuffleAnswers,
+        show_result: draft.settings.showResult,
+        allow_review: draft.settings.allowReview,
+        instructions: draft.basicInfo.instructions || "",
+        questions: draft.questions.map((q, i) => ({
+          order: i + 1,
+          text: q.text,
+          type: "single_choice" as const,
+          marks: 1,
+          choices: q.options.map((opt, oi) => ({
+            label: String.fromCharCode(65 + oi),
+            text: opt.text,
+            is_correct: opt.id === q.correctAnswerId,
+          })),
+        })),
+      }
+
+      const created = await api.exams.create(payload)
+      const published = await api.exams.publish(created.id)
+      const url = published.public_url || `${window.location.origin}/exam/${created.id}`
+      setPublishedUrl(url)
+      setShortCode(published.short_code || "")
+      clearDraftFromStorage()
+      setPublished(true)
+    } catch (err) {
+      setPublishError(err instanceof ApiError ? err.message : "Failed to publish exam. Please try again.")
+    } finally {
+      setIsPublishing(false)
+    }
   }
 
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(publishedUrl)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      const input = document.createElement("input")
+      input.value = publishedUrl
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand("copy")
+      document.body.removeChild(input)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  function handleReset() {
+    clearDraftFromStorage()
+    setDraft(initialDraft)
+    setCurrentStep(0)
+    setPublished(false)
+    setPublishedUrl("")
+    form.reset(initialDraft.basicInfo)
+  }
+
+  useKeyboard({
+    "mod+Enter": () => { if (currentStep < STEPS.length - 1) handleNext(); else handlePublish() },
+    "mod+ArrowRight": () => { if (currentStep < STEPS.length - 1) handleNext() },
+    "mod+ArrowLeft": () => handleBack(),
+  })
+
+  // --- Published success screen ---
   if (published) {
+    const shortUrl = `${window.location.origin}/exam/c/${shortCode}`
     return (
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-content-primary">Create New Exam</h1>
-          <p className="mt-1 text-content-secondary">Set up a computer-based test in a few steps</p>
-        </div>
-        <div className="rounded-2xl border border-border-primary bg-white p-6 md:p-8">
-          <ReviewPublishStep
-            basicInfo={draft.basicInfo}
-            questions={draft.questions}
-            settings={draft.settings}
-          />
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 md:p-10"
+        style={{
+          backgroundColor: "#fcfbf7",
+          backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 100%)",
+          fontFamily: "'Plus Jakarta Sans', sans-serif",
+        }}
+      >
+        <div className="mx-auto w-full max-w-2xl">
+          <div
+            className="overflow-hidden rounded-xl border border-white"
+            style={{
+              background: "rgba(255,255,255,0.95)",
+              backdropFilter: "blur(10px)",
+              boxShadow: "0 12px 32px -4px rgba(55,65,81,0.08)",
+            }}
+          >
+            <div className="flex flex-col items-center px-8 py-12 text-center md:px-12">
+              <div className="mb-6 flex size-20 items-center justify-center rounded-full" style={{ backgroundColor: "#82f5c1" }}>
+                <CheckCheck size={44} color="#006c49" />
+              </div>
+              <h2
+                style={{
+                  fontFamily: "'Source Serif 4', serif",
+                  fontSize: "32px",
+                  lineHeight: "40px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                  color: "#121c2a",
+                }}
+              >
+                Exam Published Successfully
+              </h2>
+              <p className="mt-2 max-w-sm text-sm" style={{ color: "#3c4a42" }}>
+                Your exam &ldquo;{draft.basicInfo.title}&rdquo; is now available for students.
+              </p>
+
+              <div className="mt-8 w-full space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
+                    Share this link
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <div className="flex flex-1 items-center gap-2.5 rounded-lg px-4 py-3" style={{ backgroundColor: "#eff3ff" }}>
+                      <ExternalLink size={16} className="shrink-0" style={{ color: "#6c7a71" }} />
+                      <span className="truncate text-sm font-medium" style={{ color: "#121c2a" }}>{publishedUrl}</span>
+                    </div>
+                    <button
+                      onClick={copyLink}
+                      className="flex shrink-0 items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                      style={{
+                        backgroundColor: copied ? "#006c49" : "#10b981",
+                        color: "#00422b",
+                      }}
+                    >
+                      {copied ? <Check size={18} /> : <Copy size={18} />}
+                      {copied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+
+                {shortCode && (
+                  <div className="rounded-lg p-4" style={{ backgroundColor: "#d9e3f7" }}>
+                    <div className="flex items-center gap-3">
+                      <div className="flex size-10 items-center justify-center rounded-lg" style={{ backgroundColor: "#82f5c1" }}>
+                        <Zap size={20} color="#006c49" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: "#6c7a71" }}>Quick access code</p>
+                        <p className="text-lg font-bold tracking-wider" style={{ color: "#121c2a" }}>{shortCode}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(shortCode)
+                            setCopiedShort(true)
+                            setTimeout(() => setCopiedShort(false), 2000)
+                          } catch {}
+                        }}
+                        className="flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                        style={{
+                          backgroundColor: copiedShort ? "#006c49" : "#10b981",
+                          color: "#00422b",
+                        }}
+                      >
+                        {copiedShort ? <Check size={16} /> : <Copy size={16} />}
+                        {copiedShort ? "Copied" : "Copy"}
+                      </button>
+                    </div>
+                    <p className="mt-2 text-xs" style={{ color: "#3c4a42" }}>
+                      Students can enter this code at{" "}
+                      <a href="/exam/portal" className="font-medium underline" style={{ color: "#006c49" }}>
+                        deesoar.edu/exam/portal
+                      </a>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={handleReset}
+                  className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all"
+                  style={{
+                    backgroundColor: "transparent",
+                    border: "1px solid #bbcabf",
+                    color: "#3c4a42",
+                  }}
+                >
+                  <Plus size={18} />
+                  Create Another
+                </button>
+                <Link href="/dashboard/exams">
+                  <button
+                    className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all"
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "1px solid #bbcabf",
+                      color: "#3c4a42",
+                    }}
+                  >
+                    <ClipboardList size={18} />
+                    View All Exams
+                  </button>
+                </Link>
+                <a href={publishedUrl} target="_blank" rel="noopener noreferrer">
+                  <button
+                    className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                    style={{
+                      backgroundColor: "#10b981",
+                      color: "#00422b",
+                    }}
+                  >
+                    Open Exam
+                    <ExternalLink size={18} />
+                  </button>
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
   }
 
-  const asConfig = autosaveStatusConfig[autosaveStatus]
+  const asConf = autosaveConfig[autosaveStatus]
+  const stepHeader = STEP_HEADERS[currentStep]
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-content-primary">Create New Exam</h1>
-        <p className="mt-1 text-content-secondary">Set up a computer-based test in a few steps</p>
-      </div>
+    <div
+      className="fixed inset-0 z-50 flex flex-col overflow-y-auto"
+      style={{
+        backgroundColor: "#fcfbf7",
+        backgroundImage: "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.4) 0%, transparent 100%)",
+        fontFamily: "'Plus Jakarta Sans', sans-serif",
+      }}
+    >
+      <style>{`
+        .glass-panel {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          box-shadow: 0 12px 32px -4px rgba(55, 65, 81, 0.08);
+        }
+        .form-well {
+          box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.03);
+        }
+        .step-content {
+          animation: fadeInSlideUp 0.35s ease-out;
+        }
+        @keyframes fadeInSlideUp {
+          from {
+            opacity: 0;
+            transform: translateY(12px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
 
-      {/* Step Indicator */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between">
-          {steps.map((step, i) => (
-            <div key={step.id} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  className={cn(
-                    "flex size-10 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300",
-                    i < currentStep && "bg-success text-white",
-                    i === currentStep && "bg-primary text-white ring-4 ring-primary/20",
-                    i > currentStep && "bg-surface-secondary text-content-muted",
-                  )}
-                >
-                  {i < currentStep ? <Check size={18} /> : i + 1}
-                </div>
-                <div className="mt-2 hidden text-center md:block">
-                  <p
+      {/* Top Navigation */}
+      <div className="fixed top-0 left-0 z-10 w-full px-4 py-6 md:px-10">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col items-center justify-between gap-6 md:flex-row">
+          <div className="flex items-center gap-2" style={{ fontFamily: "'Source Serif 4', serif", fontSize: "24px", fontWeight: 700, color: "#006c49" }}>
+            <School size={28} color="#006c49" />
+            Exam Builder
+          </div>
+
+          <nav className="flex items-center gap-4 rounded-full border bg-white p-2 shadow-sm" style={{ borderColor: "#bbcabf" }}>
+            {STEPS.map((step, i) => {
+              const isActive = i === currentStep
+              const isPast = i < currentStep
+              return (
+                <div key={step.id} className="flex items-center">
+                  <button
+                    type="button"
+                    onClick={() => isPast && goToStep(i)}
                     className={cn(
-                      "text-xs font-medium",
-                      i <= currentStep ? "text-content-primary" : "text-content-muted",
+                      "rounded-full px-4 py-2 text-sm font-semibold transition-all",
+                      "tracking-[0.02em]",
+                      isActive && "text-white",
+                      isPast && "cursor-pointer opacity-70 hover:opacity-100",
+                      !isActive && !isPast && "cursor-default opacity-70",
                     )}
+                    style={{
+                      backgroundColor: isActive ? "#006c49" : "transparent",
+                      color: isActive ? "white" : "#3c4a42",
+                    }}
                   >
                     {step.label}
-                  </p>
-                  <p className="text-[10px] text-content-muted">{step.description}</p>
+                  </button>
+                  {i < STEPS.length - 1 && (
+                    <div className="mx-2 h-px w-3" style={{ backgroundColor: "#bbcabf" }} />
+                  )}
+                </div>
+              )
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <main className="flex w-full flex-grow flex-col items-center px-4 pb-12 pt-[140px] md:px-10 md:pt-[120px]">
+        <div className="w-full max-w-3xl">
+          {/* Alerts */}
+          {restored && (
+            <div
+              className="mb-6 flex items-center gap-3 rounded-lg p-4 text-sm animate-in fade-in slide-in-from-top-2"
+              style={{ backgroundColor: "#d9e3f7", color: "#005236" }}
+            >
+              <Sparkles size={16} className="shrink-0" />
+              <span className="flex-1">Draft restored from your last session.</span>
+              <button
+                type="button"
+                onClick={() => setRestored(false)}
+                className="shrink-0 text-xs font-semibold uppercase tracking-wider underline"
+                style={{ color: "#006c49" }}
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {publishError && (
+            <div
+              className="mb-6 flex items-start gap-2.5 rounded-lg p-4 text-sm animate-in fade-in slide-in-from-top-2 shake-error"
+              style={{ backgroundColor: "#ffdad6", color: "#93000a" }}
+            >
+              <AlertCircle size={16} className="mt-0.5 shrink-0" />
+              <span>{publishError}</span>
+            </div>
+          )}
+
+          {/* Glass Panel Card */}
+          <section className="glass-panel overflow-hidden rounded-xl border border-white">
+            {/* Step Header */}
+            <div className="border-b px-6 py-10 text-center md:px-12" style={{ borderColor: "#dee9fd", backgroundColor: "#eff3ff" }}>
+              <h1
+                className="mb-2"
+                style={{
+                  fontFamily: "'Source Serif 4', serif",
+                  fontSize: "32px",
+                  lineHeight: "40px",
+                  fontWeight: 700,
+                  letterSpacing: "-0.01em",
+                  color: "#121c2a",
+                }}
+              >
+                {stepHeader.title}
+              </h1>
+              <p className="mx-auto max-w-md text-sm leading-relaxed" style={{ color: "#3c4a42" }}>
+                {stepHeader.description}
+              </p>
+
+              {/* Autosave + Clear */}
+              <div className="mt-4 flex items-center justify-center gap-3">
+                <span
+                  className="flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider"
+                  style={{ borderColor: "currentColor", color: asConf.className.includes("text-") ? asConf.className.replace("text-", "#") : "#6c7a71" }}
+                >
+                  {asConf.icon}
+                  {asConf.text}
+                </span>
+                {(draft.basicInfo.title || draft.questions.length > 0) && (
+                  <button
+                    type="button"
+                    onClick={handleClearDraft}
+                    className="flex items-center gap-1 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wider transition-colors"
+                    style={{ borderColor: "#bbcabf", color: "#6c7a71" }}
+                  >
+                    <Trash2 size={12} />
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Form Content */}
+            <div className="space-y-8 p-6 md:p-8">
+              <div key={currentStep} className="step-content">
+                <FormProvider {...form}>
+                  {currentStep === 0 && <BasicInfoStep subjects={subjects} classes={classes} terms={terms} />}
+                  {currentStep === 1 && (
+                    <QuestionBuilderStep
+                      ref={questionBuilderRef}
+                      questions={draft.questions}
+                      onChange={(questions) => {
+                        const updated = { ...draft, questions }
+                        setDraft(updated)
+                        saveDraftToStorage(updated)
+                      }}
+                    />
+                  )}
+                  {currentStep === 2 && (
+                    <SettingsStep
+                      settings={draft.settings}
+                      onChange={(settings) => {
+                        const updated = { ...draft, settings }
+                        setDraft(updated)
+                        saveDraftToStorage(updated)
+                      }}
+                    />
+                  )}
+                  {currentStep === 3 && (
+                    <ReviewPublishStep
+                      basicInfo={draft.basicInfo}
+                      questions={draft.questions}
+                      settings={draft.settings}
+                    />
+                  )}
+                </FormProvider>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div
+              className="flex items-center justify-between border-t px-6 py-5 md:px-8"
+              style={{ borderColor: "#dee9fd", backgroundColor: "#eff3ff" }}
+            >
+              <Link href="/dashboard/exams">
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-full px-6 py-3 text-sm font-semibold transition-all hover:opacity-80"
+                  style={{ color: "#6c7a71" }}
+                >
+                  <X size={18} />
+                  Cancel
+                </button>
+              </Link>
+
+              <div className="flex items-center gap-3">
+                {currentStep > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    className="flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold transition-all"
+                    style={{
+                      backgroundColor: "transparent",
+                      border: "1px solid #bbcabf",
+                      color: "#3c4a42",
+                    }}
+                  >
+                    <ChevronLeft size={18} />
+                    Back
+                  </button>
+                )}
+                {currentStep < STEPS.length - 1 ? (
+                  <button
+                    onClick={handleNext}
+                    className="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98]"
+                    style={{
+                      backgroundColor: "#10b981",
+                      color: "#00422b",
+                      boxShadow: "0 4px 12px rgba(0,108,73,0.2)",
+                    }}
+                  >
+                    Next Step
+                    <ArrowRight size={18} />
+                  </button>
+                ) : (
+                  <button
+                    onClick={handlePublish}
+                    disabled={isPublishing}
+                    className="flex items-center gap-2 rounded-full px-8 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-[0.98] disabled:opacity-50"
+                    style={{
+                      backgroundColor: "#10b981",
+                      color: "#00422b",
+                      boxShadow: "0 4px 12px rgba(0,108,73,0.2)",
+                    }}
+                  >
+                    {isPublishing ? (
+                      <>
+                        <Loader2 size={18} className="animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      <>
+                        Publish Exam
+                        <Zap size={18} />
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+            </div>
+          </section>
+
+          {/* Tips Section */}
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-3" style={{ opacity: 0.8 }}>
+            {TIPS.map((tip) => (
+              <div key={tip.title} className="flex items-start gap-3">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: "#82f5c1" }}>
+                  <tip.icon size={16} color="#006c49" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-bold uppercase tracking-wider" style={{ color: "#121c2a" }}>{tip.title}</p>
+                  <p className="text-xs leading-relaxed" style={{ color: "#3c4a42" }}>{tip.text}</p>
                 </div>
               </div>
-              {i < steps.length - 1 && (
-                <div
-                  className={cn(
-                    "mx-4 h-px w-12 sm:w-16 md:w-24 transition-colors duration-300",
-                    i < currentStep ? "bg-success" : "bg-border-primary",
-                  )}
-                />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-      </div>
-
-      {/* Autosave Indicator */}
-      <div className="mb-4 flex items-center justify-end gap-1.5">
-        <span className={cn("flex items-center gap-1 text-xs", asConfig.className)}>
-          {asConfig.icon}
-          {asConfig.text}
-        </span>
-      </div>
-
-      {/* Step Content */}
-      <div ref={contentRef} className="rounded-2xl border border-border-primary bg-white p-6 md:p-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <FormProvider {...form}>
-          {currentStep === 0 && (
-            <BasicInfoStep subjects={subjects} classes={classes} terms={terms} />
-          )}
-          {currentStep === 1 && (
-            <QuestionBuilderStep
-              ref={questionBuilderRef}
-              questions={draft.questions}
-              onChange={(questions) => setDraft((prev) => ({ ...prev, questions }))}
-            />
-          )}
-          {currentStep === 2 && (
-            <SettingsStep
-              settings={draft.settings}
-              onChange={(settings) => setDraft((prev) => ({ ...prev, settings }))}
-            />
-          )}
-          {currentStep === 3 && (
-            <ReviewPublishStep
-              basicInfo={draft.basicInfo}
-              questions={draft.questions}
-              settings={draft.settings}
-            />
-          )}
-        </FormProvider>
-      </div>
-
-      {/* Progress bar */}
-      <div className="mt-4 h-1 w-full rounded-full bg-surface-secondary overflow-hidden">
-        <div
-          className="h-full rounded-full bg-primary transition-all duration-500"
-          style={{ width: `${((currentStep + 1) / steps.length) * 100}%` }}
-        />
-      </div>
-
-      {/* Footer Buttons */}
-      <div className="mt-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          {currentStep > 0 && (
-            <Button variant="outline" onClick={handleBack} leftIcon={<ChevronLeft size={18} />}>
-              Back
-            </Button>
-          )}
-          <span className="text-xs text-content-muted">
-            Step {currentStep + 1} of {steps.length}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden text-xs text-content-muted md:block">
-            <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">Ctrl</kbd>
-            + <kbd className="rounded-md border border-border-primary px-1.5 py-0.5 text-[10px] bg-surface-secondary">→</kbd>
-            {" "}next
-          </span>
-          {currentStep < steps.length - 1 ? (
-            <Button onClick={handleNext} rightIcon={<ChevronRight size={18} />}>
-              Continue
-            </Button>
-          ) : (
-            <Button onClick={handlePublish} isLoading={isPublishing} leftIcon={<Cloud size={18} />}>
-              {isPublishing ? "Publishing..." : "Publish Exam"}
-            </Button>
-          )}
-        </div>
-      </div>
+      </main>
     </div>
   )
 }
