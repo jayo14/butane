@@ -13,6 +13,7 @@ import {
   BookOpen,
   ClipboardList,
   BarChart3,
+  User,
   Settings,
   GraduationCap,
   X,
@@ -26,6 +27,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "book-open": <BookOpen size={20} />,
   "clipboard-list": <ClipboardList size={20} />,
   "bar-chart-3": <BarChart3 size={20} />,
+  user: <User size={20} />,
   settings: <Settings size={20} />,
 }
 
@@ -88,7 +90,11 @@ export function Sidebar() {
       </nav>
 
       <div className="border-t border-border-primary p-3">
-        <div className="flex items-center gap-3 rounded-xl bg-surface-secondary px-3 py-2.5 transition-colors hover:bg-surface-secondary/80">
+        <Link
+          href="/dashboard/profile"
+          onClick={() => isMobile && onClose()}
+          className="flex items-center gap-3 rounded-xl bg-surface-secondary px-3 py-2.5 transition-colors hover:bg-surface-secondary/80"
+        >
           <div className="flex size-9 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/80 text-xs font-semibold text-white shadow-sm">
             AU
           </div>
@@ -96,7 +102,7 @@ export function Sidebar() {
             <p className="truncate text-sm font-medium text-content-primary">Admin User</p>
             <p className="truncate text-xs text-content-muted">admin@deesoar.edu</p>
           </div>
-        </div>
+        </Link>
       </div>
     </div>
   )

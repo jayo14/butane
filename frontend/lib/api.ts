@@ -51,6 +51,7 @@ export interface ApiUser {
   full_name: string
   role: "admin" | "teacher" | "student"
   is_active: boolean
+  created_at: string
 }
 
 export interface ApiStudent {
@@ -147,6 +148,20 @@ export interface PaginatedResponse<T> {
   next: string | null
   previous: string | null
   results: T[]
+}
+
+export interface ApiTeacherProfile {
+  id: string
+  user: ApiUser
+  full_name: string
+  employee_id: string
+  department: string
+  title: string
+  phone: string
+  bio: string
+  avatar: string | null
+  created_at: string
+  updated_at: string
 }
 
 // ---- Frontend-friendly types (camelCase) ----
@@ -253,7 +268,7 @@ export const api = {
         body: JSON.stringify({ refresh }),
       }),
     me: () => apiFetch<ApiUser>("accounts/me/"),
-    profile: () => apiFetch<ApiUser>("accounts/profile/"),
+    profile: () => apiFetch<ApiTeacherProfile>("accounts/profile/"),
   },
 
   teachers: {

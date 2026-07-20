@@ -38,8 +38,8 @@ export default async function DashboardPage() {
       ],
       teacher: {
         name: profile?.full_name || "Teacher",
-        email: profile?.email || "",
-        role: profile?.role || "teacher",
+        email: profile?.user?.email || "",
+        role: profile?.user?.role || "teacher",
         department: "Academic Department",
         totalStudents: students.length,
         totalCourses: activeCourses,
