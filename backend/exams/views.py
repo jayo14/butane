@@ -1,7 +1,7 @@
 """ViewSets for the exams domain."""
 from __future__ import annotations
 
-from django.db import transaction
+from django.db import models, transaction
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -12,6 +12,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
 
+from core.throttling import LoginRateThrottle
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
 from .models import Attempt, AttemptAnswer, Exam, Question, Result
@@ -31,7 +32,9 @@ class ExamViewSet(viewsets.ModelViewSet):
     lifecycle actions. Listing and retrieval are restricted to teachers.
     """
 
-    queryset = Exam.objects.filter(is_deleted=False).prefetch_related("questions__choices")
+    queryset = Exam.objects.filter(is_deleted=False).prefetch_related("questions__choices").annotate(
+        question_count=models.Count("questions")
+    )
     filterset_class = ExamFilter
     search_fields = ["title", "course", "course_code", "subject", "description"]
     ordering_fields = ["created_at", "title", "total_marks", "duration_minutes", "published_at"]
@@ -80,8 +83,11 @@ class ExamViewSet(viewsets.ModelViewSet):
                 {"detail": "Cannot publish an exam without questions."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        exam.publish()
-        return Response(ExamDetailSerializer(exam).data)
+        public_url = exam.publish()
+        data = ExamDetailSerializer(exam).data
+        if public_url:
+            data["public_url"] = public_url
+        return Response(data)
 
     @transaction.atomic
     @extend_schema(
@@ -102,8 +108,8 @@ class ExamViewSet(viewsets.ModelViewSet):
         exam = self.get_object()
         self._own_exam(exam)
         token = exam.generate_public_token()
-        exam.save(update_fields=["public_token", "is_public", "updated_at"])
-        return Response({"public_token": token, "public_url": exam.public_url, "is_public": exam.is_public})
+        exam.save(update_fields=["public_token_hash", "is_public", "updated_at"])
+        return Response({"public_token": token, "public_url": exam.public_url(token), "is_public": exam.is_public})
 
     @transaction.atomic
     @extend_schema(
@@ -122,9 +128,9 @@ class ExamViewSet(viewsets.ModelViewSet):
         """Disable public access by clearing the token."""
         exam = self.get_object()
         self._own_exam(exam)
-        exam.public_token = None
+        exam.public_token_hash = None
         exam.is_public = False
-        exam.save(update_fields=["public_token", "is_public", "updated_at"])
+        exam.save(update_fields=["public_token_hash", "is_public", "updated_at"])
         return Response({"is_public": False, "public_token": None})
 
     @transaction.atomic
@@ -224,18 +230,24 @@ class AttemptViewSet(viewsets.ModelViewSet):
         if not throttle.allow_request(request, self):
             raise Throttled(throttle.wait())
 
-        attempt = self.get_object()
+        attempt = self.get_queryset().select_for_update().get(id=pk)
         if attempt.status == "submitted":
             return Response({"detail": "Attempt already submitted."}, status=status.HTTP_400_BAD_REQUEST)
 
         answers = request.data.get("answers", [])
-        question_map = {str(q.id): q for q in attempt.exam.questions.all()}
+        questions = attempt.exam.questions.prefetch_related("choices").all()
+        question_map = {str(q.id): q for q in questions}
+        choices_lookup = {}
+        for q in questions:
+            choices_lookup[str(q.id)] = {str(c.id): c for c in q.choices.all()}
         for ans in answers:
             question = question_map.get(str(ans.get("question")))
             if not question:
                 continue
             selected_id = ans.get("selected_choice")
-            choice = question.choices.filter(id=selected_id).first() if selected_id else None
+            choice = None
+            if selected_id:
+                choice = choices_lookup.get(str(question.id), {}).get(str(selected_id))
             AttemptAnswer.objects.update_or_create(
                 attempt=attempt,
                 question=question,
@@ -244,6 +256,7 @@ class AttemptViewSet(viewsets.ModelViewSet):
 
         result = submit_and_grade(attempt)
 
+        attempt = Attempt.objects.prefetch_related("answers").get(id=attempt.id)
         return _result_response(attempt, result)
 
 

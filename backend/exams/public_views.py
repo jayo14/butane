@@ -19,7 +19,7 @@ from rest_framework import serializers
 from accounts.models import Student, User
 
 from .grading import grade_attempt, submit_and_grade
-from .models import Attempt, AttemptAnswer, Choice, Exam, Question, Result
+from .models import Attempt, AttemptAnswer, Choice, Exam, Question, Result, _hash_token
 from .public_serializers import (
     PublicAttemptSerializer,
     PublicExamSerializer,
@@ -70,17 +70,21 @@ def _resolve_student(name: str, admission_number: str, exam: Exam) -> Student | 
 
 
 def _persist_answers(attempt: Attempt, answers: list[dict]) -> None:
-    valid_questions = {str(q.id): q for q in attempt.exam.questions.select_related("exam").prefetch_related("choices").all()}
+    questions = attempt.exam.questions.prefetch_related("choices").all()
+    question_map = {str(q.id): q for q in questions}
+    choices_lookup = {}
+    for q in questions:
+        choices_lookup[str(q.id)] = {str(c.id): c for c in q.choices.all()}
     for ans in answers:
         if not isinstance(ans, dict):
             continue
-        question = valid_questions.get(str(ans.get("question")))
+        question = question_map.get(str(ans.get("question")))
         if not question:
             continue
         selected_id = ans.get("selected_choice")
         choice = None
         if selected_id:
-            choice = question.choices.filter(id=selected_id).first()
+            choice = choices_lookup.get(str(question.id), {}).get(str(selected_id))
         AttemptAnswer.objects.update_or_create(
             attempt=attempt,
             question=question,
@@ -176,8 +180,9 @@ class StartAttemptView(APIView):
             term=data.get("term") or exam.term,
             client_meta=data.get("client_meta") or {},
         )
-        attempt.generate_access_token()
-        attempt.save(update_fields=["access_token", "updated_at"])
+        raw_token = attempt.generate_access_token()
+        attempt._raw_access_token = raw_token
+        attempt.save(update_fields=["access_token_hash", "updated_at"])
         return Response(PublicAttemptSerializer(attempt).data, status=status.HTTP_201_CREATED)
 
 
@@ -197,8 +202,12 @@ class ResumeAttemptView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request, attempt_id: str):
-        attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.query_params.get("token"):
+        attempt = get_object_or_404(
+            Attempt.objects.prefetch_related("answers"),
+            id=attempt_id, is_deleted=False,
+        )
+        token = request.headers.get("X-Access-Token", request.query_params.get("token", ""))
+        if not attempt.access_token_hash or _hash_token(token) != attempt.access_token_hash:
             raise PermissionDenied("Invalid attempt token.")
         return Response(PublicAttemptSerializer(attempt).data)
 
@@ -217,7 +226,8 @@ class SaveAttemptView(APIView):
     @transaction.atomic
     def post(self, request, attempt_id: str):
         attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.data.get("token"):
+        token = (request.data.get("token") or "") if isinstance(request.data, dict) else request.headers.get("X-Access-Token", "")
+        if not attempt.access_token_hash or _hash_token(token) != attempt.access_token_hash:
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
@@ -234,6 +244,7 @@ class SaveAttemptView(APIView):
             attempt.client_meta = payload["client_meta"]
         attempt.save(update_fields=["duration_seconds", "client_meta", "updated_at"])
 
+        attempt = Attempt.objects.prefetch_related("answers").get(id=attempt.id)
         return Response(PublicAttemptSerializer(attempt).data, status=status.HTTP_200_OK)
 
 
@@ -279,8 +290,9 @@ class SubmitAttemptView(APIView):
 
     @transaction.atomic
     def post(self, request, attempt_id: str):
-        attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
-        if not attempt._access_token_hash or not attempt.access_token or attempt.access_token != request.data.get("token"):
+        attempt = get_object_or_404(Attempt.objects.select_for_update(), id=attempt_id, is_deleted=False)
+        token = (request.data.get("token") or "") if isinstance(request.data, dict) else ""
+        if not attempt.access_token_hash or _hash_token(token) != attempt.access_token_hash:
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
@@ -290,4 +302,5 @@ class SubmitAttemptView(APIView):
         _persist_answers(attempt, answers)
 
         result = submit_and_grade(attempt)
+        attempt = Attempt.objects.prefetch_related("answers").get(id=attempt.id)
         return _result_response(attempt, result)

@@ -8,7 +8,7 @@ teacher's ownership where applicable.
 """
 from __future__ import annotations
 
-from django.db.models import Avg, Count, Max, Min, Q
+from django.db.models import Avg, Case, Count, Max, Min, Q, Value, When
 from rest_framework import serializers, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -53,15 +53,16 @@ def _result_stats(results):
 
 
 def _score_distribution(results):
-    """Bucket percentages into a 0-100 distribution for charting."""
-    buckets = [(0, 39), (40, 54), (55, 69), (70, 84), (85, 100)]
+    """Bucket percentages into a 0-100 distribution for charting, using a single SQL query."""
+    agg = results.aggregate(
+        b0=Count("id", filter=Q(percentage__gte=0, percentage__lte=39)),
+        b1=Count("id", filter=Q(percentage__gte=40, percentage__lte=54)),
+        b2=Count("id", filter=Q(percentage__gte=55, percentage__lte=69)),
+        b3=Count("id", filter=Q(percentage__gte=70, percentage__lte=84)),
+        b4=Count("id", filter=Q(percentage__gte=85, percentage__lte=100)),
+    )
     labels = ["0-39", "40-54", "55-69", "70-84", "85-100"]
-    percentages = list(results.values_list("percentage", flat=True))
-    out = []
-    for (lo, hi), label in zip(buckets, labels):
-        count = sum(1 for p in percentages if lo <= (p or 0) <= hi)
-        out.append({"range": label, "count": count})
-    return out
+    return [{"range": label, "count": agg[f"b{i}"]} for i, label in enumerate(labels)]
 
 
 @extend_schema(

@@ -13,8 +13,8 @@ from core.models import SoftDeleteModel, TimestampedModel
 
 
 def _hash_token(raw: str) -> str:
-    salt = settings.JWT_SECRET.encode("utf-8")
-    return hashlib.sha256(salt + raw.encode("utf-8")).hexdigest()
+    secret = getattr(settings, "TOKEN_HASH_SECRET", settings.JWT_SECRET).encode("utf-8")
+    return hashlib.sha256(secret + raw.encode("utf-8")).hexdigest()
 
 
 class Exam(SoftDeleteModel):
@@ -66,8 +66,8 @@ class Exam(SoftDeleteModel):
     allow_review = models.BooleanField(default=True, help_text="Allow student to review answers")
 
     # Public sharing: a signed token lets students open the exam without auth.
-    public_token = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
-    _public_token_hash = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
+    # Only the SHA-256 hash is stored; the raw token is returned once on creation.
+    public_token_hash = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
     is_public = models.BooleanField(default=False, help_text="Whether the exam is reachable via its public link.")
     published_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was published.")
     archived_at = models.DateTimeField(null=True, blank=True, help_text="When the exam was archived.")
@@ -77,7 +77,7 @@ class Exam(SoftDeleteModel):
         ordering = ["-created_at"]
         indexes = [
             models.Index(fields=["status", "created_at"]),
-            models.Index(fields=["public_token"]),
+            models.Index(fields=["public_token_hash"]),
         ]
 
     def __str__(self) -> str:
@@ -88,29 +88,34 @@ class Exam(SoftDeleteModel):
         from django.utils.crypto import get_random_string
 
         raw = get_random_string(48)
-        self.public_token = raw
-        self._public_token_hash = _hash_token(raw)
+        self.public_token_hash = _hash_token(raw)
         self.is_public = True
         return raw
 
-    def public_url(self) -> str | None:
-        if not self.public_token:
+    def public_url(self, raw_token: str | None = None) -> str | None:
+        """Build the shareable URL given the raw token (not stored)."""
+        token = raw_token
+        if not token:
             return None
         from django.conf import settings
 
         site = settings.SITE_URL.rstrip("/") if getattr(settings, "SITE_URL", "") else ""
-        path = f"/exam/{self.id}?token={self.public_token}"
+        path = f"/exam/{self.id}?token={token}"
         return f"{site}{path}" if site else path
 
-    def publish(self) -> None:
-        """Move a draft/scheduled exam to published (ongoing) state."""
+    def publish(self) -> str | None:
+        """Move a draft/scheduled exam to published (ongoing) state. Returns the public URL."""
         from django.utils import timezone
 
         self.status = "ongoing"
         self.published_at = timezone.now()
-        if not self.public_token:
-            self.generate_public_token()
-        self.save(update_fields=["status", "published_at", "public_token", "_public_token_hash", "is_public", "updated_at"])
+        raw_token = None
+        if not self.public_token_hash:
+            raw_token = self.generate_public_token()
+        self.save(update_fields=["status", "published_at", "public_token_hash", "is_public", "updated_at"])
+        if raw_token:
+            return self.public_url(raw_token)
+        return None
 
     def archive(self) -> None:
         """Archive a published exam; archived exams are hidden from active lists."""
@@ -124,7 +129,7 @@ class Exam(SoftDeleteModel):
     @classmethod
     def verify_public_token(cls, token: str) -> "Exam | None":
         token_hash = _hash_token(token)
-        return cls.objects.filter(_public_token_hash=token_hash, is_deleted=False).first()
+        return cls.objects.filter(public_token_hash=token_hash, is_deleted=False).first()
 
     def duplicate(self, created_by: Teacher | None = None) -> "Exam":
         """Return a deep copy of this exam (questions + choices), as a new draft."""
@@ -275,8 +280,8 @@ class Attempt(SoftDeleteModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="in_progress")
 
     # Guard token for unauthenticated save/resume/submit endpoints.
-    access_token = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
-    _access_token_hash = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
+    # Only the SHA-256 hash is stored; the raw token is returned once on creation.
+    access_token_hash = models.CharField(max_length=64, unique=True, null=True, blank=True, db_index=True)
 
     started_at = models.DateTimeField(auto_now_add=True)
     submitted_at = models.DateTimeField(null=True, blank=True)
@@ -299,14 +304,13 @@ class Attempt(SoftDeleteModel):
         from django.utils.crypto import get_random_string
 
         raw = get_random_string(48)
-        self.access_token = raw
-        self._access_token_hash = _hash_token(raw)
+        self.access_token_hash = _hash_token(raw)
         return raw
 
     @classmethod
     def verify_access_token(cls, token: str) -> "Attempt | None":
         token_hash = _hash_token(token)
-        return cls.objects.filter(_access_token_hash=token_hash, is_deleted=False).first()
+        return cls.objects.filter(access_token_hash=token_hash, is_deleted=False).first()
 
 
 class AttemptAnswer(TimestampedModel):

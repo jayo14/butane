@@ -164,6 +164,8 @@ JWT_SECRET = env("JWT_SECRET_KEY", default="insecure-dev-jwt-key-change-me")
 if not DEBUG and JWT_SECRET == "insecure-dev-jwt-key-change-me":
     raise RuntimeError("JWT_SECRET_KEY must be set to a secure value in production.")
 
+TOKEN_HASH_SECRET = env("TOKEN_HASH_SECRET", default=JWT_SECRET)
+
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": env.timedelta("JWT_ACCESS_TOKEN_LIFETIME_MINUTES", default=60, unit="minutes"),
     "REFRESH_TOKEN_LIFETIME": env.timedelta("JWT_REFRESH_TOKEN_LIFETIME_DAYS", default=7, unit="days"),

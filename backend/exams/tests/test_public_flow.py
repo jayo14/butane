@@ -23,15 +23,15 @@ class PublicFlowTests(BaseAPITestCase):
             passing_marks=2,
             passing_percentage=50,
         )
-        self.exam.generate_public_token()
-        self.exam.save(update_fields=["public_token", "is_public"])
+        self.public_token = self.exam.generate_public_token()
+        self.exam.save(update_fields=["public_token_hash", "is_public"])
         self.q1 = Question.objects.create(exam=self.exam, order=1, text="2+2?", type="single_choice", marks=2)
         self.c1a = Choice.objects.create(question=self.q1, label="A", text="4", is_correct=True)
         self.c1b = Choice.objects.create(question=self.q1, label="B", text="5", is_correct=False)
         self.q2 = Question.objects.create(exam=self.exam, order=2, text="3+3?", type="single_choice", marks=2)
         self.c2a = Choice.objects.create(question=self.q2, label="A", text="5", is_correct=False)
         self.c2b = Choice.objects.create(question=self.q2, label="B", text="6", is_correct=True)
-        self.url = f"/api/public/exams/{self.exam.public_token}/"
+        self.url = f"/api/public/exams/{self.public_token}/"
 
     # --- Exam detail --------------------------------------------------------
     def test_public_exam_returns_safe_data(self):
@@ -85,9 +85,12 @@ class PublicFlowTests(BaseAPITestCase):
         r1 = self.client.post(f"{self.url}start/", {"student_name": "Jane", "admission_number": "ADM-2"}, format="json")
         self.assertEqual(r1.status_code, 201)
         token = r1.json()["access_token"]
+        self.assertIsNotNone(token)
         r2 = self.client.post(f"{self.url}start/", {"student_name": "Jane", "admission_number": "ADM-2"}, format="json")
         self.assertEqual(r2.status_code, 200)
-        self.assertEqual(r2.json()["access_token"], token)
+        # On resume the raw token is not returned (only hash is stored);
+        # client must have persisted it from the initial creation.
+        self.assertIsNone(r2.json()["access_token"])
         self.assertEqual(Attempt.objects.filter(admission_number="ADM-2").count(), 1)
 
     # --- Autosave / resume --------------------------------------------------

@@ -71,6 +71,7 @@ class SaveAttemptRequestSerializer(serializers.Serializer):
 class PublicAttemptSerializer(serializers.ModelSerializer):
     """Attempt payload returned to the client (carries the access token once)."""
 
+    access_token = serializers.SerializerMethodField()
     answers = serializers.SerializerMethodField()
 
     class Meta:
@@ -79,6 +80,9 @@ class PublicAttemptSerializer(serializers.ModelSerializer):
             "id", "access_token", "student_name", "admission_number", "class_group",
             "term", "status", "started_at", "duration_seconds", "answers",
         ]
+
+    def get_access_token(self, obj):
+        return getattr(obj, "_raw_access_token", None)
 
     def get_answers(self, obj):
         return [

@@ -58,7 +58,6 @@ class ExamModuleTests(BaseAPITestCase):
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(resp.json()["status"], "ongoing")
         self.assertTrue(resp.json()["is_public"])
-        self.assertIsNotNone(resp.json()["public_token"])
         self.assertIn("?token=", resp.json()["public_url"])
 
     def test_cannot_publish_without_questions(self):
@@ -72,6 +71,7 @@ class ExamModuleTests(BaseAPITestCase):
         self.assertEqual(resp.status_code, 200)
         token = resp.json()["public_token"]
         self.assertTrue(resp.json()["is_public"])
+        self.assertIn("?token=", resp.json()["public_url"])
 
         revoke = self.client.post(f"/api/exams/{self.exam.id}/revoke-public-token/")
         self.assertEqual(revoke.status_code, 200)

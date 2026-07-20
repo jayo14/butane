@@ -19,7 +19,7 @@ __all__ = [
 
 class ExamListSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.user.full_name", read_only=True)
-    question_count = serializers.IntegerField(source="questions.count", read_only=True)
+    question_count = serializers.IntegerField(read_only=True)
     is_public = serializers.BooleanField(read_only=True)
 
     class Meta:
@@ -35,6 +35,7 @@ class ExamListSerializer(serializers.ModelSerializer):
 class ExamDetailSerializer(serializers.ModelSerializer):
     questions = QuestionSerializer(many=True)
     created_by = serializers.CharField(source="created_by.user.full_name", read_only=True)
+    public_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Exam
@@ -43,13 +44,16 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             "subject", "class_group", "term", "created_by", "status",
             "duration_minutes", "total_marks", "passing_marks", "passing_percentage",
             "available_from", "available_to", "shuffle_questions", "shuffle_answers",
-            "show_result", "allow_review", "is_public", "public_token", "public_url",
+            "show_result", "allow_review", "is_public", "public_url",
             "published_at", "archived_at", "questions", "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "created_at", "updated_at", "created_by", "status", "is_public",
-            "public_token", "public_url", "published_at", "archived_at",
+            "public_url", "published_at", "archived_at",
         ]
+
+    def get_public_url(self, obj):
+        return None
 
     def validate(self, attrs):
         total_marks = attrs.get("total_marks", self.instance.total_marks if self.instance else 0)
@@ -84,11 +88,19 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if questions is not None:
-            instance.questions.all().delete()
+            existing = {q.id: q for q in instance.questions.all()}
+            incoming_ids = {q.get("id") for q in questions if q.get("id")}
             question_serializer = QuestionSerializer()
-            for index, question in enumerate(questions, start=1):
-                question.setdefault("order", index)
-                question_serializer.create({**question, "exam": instance})
+            for index, question_data in enumerate(questions, start=1):
+                qid = question_data.get("id")
+                if qid and qid in existing:
+                    q = existing.pop(qid)
+                    question_serializer.update(q, {**question_data, "exam": instance})
+                else:
+                    question_data["order"] = index
+                    question_serializer.create({**question_data, "exam": instance})
+            for stale in existing.values():
+                stale.delete()
         return instance
 
 

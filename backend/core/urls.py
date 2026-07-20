@@ -4,6 +4,8 @@ Exposes a versioned JSON API under ``/api/`` together with Swagger/OpenAPI
 documentation. Django admin remains available for operational tasks.
 """
 from django.contrib import admin
+from django.db import connection
+from django.db.utils import OperationalError
 from django.http import JsonResponse
 from django.urls import include, path
 from drf_spectacular.views import (
@@ -14,7 +16,14 @@ from drf_spectacular.views import (
 
 
 def health(request):
-    return JsonResponse({"status": "ok"})
+    db_ok = False
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT 1")
+            db_ok = True
+    except OperationalError:
+        pass
+    return JsonResponse({"status": "ok" if db_ok else "degraded", "database": "connected" if db_ok else "unreachable"})
 
 
 urlpatterns = [
