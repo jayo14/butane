@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Mail,
@@ -14,6 +14,7 @@ import {
   Award,
   Lock,
   KeyRound,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
 import { ChangePasswordModal } from "@/components/auth/change-password-modal"
+import { api } from "@/lib/api"
 import type { ApiTeacherProfile } from "@/lib/api"
 
 const roleBadge: Record<string, { label: string; variant: "primary" | "success" | "info" }> = {
@@ -28,8 +30,46 @@ const roleBadge: Record<string, { label: string; variant: "primary" | "success" 
   teacher: { label: "Teacher", variant: "success" },
 }
 
-export function ProfilePageClient({ profile }: { profile: ApiTeacherProfile }) {
+export function ProfilePageClient() {
+  const [profile, setProfile] = useState<ApiTeacherProfile | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [showChangePassword, setShowChangePassword] = useState(false)
+
+  useEffect(() => {
+    api.auth.profile()
+      .then(setProfile)
+      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load profile"))
+      .finally(() => setLoading(false))
+  }, [])
+
+  if (loading) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin" style={{ color: "#006c49" }} />
+        </div>
+      </Container>
+    )
+  }
+
+  if (error || !profile) {
+    return (
+      <Container>
+        <div className="flex flex-col items-center justify-center py-20">
+          <p className="text-sm text-danger">{error || "Something went wrong"}</p>
+          <button
+            type="button"
+            onClick={() => { setError(""); setLoading(true); api.auth.profile().then(setProfile).catch(() => setLoading(false)) }}
+            className="mt-4 rounded-xl border border-border-primary px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-secondary"
+          >
+            Retry
+          </button>
+        </div>
+      </Container>
+    )
+  }
+
   const user = profile.user
   const role = roleBadge[user.role] || { label: user.role, variant: "info" as const }
 
