@@ -1,5 +1,6 @@
 export interface TakeQuestion {
   id: string
+  examId?: string
   number: number
   text: string
   options: { id: string; label: string; text: string }[]
@@ -9,6 +10,7 @@ export interface TakeQuestion {
 export const mockQuestions: TakeQuestion[] = [
   {
     id: "q1",
+    examId: "EXM-001",
     number: 1,
     text: "What is the value of x in the equation 2x + 5 = 15?",
     options: [
@@ -21,6 +23,7 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q2",
+    examId: "EXM-001",
     number: 2,
     text: "Which of the following is a prime number?",
     options: [
@@ -33,6 +36,7 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q3",
+    examId: "EXM-001",
     number: 3,
     text: "What is the area of a rectangle with length 8 cm and width 5 cm?",
     options: [
@@ -45,6 +49,7 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q4",
+    examId: "EXM-001",
     number: 4,
     text: "Solve: 3(2x - 4) = 18. What is the value of x?",
     options: [
@@ -57,7 +62,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q5",
-    number: 5,
+    examId: "EXM-002",
+    number: 1,
     text: "What is the square root of 144?",
     options: [
       { id: "q5a", label: "A", text: "11" },
@@ -69,7 +75,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q6",
-    number: 6,
+    examId: "EXM-002",
+    number: 2,
     text: "Which of these fractions is equivalent to 0.75?",
     options: [
       { id: "q6a", label: "A", text: "1/4" },
@@ -81,7 +88,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q7",
-    number: 7,
+    examId: "EXM-003",
+    number: 1,
     text: "What is the perimeter of a square with side length 6 cm?",
     options: [
       { id: "q7a", label: "A", text: "12 cm" },
@@ -93,7 +101,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q8",
-    number: 8,
+    examId: "EXM-003",
+    number: 2,
     text: "If a car travels 240 km in 3 hours, what is its average speed?",
     options: [
       { id: "q8a", label: "A", text: "60 km/h" },
@@ -105,7 +114,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q9",
-    number: 9,
+    examId: "EXM-004",
+    number: 1,
     text: "What is the value of 2³ + 3²?",
     options: [
       { id: "q9a", label: "A", text: "13" },
@@ -117,7 +127,8 @@ export const mockQuestions: TakeQuestion[] = [
   },
   {
     id: "q10",
-    number: 10,
+    examId: "EXM-004",
+    number: 2,
     text: "Which of the following is the correct factorization of x² - 9?",
     options: [
       { id: "q10a", label: "A", text: "(x - 3)(x - 3)" },

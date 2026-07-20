@@ -43,7 +43,7 @@ export default function DashboardPage() {
     quickActions: [
       { label: "Create Exam", href: "/dashboard/exams/create", icon: "plus", description: "New CBT assessment" },
       { label: "Add Student", href: "/dashboard/students/add", icon: "user-plus", description: "Enroll new student" },
-      { label: "View Reports", href: "/dashboard/results", icon: "file-text", description: "Analytics & grades" },
+      { label: "View Reports", href: "/dashboard/reports", icon: "file-text", description: "Analytics & grades" },
       { label: "Settings", href: "/dashboard/settings", icon: "settings", description: "System configuration" },
     ],
   }
