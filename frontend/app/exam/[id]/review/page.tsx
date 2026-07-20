@@ -1,6 +1,6 @@
 import { api } from "@/lib/api"
 import { ExamReviewClient } from "./page-client"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
 
 interface ReviewPageProps {
   params: Promise<{ id: string }>
@@ -11,6 +11,13 @@ export default async function ExamReviewPage({ params, searchParams }: ReviewPag
   const [{ id }, { token, attemptId, accessToken }] = await Promise.all([params, searchParams])
   try {
     const exam = await api.public.exam(token || id)
+    if (!exam.allow_review) {
+      if (!exam.show_result) {
+        redirect(`/exam/${id}/submitted`)
+      } else {
+        redirect(`/exam/${id}/results`)
+      }
+    }
     return (
       <ExamReviewClient
         exam={{

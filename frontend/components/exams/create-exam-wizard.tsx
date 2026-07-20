@@ -312,7 +312,6 @@ export function CreateExamWizard() {
           type: "single_choice" as const,
           marks: 1,
           choices: q.options.map((opt, oi) => ({
-            id: opt.id,
             label: String.fromCharCode(65 + oi),
             text: opt.text,
             is_correct: opt.id === q.correctAnswerId,
