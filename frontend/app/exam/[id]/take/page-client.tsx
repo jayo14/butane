@@ -222,9 +222,12 @@ export function ExamTakeClient() {
     } else if (!exam.allowReview) {
       router.push(`/exam/${exam.id}/results`)
     } else {
-      router.push(`/exam/${exam.id}/review`)
+      const reviewParams = new URLSearchParams()
+      if (token) reviewParams.set("token", token)
+      if (examId) reviewParams.set("id", examId)
+      router.push(`/exam/${exam.id}/review?${reviewParams.toString()}`)
     }
-  }, [saveState, router, exam, questions])
+  }, [saveState, router, exam, questions, token, examId])
 
   const handleSubmitClick = useCallback(() => {
     setShowSubmitConfirm(true)
