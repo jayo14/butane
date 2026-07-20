@@ -4,12 +4,13 @@ import { notFound } from "next/navigation"
 
 interface ResultsPageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ token?: string }>
 }
 
-export default async function ExamResultsPage({ params }: ResultsPageProps) {
-  const { id } = await params
+export default async function ExamResultsPage({ params, searchParams }: ResultsPageProps) {
+  const [{ id }, { token }] = await Promise.all([params, searchParams])
   try {
-    const exam = await api.public.exam(id)
+    const exam = await api.public.exam(token || id)
     return (
       <ExamResultsClient
         exam={{

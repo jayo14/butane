@@ -4,12 +4,13 @@ import { notFound } from "next/navigation"
 
 interface ReviewPageProps {
   params: Promise<{ id: string }>
+  searchParams: Promise<{ token?: string }>
 }
 
-export default async function ExamReviewPage({ params }: ReviewPageProps) {
-  const { id } = await params
+export default async function ExamReviewPage({ params, searchParams }: ReviewPageProps) {
+  const [{ id }, { token }] = await Promise.all([params, searchParams])
   try {
-    const exam = await api.public.exam(id)
+    const exam = await api.public.exam(token || id)
     return (
       <ExamReviewClient
         exam={{
