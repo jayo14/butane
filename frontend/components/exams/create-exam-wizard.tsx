@@ -217,6 +217,8 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
   const [copied, setCopied] = useState(false)
   const [restored, setRestored] = useState(false)
   const [subjectOptions, setSubjectOptions] = useState<SubjectOption[]>([])
+  const [classOptions, setClassOptions] = useState<SubjectOption[]>([])
+  const [termOptions, setTermOptions] = useState<SubjectOption[]>([])
   const [slideDir, setSlideDir] = useState<"left" | "right">("right")
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -287,8 +289,14 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
   }, [editId, initialExam?.id])
 
   useEffect(() => {
-    api.subjects.list().then((res) => {
-      setSubjectOptions(res.map((s) => ({ label: s.name, value: s.name })))
+    Promise.all([
+      api.subjects.list(),
+      api.gradeLevels.list(),
+      api.terms.list(),
+    ]).then(([subjectsRes, gradesRes, termsRes]) => {
+      setSubjectOptions((subjectsRes || []).map((s) => ({ label: s.name, value: s.name })))
+      setClassOptions((gradesRes || []).map((g) => ({ label: g.name, value: g.name.toLowerCase().replace(/\s+/g, "-") })))
+      setTermOptions((termsRes || []).map((t) => ({ label: t.name, value: t.name.toLowerCase().replace(/\s+/g, "-") })))
     }).catch(() => {
       // fallback to defaults on error
     })
@@ -800,7 +808,13 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
             <div className="space-y-8 p-6 md:p-8">
               <div key={currentStep} className="step-content">
                 <FormProvider {...form}>
-                  {currentStep === 0 && <BasicInfoStep subjects={subjectOptions.length > 0 ? subjectOptions : subjects} classes={classes} terms={terms} />}
+                  {currentStep === 0 && (
+                    <BasicInfoStep
+                      subjects={subjectOptions.length > 0 ? subjectOptions : subjects}
+                      classes={classOptions.length > 0 ? classOptions : classes}
+                      terms={termOptions.length > 0 ? termOptions : terms}
+                    />
+                  )}
                   {currentStep === 1 && (
                     <QuestionBuilderStep
                       ref={questionBuilderRef}

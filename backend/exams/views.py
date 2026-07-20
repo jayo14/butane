@@ -16,14 +16,16 @@ from accounts.models import Student, Teacher
 from core.throttling import LoginRateThrottle
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
-from .models import Attempt, AttemptAnswer, Exam, Question, Result, Subject
+from .models import Attempt, AttemptAnswer, Exam, GradeLevel, Question, Result, Subject, Term
 from .public_views import _result_response
 from .serializers import (
     AttemptSerializer,
     ExamDetailSerializer,
     ExamListSerializer,
+    GradeLevelSerializer,
     ResultSerializer,
     SubjectSerializer,
+    TermSerializer,
 )
 
 
@@ -35,6 +37,28 @@ class SubjectViewSet(viewsets.ModelViewSet):
     search_fields = ["name", "code"]
     ordering_fields = ["name", "created_at"]
     ordering = ["name"]
+    pagination_class = None
+
+
+class GradeLevelViewSet(viewsets.ModelViewSet):
+    """CRUD for grade/class levels."""
+
+    queryset = GradeLevel.objects.all()
+    serializer_class = GradeLevelSerializer
+    search_fields = ["name"]
+    ordering_fields = ["display_order", "name"]
+    ordering = ["display_order", "name"]
+    pagination_class = None
+
+
+class TermViewSet(viewsets.ModelViewSet):
+    """CRUD for academic terms."""
+
+    queryset = Term.objects.all()
+    serializer_class = TermSerializer
+    search_fields = ["name"]
+    ordering_fields = ["display_order", "name"]
+    ordering = ["display_order", "name"]
     pagination_class = None
 
 

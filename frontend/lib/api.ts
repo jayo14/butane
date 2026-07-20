@@ -333,6 +333,22 @@ export interface ApiSubject {
   updated_at: string
 }
 
+export interface ApiGradeLevel {
+  id: string
+  name: string
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
+export interface ApiTerm {
+  id: string
+  name: string
+  display_order: number
+  created_at: string
+  updated_at: string
+}
+
 export interface ApiTeacherProfile {
   id: string
   user: ApiUser
@@ -354,6 +370,7 @@ export interface ExamSummary {
   title: string
   course: string
   courseCode: string
+  subject: string
   date: string
   duration: number
   totalMarks: number
@@ -361,6 +378,8 @@ export interface ExamSummary {
   status: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled"
   questionCount: number
   enrolledStudents: number
+  shortCode?: string
+  isPublic?: boolean
 }
 
 export interface StudentSummary {
@@ -396,6 +415,7 @@ export function transformExam(api: ApiExam): ExamSummary {
     title: api.title,
     course: api.course,
     courseCode: api.course_code,
+    subject: api.subject,
     date: api.created_at,
     duration: api.duration_minutes,
     totalMarks: api.total_marks,
@@ -403,6 +423,8 @@ export function transformExam(api: ApiExam): ExamSummary {
     status: api.status,
     questionCount: api.question_count,
     enrolledStudents: 0,
+    shortCode: api.short_code,
+    isPublic: api.is_public,
   }
 }
 
@@ -470,6 +492,20 @@ export const api = {
   students: {
     list: (params?: { grade?: string; status?: string; search?: string }) =>
       apiFetch<ApiStudent[]>(`accounts/students/${buildQuery(params || {})}`),
+  },
+
+  gradeLevels: {
+    list: () => apiFetch<ApiGradeLevel[]>("grade-levels/"),
+    create: (data: { name: string; display_order?: number }) =>
+      apiFetch<ApiGradeLevel>("grade-levels/", { method: "POST", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`grade-levels/${id}/`, { method: "DELETE" }),
+  },
+
+  terms: {
+    list: () => apiFetch<ApiTerm[]>("terms/"),
+    create: (data: { name: string; display_order?: number }) =>
+      apiFetch<ApiTerm>("terms/", { method: "POST", body: JSON.stringify(data) }),
+    delete: (id: string) => apiFetch<void>(`terms/${id}/`, { method: "DELETE" }),
   },
 
   subjects: {

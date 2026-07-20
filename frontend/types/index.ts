@@ -54,6 +54,7 @@ export interface Exam {
   title: string
   course: string
   courseCode: string
+  subject: string
   date: string
   duration: number
   totalMarks: number
@@ -61,6 +62,8 @@ export interface Exam {
   status: "draft" | "scheduled" | "ongoing" | "completed" | "cancelled"
   questionCount: number
   enrolledStudents: number
+  shortCode?: string
+  isPublic?: boolean
 }
 
 export interface Toast {

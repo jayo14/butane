@@ -16,10 +16,11 @@ export default function EditExamPage() {
 
   useEffect(() => {
     if (!id) return
+    const examId: string = id
     let cancelled = false
     async function load() {
       try {
-        const data = await api.exams.get(id)
+        const data = await api.exams.get(examId)
         if (!cancelled) setExam(data)
       } catch {
         if (!cancelled) setError(true)

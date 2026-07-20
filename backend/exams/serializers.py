@@ -7,10 +7,12 @@ from accounts.models import Student, Teacher
 from .models import Attempt, AttemptAnswer, Exam, Result
 from .question_serializers import QuestionSerializer
 
-from .models import Subject
+from .models import GradeLevel, Subject, Term
 
 __all__ = [
     "SubjectSerializer",
+    "GradeLevelSerializer",
+    "TermSerializer",
     "QuestionSerializer",
     "ExamListSerializer",
     "ExamDetailSerializer",
@@ -24,6 +26,20 @@ class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
         fields = ["id", "name", "code", "description", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class GradeLevelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GradeLevel
+        fields = ["id", "name", "display_order", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class TermSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Term
+        fields = ["id", "name", "display_order", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 

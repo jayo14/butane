@@ -34,6 +34,36 @@ class Subject(TimestampedModel):
         return self.name
 
 
+class GradeLevel(TimestampedModel):
+    """A grade/class level (e.g. JSS1, JSS2, SSS3)."""
+
+    name = models.CharField(max_length=40, unique=True, help_text="e.g. JSS1")
+    display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
+
+    class Meta:
+        db_table = "exams_grade_level"
+        ordering = ["display_order", "name"]
+        verbose_name = "grade level"
+        verbose_name_plural = "grade levels"
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class Term(TimestampedModel):
+    """An academic term (e.g. First Term, Second Term, Third Term)."""
+
+    name = models.CharField(max_length=40, unique=True, help_text="e.g. First Term")
+    display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
+
+    class Meta:
+        db_table = "exams_term"
+        ordering = ["display_order", "name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Exam(SoftDeleteModel):
     """An assessment authored by a teacher.
 

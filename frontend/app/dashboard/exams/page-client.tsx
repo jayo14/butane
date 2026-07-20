@@ -13,6 +13,7 @@ import {
   BarChart3,
   Trash2,
   Send,
+  Share2,
   ChevronLeft,
   ChevronRight,
   X,
@@ -24,6 +25,8 @@ import {
   Loader2,
   LayoutList,
   LayoutGrid,
+  Link2,
+  Check,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -56,6 +59,9 @@ export function ExamsPageClient() {
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [layout, setLayout] = useState<LayoutMode>("list")
+  const [shareExam, setShareExam] = useState<Exam | null>(null)
+  const [copiedLink, setCopiedLink] = useState(false)
+  const [copiedCode, setCopiedCode] = useState(false)
 
   useEffect(() => {
     fetchExams()
@@ -296,6 +302,7 @@ export function ExamsPageClient() {
                           items={[
                             { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
                             { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
+                            { key: "share", label: "Share", icon: <Share2 size={14} /> },
                             { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
                             { key: "divider1", label: "", divider: true },
                             { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
@@ -305,6 +312,7 @@ export function ExamsPageClient() {
                           onAction={(key) => {
                             if (key === "delete") handleDelete(exam.id)
                             if (key === "duplicate") handleDuplicate(exam.id)
+                            if (key === "share") setShareExam(exam)
                             if (key === "toggle-status") handleToggleStatus(exam.id)
                             if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
                             if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
@@ -434,6 +442,7 @@ export function ExamsPageClient() {
                           items={[
                             { key: "edit", label: "Edit", icon: <Edit3 size={14} /> },
                             { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
+                            { key: "share", label: "Share", icon: <Share2 size={14} /> },
                             { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
                             { key: "divider1", label: "", divider: true },
                             { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
@@ -443,6 +452,7 @@ export function ExamsPageClient() {
                           onAction={(key) => {
                             if (key === "delete") handleDelete(exam.id)
                             if (key === "duplicate") handleDuplicate(exam.id)
+                            if (key === "share") setShareExam(exam)
                             if (key === "toggle-status") handleToggleStatus(exam.id)
                             if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
                             if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
@@ -513,6 +523,74 @@ export function ExamsPageClient() {
             </div>
           )}
         </>
+      )}
+      {/* Share Dialog */}
+      {shareExam && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShareExam(null)}>
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-content-primary">Share Exam</h2>
+              <button onClick={() => setShareExam(null)} className="text-content-muted hover:text-content-primary transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+
+            <p className="text-sm text-content-secondary mb-1">Share with students using the link or access code below.</p>
+            <p className="text-sm font-medium text-content-primary mb-5">{shareExam.title}</p>
+
+            {/* Exam Link */}
+            <div className="mb-4">
+              <label className="mb-1.5 block text-xs font-semibold text-content-muted uppercase tracking-wider">Exam Link</label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 truncate rounded-xl border border-border-primary bg-surface-secondary px-4 py-3 text-sm text-content-primary">
+                  <span className="flex items-center gap-2">
+                    <Link2 size={14} className="shrink-0 text-content-muted" />
+                    <span className="truncate">{`${window.location.origin}/exam/${shareExam.id}`}</span>
+                  </span>
+                </div>
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(`${window.location.origin}/exam/${shareExam.id}`)
+                    setCopiedLink(true)
+                    setTimeout(() => setCopiedLink(false), 2000)
+                  }}
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border-primary px-4 py-3 text-sm font-medium text-content-primary transition-colors hover:bg-surface-secondary"
+                >
+                  {copiedLink ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                  {copiedLink ? "Copied" : "Copy"}
+                </button>
+              </div>
+            </div>
+
+            {/* Access Code */}
+            <div>
+              <label className="mb-1.5 block text-xs font-semibold text-content-muted uppercase tracking-wider">Access Code</label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 rounded-xl border border-border-primary bg-surface-secondary px-4 py-3 text-sm">
+                  <span className="text-lg font-bold tracking-widest text-content-primary">
+                    {shareExam.shortCode || "—"}
+                  </span>
+                </div>
+                {shareExam.shortCode && (
+                  <button
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(shareExam.shortCode!)
+                      setCopiedCode(true)
+                      setTimeout(() => setCopiedCode(false), 2000)
+                    }}
+                    className="flex shrink-0 items-center gap-1.5 rounded-xl border border-border-primary px-4 py-3 text-sm font-medium text-content-primary transition-colors hover:bg-surface-secondary"
+                  >
+                    {copiedCode ? <Check size={16} className="text-green-600" /> : <Copy size={16} />}
+                    {copiedCode ? "Copied" : "Copy"}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </Container>
   )

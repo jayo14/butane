@@ -7,6 +7,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
   { label: "Students", href: "/dashboard/students", icon: "users", roles: ["admin"] },
   { label: "Subjects", href: "/dashboard/courses", icon: "book-open" },
+  { label: "Grade Levels", href: "/dashboard/grade-levels", icon: "layers" },
+  { label: "Terms", href: "/dashboard/terms", icon: "calendar" },
   { label: "Exams", href: "/dashboard/exams", icon: "clipboard-list" },
   { label: "Results", href: "/dashboard/results", icon: "bar-chart-3" },
   { label: "Reports", href: "/dashboard/reports", icon: "bar-chart-3" },
