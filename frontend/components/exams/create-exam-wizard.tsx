@@ -288,6 +288,10 @@ export function CreateExamWizard() {
     try {
       const courseCode = draft.basicInfo.subject.toUpperCase().slice(0, 6)
 
+      if (draft.questions.length === 0) {
+        throw new Error("At least one question is required to publish.")
+      }
+
       const created = await api.exams.create({
         title: draft.basicInfo.title,
         subject: draft.basicInfo.subject,
@@ -302,13 +306,10 @@ export function CreateExamWizard() {
         show_result: draft.settings.showResult,
         allow_review: draft.settings.allowReview,
         instructions: draft.basicInfo.instructions || "",
-      })
-
-      for (const [i, q] of draft.questions.entries()) {
-        await api.questions.create(created.id, {
+        questions: draft.questions.map((q, i) => ({
           order: i + 1,
           text: q.text,
-          type: "single_choice",
+          type: "single_choice" as const,
           marks: 1,
           choices: q.options.map((opt, oi) => ({
             id: opt.id,
@@ -316,8 +317,8 @@ export function CreateExamWizard() {
             text: opt.text,
             is_correct: opt.id === q.correctAnswerId,
           })),
-        })
-      }
+        })),
+      } as any)
 
       const published = await api.exams.publish(created.id)
       const url = published.public_url || `${window.location.origin}/exam/${created.id}`
