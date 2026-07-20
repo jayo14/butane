@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useEffect, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { api } from "@/lib/api"
-import type { ApiPublicQuestion } from "@/lib/api"
+import { useRouter, useSearchParams } from "next/navigation"
+import { api, ApiError } from "@/lib/api"
+import type { ApiPublicQuestion, ApiPublicExam } from "@/lib/api"
 
 interface TakeExam {
   id: string
@@ -23,51 +23,102 @@ interface TakeQuestion {
   correctAnswerId: string
 }
 
-interface ExamTakeClientProps {
-  exam: TakeExam
-  questions: TakeQuestion[]
-  studentName: string
-  attemptId?: string
-  accessToken?: string
-}
-
 const STORAGE_KEY_PREFIX = "exam-take-"
-
 const OPTION_LABELS = ["A", "B", "C", "D"]
 
-export function ExamTakeClient({ exam, questions, studentName, attemptId, accessToken }: ExamTakeClientProps) {
+export function ExamTakeClient() {
   const router = useRouter()
-  const storageKey = `${STORAGE_KEY_PREFIX}${exam.id}`
+  const searchParams = useSearchParams()
+
+  const attemptId = searchParams.get("attemptId") || ""
+  const accessToken = searchParams.get("accessToken") || ""
+  const token = searchParams.get("token") || ""
+  const studentName = searchParams.get("name") || ""
+  const examId = searchParams.get("id") || ""
+
+  const [exam, setExam] = useState<TakeExam | null>(null)
+  const [questions, setQuestions] = useState<TakeQuestion[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
-  const [submitting, setSubmitting] = useState(false)
-  const [timeLeft, setTimeLeft] = useState(exam.duration * 60)
+  const [timeLeft, setTimeLeft] = useState(0)
   const mainRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
   const flaggedRef = useRef(flagged)
   const timeLeftRef = useRef(timeLeft)
   const attemptIdRef = useRef(attemptId)
   const accessTokenRef = useRef(accessToken)
+  const examRef = useRef(exam)
+  const questionsRef = useRef(questions)
+
   answersRef.current = answers
   flaggedRef.current = flagged
   timeLeftRef.current = timeLeft
   attemptIdRef.current = attemptId
   accessTokenRef.current = accessToken
+  examRef.current = exam
+  questionsRef.current = questions
 
-  const answersForApi = useCallback(
-    () =>
-      questions.map((q) => ({
-        question: q.id,
-        selected_choice: answersRef.current[q.id] || null,
-      })),
-    [questions],
-  )
+  // Fetch exam data
+  useEffect(() => {
+    async function loadExam() {
+      setLoading(true)
+      setError("")
+      try {
+        let examData: ApiPublicExam | null = null
+
+        if (token) {
+          examData = await api.public.exam(token)
+        } else if (attemptId && accessToken && examId) {
+          await api.public.resumeAttempt(attemptId, accessToken)
+          examData = await api.public.exam(examId)
+        } else if (examId) {
+          examData = await api.public.exam(examId)
+        }
+
+        if (!examData) {
+          throw new Error("Exam not found")
+        }
+
+        const mappedExam: TakeExam = {
+          id: examData.id,
+          title: examData.title,
+          duration: examData.duration_minutes,
+          totalMarks: examData.total_marks,
+          questionCount: examData.question_count,
+          allowReview: examData.allow_review,
+          showResult: examData.show_result,
+        }
+
+        const mappedQuestions: TakeQuestion[] = examData.questions.map((q) => ({
+          id: q.id,
+          number: q.number,
+          text: q.text,
+          options: q.options,
+          correctAnswerId: "",
+        }))
+
+        setExam(mappedExam)
+        setQuestions(mappedQuestions)
+        setTimeLeft(mappedExam.duration * 60)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load exam")
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadExam()
+  }, [token, attemptId, accessToken, examId])
 
   // Restore state from localStorage
   useEffect(() => {
+    if (!exam) return
     try {
       const saved = localStorage.getItem(storageKey)
       if (saved) {
@@ -82,22 +133,23 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
         if (parsed.timeLeft != null) setTimeLeft(parsed.timeLeft)
       }
     } catch {}
-  }, [storageKey, exam.id, router])
+  }, [storageKey, exam, router])
 
   // Autosave to localStorage
   useEffect(() => {
+    if (!exam) return
     const data = { answers, flagged: [...flagged], currentIndex, timeLeft }
     localStorage.setItem(storageKey, JSON.stringify(data))
-  }, [answers, flagged, currentIndex, timeLeft, storageKey])
+  }, [answers, flagged, currentIndex, timeLeft, storageKey, exam])
 
   // Auto-save to API (debounced)
   const apiSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!attemptIdRef.current || !accessTokenRef.current) return
+    if (!attemptId || !accessToken || !exam) return
     if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     apiSaveTimerRef.current = setTimeout(async () => {
       try {
-        await api.public.saveAttempt(attemptIdRef.current!, accessTokenRef.current!, {
+        await api.public.saveAttempt(attemptId, accessToken, {
           answers: questions.map((q) => ({
             question: q.id,
             selected_choice: answers[q.id] || null,
@@ -110,11 +162,12 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
     return () => {
       if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     }
-  }, [answers, questions])
+  }, [answers, questions, attemptId, accessToken, exam])
 
   // Timer
   const timerInterval = useRef<ReturnType<typeof setInterval> | null>(null)
   useEffect(() => {
+    if (!exam) return
     if (timeLeftRef.current <= 0) {
       handleTimeoutRef.current()
       return
@@ -132,21 +185,22 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
     return () => {
       if (timerInterval.current) clearInterval(timerInterval.current)
     }
-  }, [])
+  }, [exam])
 
   const handleTimeoutRef = useRef<() => void>(() => {})
   const saveState = useCallback(() => {
+    if (!exam) return
     localStorage.setItem(
       storageKey,
       JSON.stringify({ answers: answersRef.current, flagged: [...flaggedRef.current], submitted: false }),
     )
-  }, [storageKey])
+  }, [storageKey, exam])
 
   const goToReview = useCallback(async () => {
     saveState()
-    if (attemptIdRef.current && accessTokenRef.current) {
+    if (attemptId && accessToken && exam) {
       try {
-        const result = await api.public.submitAttempt(attemptIdRef.current, accessTokenRef.current, {
+        const result = await api.public.submitAttempt(attemptId, accessToken, {
           answers: questions.map((q) => ({
             question: q.id,
             selected_choice: answersRef.current[q.id] || null,
@@ -162,6 +216,7 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
         // Fall back to local submit
       }
     }
+    if (!exam) return
     if (!exam.allowReview && !exam.showResult) {
       router.push(`/exam/${exam.id}/submitted`)
     } else if (!exam.allowReview) {
@@ -169,7 +224,7 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
     } else {
       router.push(`/exam/${exam.id}/review`)
     }
-  }, [saveState, router, exam.id, exam.allowReview, exam.showResult, questions])
+  }, [saveState, router, exam, questions])
 
   const handleSubmitClick = useCallback(() => {
     setShowSubmitConfirm(true)
@@ -179,12 +234,13 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
 
   // Keyboard shortcuts
   useEffect(() => {
+    if (!exam) return
     function handleKey(e: KeyboardEvent) {
       if (timeLeftRef.current <= 0) return
       const key = e.key
 
       if (["1", "2", "3", "4"].includes(key)) {
-        const q = questions[currentIndex]
+        const q = questionsRef.current[currentIndex]
         if (q) {
           const opt = q.options[parseInt(key) - 1]
           if (opt) {
@@ -195,7 +251,7 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
 
       if (key === "Enter" || key === "ArrowRight") {
         e.preventDefault()
-        if (currentIndex < questions.length - 1) {
+        if (currentIndex < questionsRef.current.length - 1) {
           setCurrentIndex((i) => i + 1)
         }
       }
@@ -209,7 +265,7 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
 
       if (key.toLowerCase() === "f") {
         e.preventDefault()
-        const qId = questions[currentIndex]?.id
+        const qId = questionsRef.current[currentIndex]?.id
         if (qId) {
           setFlagged((prev) => {
             const next = new Set(prev)
@@ -223,11 +279,46 @@ export function ExamTakeClient({ exam, questions, studentName, attemptId, access
 
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [currentIndex, questions])
+  }, [currentIndex, exam])
 
   useEffect(() => {
     mainRef.current?.focus()
   }, [currentIndex])
+
+  if (loading) {
+    return (
+      <main className="flex-grow flex items-center justify-center h-screen" style={{ backgroundColor: "#eff3ff" }}>
+        <div className="flex flex-col items-center gap-4">
+          <div className="size-12 rounded-full border-4 border-[#006c49] border-t-transparent animate-spin" />
+          <p className="text-sm font-medium" style={{ color: "#3c4a42" }}>Loading exam...</p>
+        </div>
+      </main>
+    )
+  }
+
+  if (error || !exam || questions.length === 0) {
+    return (
+      <main className="flex-grow flex items-center justify-center h-screen" style={{ backgroundColor: "#eff3ff" }}>
+        <div className="flex flex-col items-center gap-4 max-w-md mx-auto px-4 text-center">
+          <div className="size-16 rounded-full bg-danger-light flex items-center justify-center">
+            <span className="text-3xl">!</span>
+          </div>
+          <h2 className="text-xl font-bold" style={{ color: "#121c2a" }}>Exam Not Available</h2>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            {error || "This exam could not be loaded. Please check the link and try again."}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push("/exam/portal")}
+            className="mt-4 px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:brightness-105"
+            style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+          >
+            Go to Exam Portal
+          </button>
+        </div>
+      </main>
+    )
+  }
 
   const question = questions[currentIndex]
   const minutes = Math.floor(timeLeft / 60)
