@@ -1,7 +1,6 @@
 "use client"
 
-import { cn } from "@/lib/utils"
-import { Shuffle, Percent, Calendar, Eye, Lock, Clock } from "lucide-react"
+import { Clock, Percent } from "lucide-react"
 import type { ExamSettings } from "@/types/exam"
 
 interface SettingsStepProps {
@@ -19,167 +18,216 @@ export function SettingsStep({ settings, onChange }: SettingsStepProps) {
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-lg font-semibold text-content-primary">Exam Settings</h2>
-        <p className="mt-0.5 text-sm text-content-secondary">
-          Configure how the exam behaves for students
-        </p>
-      </div>
-
-      {/* Shuffle Settings */}
-      <div className="space-y-4 rounded-xl border border-border-primary p-5">
-        <h3 className="text-sm font-semibold text-content-primary">Question & Answer Order</h3>
-
-        <ToggleRow
-          icon={<Shuffle size={18} />}
-          label="Shuffle Questions"
-          description="Display questions in random order for each student"
-          checked={settings.shuffleQuestions}
-          onChange={() => toggle("shuffleQuestions")}
-        />
-
-        <ToggleRow
-          icon={<Shuffle size={18} />}
-          label="Shuffle Answers"
-          description="Randomize answer option order for each question"
-          checked={settings.shuffleAnswers}
-          onChange={() => toggle("shuffleAnswers")}
-        />
-      </div>
-
-      {/* Pass Mark */}
-      <div className="rounded-xl border border-border-primary p-5">
-        <h3 className="mb-3 text-sm font-semibold text-content-primary">Passing Score</h3>
-        <div className="flex items-center gap-4">
-          <div className="relative flex-1">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-content-muted">
-              <Percent size={16} />
-            </div>
-            <input
-              type="number"
-              min={0}
-              max={100}
-              value={settings.passMark}
-              onChange={(e) => update("passMark", Math.min(100, Math.max(0, Number(e.target.value))))}
-              className="block w-full rounded-xl border border-border-primary bg-white py-2.5 pl-11 pr-4 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div className="flex-1 text-xs text-content-muted">
-            <p>Students must score at least {settings.passMark}% to pass this exam.</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Availability */}
-      <div className="rounded-xl border border-border-primary p-5">
-        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-content-primary">
-          <Calendar size={16} />
-          Exam Availability
-        </h3>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-content-muted">Available From</label>
-            <input
-              type="datetime-local"
-              value={settings.availableFrom}
-              onChange={(e) => update("availableFrom", e.target.value)}
-              className="block w-full rounded-xl border border-border-primary bg-white px-4 py-2.5 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium text-content-muted">Available Until</label>
-            <input
-              type="datetime-local"
-              value={settings.availableTo}
-              onChange={(e) => update("availableTo", e.target.value)}
-              className="block w-full rounded-xl border border-border-primary bg-white px-4 py-2.5 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
-        </div>
-      </div>
-
+    <div className="space-y-0">
       {/* Time Limit */}
-      <div className="rounded-xl border border-border-primary p-5">
-        <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold text-content-primary">
-          <Clock size={16} />
-          Time Limit
-        </h3>
-        <div className="flex items-center gap-4">
-          <div className="relative w-40">
+      <div className="flex flex-col gap-4 pb-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+              Time Limit (minutes)
+            </h3>
+            <p className="text-sm" style={{ color: "#3c4a42" }}>
+              Set the total duration for the exam session.
+            </p>
+          </div>
+          <div className="relative">
             <input
               type="number"
               min={1}
               max={480}
               value={settings.timeLimit}
               onChange={(e) => update("timeLimit", Number(e.target.value))}
-              className="block w-full rounded-xl border border-border-primary bg-white py-2.5 pl-4 pr-12 text-sm text-content-primary transition-all duration-200 focus:border-primary focus:outline-none focus-visible:rounded-xl focus:ring-2 focus:ring-primary/20"
+              className="w-full md:w-32 rounded-full border py-2 px-4 text-sm font-semibold tracking-[0.02em] transition-all focus:outline-none"
+              style={{
+                borderColor: "#bbcabf",
+                backgroundColor: "#eff3ff",
+                color: "#121c2a",
+                boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
+              }}
             />
-            <span className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-4 text-sm text-content-muted">min</span>
+            <span
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold"
+              style={{ color: "#3c4a42" }}
+            >
+              MIN
+            </span>
           </div>
-          <span className="text-xs text-content-muted">Maximum time students have to complete the exam</span>
         </div>
       </div>
 
-      {/* Post-Exam Settings */}
-      <div className="space-y-4 rounded-xl border border-border-primary p-5">
-        <h3 className="text-sm font-semibold text-content-primary">After Submission</h3>
+      {/* Shuffle Questions */}
+      <div className="flex items-center justify-between gap-4 py-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Shuffle Questions
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            Randomize question order for every participant.
+          </p>
+        </div>
+        <ToggleSwitch checked={settings.shuffleQuestions} onChange={() => toggle("shuffleQuestions")} label="Shuffle Questions" />
+      </div>
 
-        <ToggleRow
-          icon={<Eye size={18} />}
-          label="Show Results Immediately"
-          description="Students see their score right after submitting"
-          checked={settings.showResult}
-          onChange={() => toggle("showResult")}
-        />
+      {/* Shuffle Answers */}
+      <div className="flex items-center justify-between gap-4 py-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Shuffle Answers
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            Randomize answer option order for each question.
+          </p>
+        </div>
+        <ToggleSwitch checked={settings.shuffleAnswers} onChange={() => toggle("shuffleAnswers")} label="Shuffle Answers" />
+      </div>
 
-        <ToggleRow
-          icon={<Lock size={18} />}
-          label="Allow Review"
-          description="Students can review their answers and the correct answers"
-          checked={settings.allowReview}
-          onChange={() => toggle("allowReview")}
-        />
+      {/* Passing Score */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Passing Score (%)
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            Minimum percentage required to pass.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={settings.passMark}
+            onChange={(e) => update("passMark", Number(e.target.value))}
+            className="w-full md:w-32 accent-[#10b981] cursor-pointer"
+          />
+          <span className="text-sm font-semibold w-10 text-right" style={{ color: "#006c49" }}>
+            {settings.passMark}%
+          </span>
+        </div>
+      </div>
+
+      {/* Availability */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 py-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Availability
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            When can students take this exam?
+          </p>
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-auto">
+          <select
+            value={settings.availableFrom ? "scheduled" : "private"}
+            onChange={(e) => {
+              if (e.target.value === "private") {
+                update("availableFrom", "")
+                update("availableTo", "")
+              }
+            }}
+            className="w-full md:w-48 rounded-full border py-2 px-4 text-sm font-semibold tracking-[0.02em] appearance-none cursor-pointer transition-all focus:outline-none"
+            style={{
+              borderColor: "#bbcabf",
+              backgroundColor: "#eff3ff",
+              color: "#121c2a",
+              boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
+            }}
+          >
+            <option value="public">Public</option>
+            <option value="private">Private (Link only)</option>
+            <option value="scheduled">Scheduled</option>
+          </select>
+          {settings.availableFrom && (
+            <div className="grid gap-2 md:grid-cols-2">
+              <input
+                type="datetime-local"
+                value={settings.availableFrom}
+                onChange={(e) => update("availableFrom", e.target.value)}
+                className="rounded-full border px-4 py-2 text-sm transition-all focus:outline-none"
+                style={{
+                  borderColor: "#bbcabf",
+                  backgroundColor: "#eff3ff",
+                  color: "#121c2a",
+                  boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
+                }}
+              />
+              <input
+                type="datetime-local"
+                value={settings.availableTo}
+                onChange={(e) => update("availableTo", e.target.value)}
+                className="rounded-full border px-4 py-2 text-sm transition-all focus:outline-none"
+                style={{
+                  borderColor: "#bbcabf",
+                  backgroundColor: "#eff3ff",
+                  color: "#121c2a",
+                  boxShadow: "inset 0 2px 4px 0 rgba(0,0,0,0.03)",
+                }}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Show Results */}
+      <div className="flex items-center justify-between gap-4 py-6 border-b" style={{ borderColor: "rgba(187,202,191,0.3)" }}>
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Show Results Immediately
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            Students see their score right after submitting.
+          </p>
+        </div>
+        <ToggleSwitch checked={settings.showResult} onChange={() => toggle("showResult")} label="Show Results" />
+      </div>
+
+      {/* Allow Review */}
+      <div className="flex items-center justify-between gap-4 pt-6">
+        <div>
+          <h3 className="text-sm font-semibold tracking-[0.02em]" style={{ color: "#121c2a" }}>
+            Allow Review
+          </h3>
+          <p className="text-sm" style={{ color: "#3c4a42" }}>
+            Students can review answers and correct answers after submission.
+          </p>
+        </div>
+        <ToggleSwitch checked={settings.allowReview} onChange={() => toggle("allowReview")} label="Allow Review" />
       </div>
     </div>
   )
 }
 
-function ToggleRow({
-  icon,
-  label,
-  description,
+function ToggleSwitch({
   checked,
   onChange,
+  label,
 }: {
-  icon: React.ReactNode
-  label: string
-  description: string
   checked: boolean
   onChange: () => void
+  label: string
 }) {
   return (
-    <label className="flex cursor-pointer items-center gap-4 rounded-xl p-2 transition-colors hover:bg-surface-secondary">
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/5 text-primary">
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium text-content-primary">{label}</p>
-        <p className="text-xs text-content-secondary">{description}</p>
-      </div>
+    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="sr-only peer"
+        aria-label={label}
+      />
       <div
-        className={cn(
-          "relative flex h-6 w-11 shrink-0 rounded-full border-2 transition-colors duration-200",
-          checked ? "border-primary bg-primary" : "border-border-primary bg-surface-secondary",
-        )}
+        className="w-11 h-6 rounded-full transition-all after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-focus:outline-none"
+        style={{
+          backgroundColor: checked ? "#10b981" : "#e4e2de",
+          borderColor: checked ? "#10b981" : "#bbcabf",
+          borderWidth: checked ? "2px" : "2px",
+          transform: checked ? "translateX(0)" : "none",
+        }}
       >
         <span
-          className={cn(
-            "absolute left-0.5 top-0.5 size-4 rounded-full bg-white shadow-sm transition-transform duration-200",
-            checked && "translate-x-5",
-          )}
+          className="absolute top-[2px] left-[2px] h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200"
+          style={{ transform: checked ? "translateX(20px)" : "translateX(0)" }}
         />
-        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" aria-label={label} />
       </div>
     </label>
   )
