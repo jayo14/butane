@@ -10,6 +10,9 @@ export interface Question {
   text: string
   options: QuestionOption[]
   correctAnswerId: string
+  points: number
+  needsReview?: boolean
+  reviewReason?: string
 }
 
 export interface ExamSettings {

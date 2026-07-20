@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, forwardRef, useImperativeHandle } from "react"
+import { useState, useCallback, forwardRef, useImperativeHandle, useRef } from "react"
 import {
   DndContext,
   closestCenter,
@@ -15,8 +15,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable"
-import { Plus, AlertCircle, FilePlus } from "lucide-react"
+import { Plus, AlertCircle, FilePlus, Upload, Check, X } from "lucide-react"
 import { QuestionCard } from "./question-card"
+import { parseBulkInput } from "./bulk-import-parser"
 import type { Question } from "@/types/exam"
 
 const OPTION_LABELS = ["A", "B", "C", "D"]
@@ -32,6 +33,7 @@ function createQuestion(number: number): Question {
       text: "",
     })),
     correctAnswerId: "",
+    points: 1,
   }
 }
 
@@ -47,6 +49,13 @@ interface QuestionBuilderStepProps {
 export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBuilderStepProps>(
   function QuestionBuilderStep({ questions, onChange }, ref) {
     const [errors, setErrors] = useState<Record<string, Partial<Record<string, string>>>>({})
+    const [showBulkImport, setShowBulkImport] = useState(false)
+    const [bulkInput, setBulkInput] = useState("")
+    const [bulkParsedText, setBulkParsedText] = useState("")
+    const [bulkSuccessMsg, setBulkSuccessMsg] = useState<string | null>(null)
+    const bulkTextareaRef = useRef<HTMLTextAreaElement>(null)
+    const importedStartRef = useRef<number | null>(null)
+    const listRef = useRef<HTMLDivElement>(null)
 
     const sensors = useSensors(
       useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -105,6 +114,71 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
       })
     }
 
+    function handleBulkParse() {
+      const trimmed = bulkInput.trim()
+      if (!trimmed) return
+
+      if (trimmed === bulkParsedText) {
+        setBulkSuccessMsg("These questions were already imported.")
+        return
+      }
+
+      const parsed = parseBulkInput(trimmed)
+      if (parsed.length === 0) {
+        setBulkSuccessMsg("Could not parse any questions. Check the format and try again.")
+        return
+      }
+
+      const needsReviewCount = parsed.filter((p) => p.needsReview).length
+      const startIndex = questions.length
+
+      const newQuestions: Question[] = parsed.map((p, i) => {
+        const newOptions = p.options.map((o) => ({
+          id: `opt-${Math.random().toString(36).slice(2, 7)}`,
+          label: o.label,
+          text: o.text,
+        }))
+        const correctId =
+          newOptions.find((o) => o.label === p.correctAnswerLabel)?.id ?? ""
+        return {
+          id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          number: startIndex + i + 1,
+          text: p.text,
+          options: newOptions,
+          correctAnswerId: correctId,
+          points: 1,
+          needsReview: p.needsReview,
+          reviewReason: p.reviewReason,
+        }
+      })
+
+      onChange([...questions, ...newQuestions])
+      setBulkParsedText(trimmed)
+      setBulkSuccessMsg(
+        `Successfully imported ${parsed.length} question${parsed.length !== 1 ? "s" : ""}.` +
+          (needsReviewCount > 0
+            ? ` ${needsReviewCount} need${needsReviewCount !== 1 ? "" : "s"} review.`
+            : ""),
+      )
+      importedStartRef.current = startIndex
+
+      setTimeout(() => {
+        if (listRef.current) {
+          const cards = listRef.current.querySelectorAll("[data-question-card]")
+          if (cards[startIndex]) {
+            cards[startIndex].scrollIntoView({ behavior: "smooth", block: "center" })
+          }
+        }
+      }, 100)
+    }
+
+    function handleBulkCancel() {
+      setShowBulkImport(false)
+      setBulkInput("")
+      setBulkSuccessMsg(null)
+      setBulkParsedText("")
+    }
+
     const handleDragEnd = useCallback(
       (event: DragEndEvent) => {
         const { active, over } = event
@@ -139,25 +213,141 @@ export const QuestionBuilderStep = forwardRef<QuestionBuilderHandle, QuestionBui
               Build your assessment by adding multiple-choice or open-ended questions.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={addQuestion}
-            className="group relative overflow-hidden rounded-[1.5rem] p-px transition-all active:scale-95 hover:brightness-105"
-            style={{ backgroundColor: "#10b981" }}
-          >
-            <div
-              className="flex items-center gap-2 rounded-[1.5rem] px-6 py-3 text-sm font-semibold tracking-[0.02em]"
-              style={{ backgroundColor: "#10b981", color: "#00422b" }}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                setShowBulkImport(!showBulkImport)
+                setBulkSuccessMsg(null)
+                if (!showBulkImport) {
+                  setTimeout(() => bulkTextareaRef.current?.focus(), 100)
+                }
+              }}
+              className="flex items-center gap-2 rounded-full border-2 px-5 py-3 text-sm font-semibold tracking-[0.02em] transition-all active:scale-95"
+              style={{ borderColor: "#bbcabf", color: "#3c4a42" }}
             >
-              <Plus size={20} />
-              Add Question
+              <Upload size={18} />
+              Bulk Import
+            </button>
+            <button
+              type="button"
+              onClick={addQuestion}
+              className="group relative overflow-hidden rounded-[1.5rem] p-px transition-all active:scale-95 hover:brightness-105"
+              style={{ backgroundColor: "#10b981" }}
+            >
               <div
-                className="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed opacity-20"
-                style={{ borderColor: "#005137" }}
-              />
-            </div>
-          </button>
+                className="flex items-center gap-2 rounded-[1.5rem] px-6 py-3 text-sm font-semibold tracking-[0.02em]"
+                style={{ backgroundColor: "#10b981", color: "#00422b" }}
+              >
+                <Plus size={20} />
+                Add Question
+                <div
+                  className="pointer-events-none absolute inset-2 rounded-xl border-2 border-dashed opacity-20"
+                  style={{ borderColor: "#005137" }}
+                />
+              </div>
+            </button>
+          </div>
         </div>
+
+        {/* Bulk Import */}
+        {showBulkImport ? (
+          <div
+            className="rounded-2xl border p-6"
+            style={{ borderColor: "#bbcabf", backgroundColor: "#eff3ff" }}
+          >
+            <div className="mb-4 flex items-start justify-between">
+              <div>
+                <h3
+                  className="text-lg font-semibold"
+                  style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
+                >
+                  Bulk Import Questions
+                </h3>
+                <p className="mt-0.5 text-sm" style={{ color: "#3c4a42" }}>
+                  Paste exam questions in any common format. Supports [a] (A) A. A) option styles.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleBulkCancel}
+                className="flex size-8 items-center justify-center rounded-lg transition-colors hover:bg-white/60"
+                style={{ color: "#6c7a71" }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <textarea
+              ref={bulkTextareaRef}
+              value={bulkInput}
+              onChange={(e) => {
+                setBulkInput(e.target.value)
+                if (e.target.value !== bulkParsedText) {
+                  setBulkSuccessMsg(null)
+                }
+              }}
+              rows={10}
+              placeholder={`Paste your questions here...\n\nExample:\nWhich of the following substances is responsible for hardness in water?\n[a] Sodium chloride\n[b] Calcium hydrogen trioxocarbonate(IV)\n[c] Potassium nitrate\n[d] Ammonium sulphate\nAnswer: B`}
+              className="mb-4 w-full resize-none rounded-xl border p-4 text-sm leading-relaxed outline-none transition-colors focus:border-[#006c49]/50"
+              style={{
+                borderColor: "#bbcabf",
+                backgroundColor: "#ffffff",
+                color: "#121c2a",
+              }}
+            />
+
+            <div className="flex items-center justify-between">
+              <div className="flex-1">
+                {bulkSuccessMsg && (
+                  <p
+                    className={`flex items-center gap-1.5 text-sm font-semibold ${bulkSuccessMsg.includes("Could not") || bulkSuccessMsg.includes("already") ? "text-[#ba1a1a]" : "text-[#006c49]"}`}
+                  >
+                    {bulkSuccessMsg.includes("Successfully") ? (
+                      <Check size={16} />
+                    ) : (
+                      <AlertCircle size={16} />
+                    )}
+                    {bulkSuccessMsg}
+                  </p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={handleBulkCancel}
+                  className="rounded-xl border px-6 py-3 text-sm font-semibold transition-all active:scale-95"
+                  style={{ borderColor: "#bbcabf", color: "#3c4a42" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBulkParse}
+                  disabled={!bulkInput.trim()}
+                  className="flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-semibold transition-all hover:brightness-105 active:scale-95 disabled:opacity-40"
+                  style={{ backgroundColor: "#10b981", color: "#00422b" }}
+                >
+                  <Upload size={18} />
+                  Parse Questions
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="mt-4 rounded-xl border p-4 text-xs leading-relaxed"
+              style={{ borderColor: "rgba(187, 202, 191, 0.5)", backgroundColor: "rgba(239, 243, 255, 0.5)", color: "#6c7a71" }}
+            >
+              <p className="mb-1 font-semibold uppercase tracking-wider">Supported formats:</p>
+              <p>
+                Question numbering optional (1., 1), Q1., Question 1). Options in any of these
+                formats: <code>[a]</code> <code>(A)</code> <code>A.</code> <code>A)</code>. Answer
+                line: <code>Answer: B</code> <code>Correct Answer: C</code> <code>ANS: D</code>{" "}
+                <code>Correct: Option A</code>. Unicode characters (&rarr; &deg;C &sup3;) are preserved.
+              </p>
+            </div>
+          </div>
+        ) : null}
 
         {/* Question List or Empty State */}
         {questions.length === 0 ? (
