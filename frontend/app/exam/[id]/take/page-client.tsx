@@ -20,6 +20,7 @@ interface TakeQuestion {
   id: string
   number: number
   text: string
+  image?: string | null
   options: { id: string; label: string; text: string }[]
   correctAnswerId: string
 }
@@ -106,6 +107,7 @@ export function ExamTakeClient() {
           id: q.id,
           number: q.number,
           text: q.text,
+          image: q.image,
           options: q.options,
           correctAnswerId: "",
         }))
@@ -689,47 +691,52 @@ export function ExamTakeClient() {
         </button>
       </div>
 
-      {/* Mobile sidebar overlay */}
+      {/* Mobile bottom sheet */}
       {showMobileNav && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
           <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileNav(false)} />
-          <div className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm flex flex-col shadow-2xl"
-               style={{ backgroundColor: "#ffffff" }}>
-            <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: "#bbcabf" }}>
+          <div
+            className="relative w-full max-h-[85vh] flex flex-col rounded-t-2xl shadow-2xl"
+            style={{ backgroundColor: "#ffffff" }}
+          >
+            {/* Drag handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 rounded-full" style={{ backgroundColor: "#bbcabf" }} />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pb-3 shrink-0">
               <span className="text-sm font-bold" style={{ color: "#121c2a" }}>Question Navigator</span>
               <button
                 type="button"
                 onClick={() => setShowMobileNav(false)}
-                className="flex size-8 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+                className="flex size-7 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              {/* Student name */}
+
+            {/* Timer row */}
+            <div className="flex items-center justify-center gap-3 px-5 pb-4 shrink-0">
               {studentName && (
-                <div className="mb-4 text-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6c7a71" }}>Student</span>
-                  <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}>{studentName}</p>
+                <div className="text-center">
+                  <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#6c7a71" }}>Student</span>
+                  <p className="text-xs font-semibold truncate mt-0.5" style={{ color: "#121c2a" }}>{studentName}</p>
                 </div>
               )}
-              {/* Timer */}
-              <div className="mb-4 text-center">
-                <div className="inline-flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 mb-3"
-                  style={{
-                    borderColor: timeLeft < 300 ? "rgba(186,26,26,0.2)" : "rgba(0,108,73,0.2)",
-                    backgroundColor: "#f9f9ff",
-                  }}>
-                  <span className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#006c49" }}>
-                    {timeLeft < 300 ? "Urgent" : "Remaining"}
-                  </span>
-                  <span className="text-lg font-bold" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#121c2a", fontFamily: "'Source Serif 4', serif" }}>
-                    {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
-                  </span>
-                </div>
+              <div className="flex items-center gap-2 rounded-full border px-4 py-1.5" style={{ borderColor: timeLeft < 300 ? "rgba(186,26,26,0.3)" : "rgba(0,108,73,0.3)", backgroundColor: "#f9f9ff" }}>
+                <span className="text-[9px] font-bold uppercase tracking-widest" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#006c49" }}>
+                  {timeLeft < 300 ? "Urgent" : "Remaining"}
+                </span>
+                <span className="text-sm font-bold" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#121c2a", fontFamily: "'Source Serif 4', serif" }}>
+                  {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+                </span>
               </div>
-              {/* Question Grid */}
-              <div className="grid grid-cols-5 gap-2 mb-4">
+            </div>
+
+            {/* Question Grid */}
+            <div className="overflow-y-auto px-5 pb-4">
+              <div className="grid grid-cols-5 gap-2">
                 {questions.map((q, i) => {
                   const isAnswered = !!answers[q.id]
                   const isFlagged = flagged.has(q.id)
@@ -752,31 +759,30 @@ export function ExamTakeClient() {
                   )
                 })}
               </div>
-              {/* Legend */}
-              <div className="space-y-2 p-3 rounded-xl border mb-4" style={{ backgroundColor: "#eff3ff", borderColor: "#bbcabf" }}>
+
+              {/* Legend + Submit row */}
+              <div className="mt-4 flex items-center gap-3">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: "#006c49" }} />
-                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Answered</span>
+                  <span className="text-[10px] font-semibold" style={{ color: "#3c4a42" }}>Answered</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded" style={{ backgroundColor: "#dee9fd" }} />
-                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Unanswered</span>
+                  <span className="text-[10px] font-semibold" style={{ color: "#3c4a42" }}>Unanswered</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded relative" style={{ backgroundColor: "#ffdad6" }}>
                     <span className="absolute top-0 right-0 w-1 h-1 rounded-full" style={{ backgroundColor: "#ba1a1a" }} />
                   </div>
-                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Flagged</span>
+                  <span className="text-[10px] font-semibold" style={{ color: "#3c4a42" }}>Flagged</span>
                 </div>
+                <div className="flex-1" />
+                <button type="button" onClick={handleSubmitClick}
+                  className="px-5 py-2 rounded-lg text-xs font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-sm"
+                  style={{ backgroundColor: "#006c49", color: "#ffffff" }}>
+                  Submit
+                </button>
               </div>
-            </div>
-            {/* Submit button inside drawer */}
-            <div className="p-4 border-t shrink-0" style={{ borderColor: "#bbcabf" }}>
-              <button type="button" onClick={handleSubmitClick}
-                className="w-full py-3.5 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md"
-                style={{ backgroundColor: "#006c49", color: "#ffffff" }}>
-                Submit Assessment
-              </button>
             </div>
           </div>
         </div>
