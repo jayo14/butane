@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Container } from "@/components/layout/container"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 import { api } from "@/lib/api"
 import type { ExamAttempt } from "@/types"
 
@@ -66,7 +67,7 @@ export function ReportsClient() {
     totalStudents: 0, totalExams: 0, avgScore: 0, highest: 0, lowest: 0, passRate: 0, totalPassed: 0, totalAttempts: 0,
   })
   const [distribution, setDistribution] = useState<DistributionBucket[]>([])
-  const [gradeAverages] = useState<GradeAverage[]>([])
+  const [gradeAverages, setGradeAverages] = useState<GradeAverage[]>([])
   const [attempts, setAttempts] = useState<ExamAttempt[]>([])
   const [selectedExamId, setSelectedExamId] = useState("")
   const [examOptions, setExamOptions] = useState<{ id: string; title: string }[]>([])
@@ -87,6 +88,7 @@ export function ReportsClient() {
           examId: r.exam,
           examTitle: r.exam_title,
           subject: r.subject,
+          studentGrade: r.student_grade || "",
           date: r.graded_at,
           score: r.score,
           totalMarks: r.total_marks,
@@ -118,6 +120,18 @@ export function ReportsClient() {
           { range: "70-89%", count: scores.filter((s: number) => s >= 70 && s < 90).length, color: "bg-info" },
           { range: "90-100%", count: scores.filter((s: number) => s >= 90).length, color: "bg-success" },
         ])
+        const grouped: Record<string, { total: number; count: number }> = {}
+        allAttempts.forEach((a: any) => {
+          const g = a.studentGrade || "Unknown"
+          if (!grouped[g]) grouped[g] = { total: 0, count: 0 }
+          grouped[g].total += a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0
+          grouped[g].count++
+        })
+        setGradeAverages(
+          Object.entries(grouped)
+            .map(([grade, data]) => ({ grade, avg: Math.round(data.total / data.count), count: data.count }))
+            .sort((a, b) => a.grade.localeCompare(b.grade))
+        )
       } catch {
         // Leave defaults (all zeros)
       } finally {
@@ -287,12 +301,12 @@ export function ReportsClient() {
               <p className="text-sm text-content-muted">No attempts yet for this exam.</p>
             </div>
           ) : (
-            <div className="space-y-2.5">
+            <div className="max-h-96 space-y-2.5 overflow-y-auto pr-1">
               {questionStats.map((qs: any) => (
                 <div key={qs.question_id} className="rounded-lg border border-border-primary p-3">
                   <div className="flex items-center justify-between gap-2">
                     <span className="truncate text-xs font-medium text-content-primary">
-                      Q{qs.number}. {qs.text}
+                      Q{qs.number}. <LatexRenderer text={qs.text} />
                     </span>
                     <Badge
                       variant={
