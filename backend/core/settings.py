@@ -87,6 +87,7 @@ MIDDLEWARE = [
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "core.middleware.RequestLoggingMiddleware",
+    "core.middleware.DatabaseRetryMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -126,7 +127,7 @@ if database_url:
             "PASSWORD": tmp.password,
             "HOST": tmp.hostname,
             "PORT": tmp.port or 5432,
-            "CONN_MAX_AGE": 60,
+            "CONN_MAX_AGE": 300,
             "CONN_HEALTH_CHECKS": True,
             "OPTIONS": dict(parse_qsl(tmp.query)),
         }
@@ -142,7 +143,7 @@ else:
                 "PASSWORD": env("DB_PASSWORD", default="butane"),
                 "HOST": env("DB_HOST", default="localhost"),
                 "PORT": env("DB_PORT", default="5432"),
-                "CONN_MAX_AGE": 60,
+            "CONN_MAX_AGE": 300,
             }
         }
     else:
