@@ -250,7 +250,8 @@ export interface ApiResult {
   student: string
   student_name: string
   exam_title: string
-  course: string
+  subject: string
+  duration_seconds: number
   score: number
   total_marks: number
   percentage: number
@@ -406,7 +407,7 @@ export interface AttemptSummary {
   id: string
   examId: string
   examTitle: string
-  course: string
+  subject: string
   date: string
   score: number
   totalMarks: number
@@ -456,7 +457,7 @@ export function transformAttempt(api: ApiResult, studentName?: string, studentGr
     id: api.id,
     examId: api.exam,
     examTitle: api.exam_title || "",
-    course: api.course || "",
+    subject: api.subject || "",
     date: api.graded_at,
     score: api.score,
     totalMarks: api.total_marks,

@@ -158,21 +158,35 @@ class AttemptSerializer(serializers.ModelSerializer):
 
 class ResultSerializer(serializers.ModelSerializer):
     student_name = serializers.SerializerMethodField()
+    exam_title = serializers.SerializerMethodField()
+    subject = serializers.SerializerMethodField()
+    duration_seconds = serializers.SerializerMethodField()
 
     class Meta:
         model = Result
         fields = [
-            "id", "attempt", "exam", "student", "student_name", "score",
-            "total_marks", "percentage", "passed", "correct_count",
-            "incorrect_count", "unanswered_count", "graded_at", "created_at",
+            "id", "attempt", "exam", "student", "student_name", "exam_title",
+            "subject", "duration_seconds", "score", "total_marks", "percentage",
+            "passed", "correct_count", "incorrect_count", "unanswered_count",
+            "graded_at", "created_at",
         ]
         read_only_fields = fields
 
     def get_student_name(self, obj):
         if obj.student and obj.student.user_id:
             return obj.student.user.full_name
-        # Anonymous public attempt: fall back to the attempt's captured name.
         if obj.attempt_id:
             return obj.attempt.student_name or ""
         return ""
+
+    def get_exam_title(self, obj):
+        return obj.exam.title if obj.exam_id else ""
+
+    def get_subject(self, obj):
+        return obj.exam.subject if obj.exam_id else ""
+
+    def get_duration_seconds(self, obj):
+        if obj.attempt_id:
+            return obj.attempt.duration_seconds
+        return 0
 

@@ -104,7 +104,7 @@ export interface ExamAttempt {
   id: string
   examId: string
   examTitle: string
-  course: string
+  subject: string
   date: string
   score: number
   totalMarks: number

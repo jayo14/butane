@@ -17,12 +17,13 @@ from .models import Attempt, AttemptAnswer, Result
 def grade_attempt(attempt: Attempt) -> Result:
     """Grade a submitted attempt, persist ``AttemptAnswer`` correctness, and store the ``Result``.
 
-    Returns the (possibly updated) ``Result``. Does not enforce submission
-    state — callers are responsible for marking ``attempt.status`` and
-    ``submitted_at`` before/after as appropriate.
+    ``total_marks`` is computed from the exam's actual questions so it is
+    accurate even when the teacher did not set ``Exam.total_marks`` manually.
+    ``duration_seconds`` is backfilled from ``started_at`` / ``submitted_at``
+    if the client did not send it.
     """
     exam = attempt.exam
-    total_marks = exam.total_marks or 0
+    total_marks = sum(exam.questions.values_list("marks", flat=True)) or 0
 
     correct = incorrect = unanswered = 0
     earned = 0.0
@@ -46,6 +47,10 @@ def grade_attempt(attempt: Attempt) -> Result:
 
     percentage = round((earned / total_marks) * 100, 2) if total_marks else 0.0
     passed = earned >= exam.passing_marks
+
+    if attempt.duration_seconds == 0 and attempt.started_at and attempt.submitted_at:
+        attempt.duration_seconds = int((attempt.submitted_at - attempt.started_at).total_seconds())
+        attempt.save(update_fields=["duration_seconds", "updated_at"])
 
     result, _ = Result.objects.update_or_create(
         attempt=attempt,

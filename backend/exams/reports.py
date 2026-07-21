@@ -223,7 +223,8 @@ class QuestionStatisticsView(APIView):
                         "result_id": serializers.UUIDField(),
                         "exam_id": serializers.UUIDField(),
                         "exam_title": serializers.CharField(),
-                        "course": serializers.CharField(),
+                        "subject": serializers.CharField(),
+                        "duration_seconds": serializers.IntegerField(),
                         "percentage": serializers.FloatField(),
                         "score": serializers.FloatField(),
                         "total_marks": serializers.FloatField(),
@@ -262,7 +263,8 @@ class StudentHistoryView(APIView):
                 "result_id": str(r.id),
                 "exam_id": str(r.exam.id),
                 "exam_title": r.exam.title,
-                "course": r.exam.course,
+                "subject": r.exam.subject,
+                "duration_seconds": r.attempt.duration_seconds,
                 "percentage": r.percentage,
                 "score": r.score,
                 "total_marks": r.total_marks,
@@ -272,7 +274,7 @@ class StudentHistoryView(APIView):
                 "unanswered_count": r.unanswered_count,
                 "graded_at": r.graded_at,
             }
-            for r in results.order_by("-created_at")
+            for r in results.select_related("attempt").order_by("-created_at")
         ]
 
         return Response(

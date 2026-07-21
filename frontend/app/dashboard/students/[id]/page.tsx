@@ -22,12 +22,12 @@ export default async function StudentProfilePage({
       id: a.id || `${id}-${a.exam}`,
       examId: a.exam,
       examTitle: a.exam_title || "Unknown",
-      course: a.course || "",
+      subject: a.subject || "",
       date: a.submitted_at || a.created_at || "",
       score: a.score ?? 0,
       totalMarks: a.total_marks ?? 100,
       passed: a.passed ?? false,
-      duration: a.duration_seconds ? Math.round(a.duration_seconds / 60) : 0,
+      duration: a.duration_seconds || 0,
     })) || []
 
     const scores = attempts.map((a: any) => (a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0))

@@ -48,12 +48,12 @@ export function ResultsPageClient() {
         id: r.id,
         examId: r.exam,
         examTitle: r.exam_title,
-        course: r.course,
+        subject: r.subject,
         date: r.graded_at,
         score: r.score,
         totalMarks: r.total_marks,
         passed: r.passed,
-        duration: 0,
+        duration: r.duration_seconds || 0,
         studentName: r.student_name || "",
       })))
       setStudents(students.map((s: any) => ({
@@ -82,7 +82,7 @@ export function ResultsPageClient() {
       result = result.filter(
         (a) =>
           a.examTitle.toLowerCase().includes(q) ||
-          a.course.toLowerCase().includes(q) ||
+          a.subject.toLowerCase().includes(q) ||
           a.id.toLowerCase().includes(q),
       )
     }
@@ -246,7 +246,7 @@ export function ResultsPageClient() {
                 <tr className="border-b border-border-primary bg-surface-secondary text-left text-xs font-medium text-content-muted">
                   <th className="px-4 py-3 md:px-6">Student</th>
                   <th className="px-4 py-3 md:px-6">Exam</th>
-                  <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Course</th>
+                  <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Subject</th>
                   <th className="px-4 py-3 md:px-6 hidden md:table-cell">Date</th>
                   <th className="px-4 py-3 md:px-6">Score</th>
                   <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Duration</th>
@@ -270,7 +270,7 @@ export function ResultsPageClient() {
                         <span className="text-sm text-content-primary">{attempt.examTitle}</span>
                       </td>
                       <td className="px-4 py-3.5 md:px-6 hidden sm:table-cell">
-                        <span className="text-sm text-content-muted">{attempt.course}</span>
+                        <span className="text-sm text-content-muted">{attempt.subject}</span>
                       </td>
                       <td className="px-4 py-3.5 md:px-6 hidden md:table-cell">
                         <span className="text-sm text-content-muted">{formatDate(attempt.date)}</span>

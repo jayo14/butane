@@ -61,7 +61,7 @@ export function StudentProfileClient({ student }: StudentProfileClientProps) {
     const q = search.toLowerCase()
     return student.attempts.filter(
       (a) =>
-        a.examTitle.toLowerCase().includes(q) || a.course.toLowerCase().includes(q),
+        a.examTitle.toLowerCase().includes(q) || a.subject.toLowerCase().includes(q),
     )
   }, [student.attempts, search])
 
@@ -266,7 +266,7 @@ export function StudentProfileClient({ student }: StudentProfileClientProps) {
                         <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-content-muted">
                           <span className="flex items-center gap-1">
                             <BookOpen size={12} />
-                            {attempt.course}
+                            {attempt.subject}
                           </span>
                           <span className="flex items-center gap-1">
                             <Calendar size={12} />

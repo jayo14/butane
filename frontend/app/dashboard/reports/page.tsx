@@ -8,12 +8,12 @@ export default async function ReportsPage() {
       id: r.id,
       examId: r.exam,
       examTitle: r.exam_title,
-      course: r.course,
+      subject: r.subject,
       date: r.graded_at,
       score: r.score,
       totalMarks: r.total_marks,
       passed: r.passed,
-      duration: 0,
+      duration: r.duration_seconds || 0,
       studentName: r.student_name,
     }))
 
