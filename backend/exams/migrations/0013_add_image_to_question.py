@@ -14,7 +14,6 @@ class Migration(migrations.Migration):
             database_operations=[
                 migrations.RunSQL(
                     "ALTER TABLE exams_question ADD COLUMN IF NOT EXISTS image varchar(500) NULL",
-                    reverse_sql=migrations.RunSQL.no_work,
                 ),
             ],
             state_operations=[
