@@ -111,7 +111,8 @@ export interface ExamAttempt {
   totalMarks: number
   passed: boolean
   duration: number
-  studentName?: string
+  studentName: string
+  studentGrade?: string
 }
 
 export interface StudentWithResults {

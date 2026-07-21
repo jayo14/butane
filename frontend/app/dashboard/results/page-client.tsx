@@ -12,6 +12,7 @@ import {
   Filter,
   Loader2,
   MoreHorizontal,
+  Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -32,9 +33,13 @@ export function ResultsPageClient() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [examFilter, setExamFilter] = useState("all")
+  const [subjectFilter, setSubjectFilter] = useState("all")
   const [statusFilter, setStatusFilter] = useState("all")
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [deleting, setDeleting] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   useEffect(() => {
     Promise.all([
@@ -48,6 +53,7 @@ export function ResultsPageClient() {
         examId: r.exam,
         examTitle: r.exam_title,
         subject: r.subject,
+        studentGrade: r.student_grade || "",
         date: r.graded_at,
         score: r.score,
         totalMarks: r.total_marks,
@@ -73,6 +79,11 @@ export function ResultsPageClient() {
     return Array.from(set).sort()
   }, [attempts])
 
+  const subjectNames = useMemo(() => {
+    const set = new Set(attempts.map((a) => a.subject).filter(Boolean))
+    return Array.from(set).sort()
+  }, [attempts])
+
   const filtered = useMemo(() => {
     let result = attempts
 
@@ -82,7 +93,7 @@ export function ResultsPageClient() {
         (a) =>
           a.examTitle.toLowerCase().includes(q) ||
           a.subject.toLowerCase().includes(q) ||
-          a.id.toLowerCase().includes(q),
+          a.studentName.toLowerCase().includes(q),
       )
     }
 
@@ -90,20 +101,25 @@ export function ResultsPageClient() {
       result = result.filter((a) => a.examTitle === examFilter)
     }
 
+    if (subjectFilter !== "all") {
+      result = result.filter((a) => a.subject === subjectFilter)
+    }
+
     if (statusFilter === "passed") result = result.filter((a) => a.passed)
     else if (statusFilter === "failed") result = result.filter((a) => !a.passed)
 
     return result
-  }, [attempts, search, examFilter, statusFilter])
+  }, [attempts, search, examFilter, subjectFilter, statusFilter])
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE))
   const safePage = Math.min(currentPage, totalPages)
   const paginated = filtered.slice((safePage - 1) * ITEMS_PER_PAGE, safePage * ITEMS_PER_PAGE)
 
-  const filtersActive = examFilter !== "all" || statusFilter !== "all"
+  const filtersActive = examFilter !== "all" || subjectFilter !== "all" || statusFilter !== "all"
 
   function clearFilters() {
     setExamFilter("all")
+    setSubjectFilter("all")
     setStatusFilter("all")
   }
 
@@ -160,7 +176,7 @@ export function ResultsPageClient() {
             Filters
             {filtersActive && (
               <span className="ml-1 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] text-white">
-                {(examFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}
+                {(examFilter !== "all" ? 1 : 0) + (subjectFilter !== "all" ? 1 : 0) + (statusFilter !== "all" ? 1 : 0)}
               </span>
             )}
           </Button>
@@ -183,6 +199,19 @@ export function ResultsPageClient() {
                 >
                   <option value="all">All Exams</option>
                   {examNames.map((name) => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-medium text-content-muted">Subject</label>
+                <select
+                  value={subjectFilter}
+                  onChange={(e) => { setSubjectFilter(e.target.value); setCurrentPage(1); setSelectedIds(new Set()) }}
+                  className="h-9 rounded-lg border border-border-primary bg-white px-3 text-sm text-content-primary focus-visible:outline-2 focus-visible:outline-primary"
+                >
+                  <option value="all">All Subjects</option>
+                  {subjectNames.map((name) => (
                     <option key={name} value={name}>{name}</option>
                   ))}
                 </select>
@@ -237,15 +266,60 @@ export function ResultsPageClient() {
         </Card>
       )}
 
+      {selectedIds.size > 0 && (
+        <div className="mb-4 flex items-center gap-3 rounded-xl border border-danger/20 bg-danger/5 px-4 py-3">
+          <span className="text-sm text-content-primary">
+            {selectedIds.size} result{selectedIds.size > 1 ? "s" : ""} selected
+          </span>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            disabled={deleting}
+            className="ml-auto flex items-center gap-1.5 rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white transition-all hover:brightness-105 disabled:opacity-50"
+          >
+            {deleting ? (
+              <Loader2 size={14} className="animate-spin" />
+            ) : (
+              <Trash2 size={14} />
+            )}
+            Delete Selected
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelectedIds(new Set())}
+            className="text-xs text-content-muted hover:text-content-primary"
+          >
+            Clear selection
+          </button>
+        </div>
+      )}
+
       {filtered.length > 0 && (
         <>
           <div className="rounded-xl border border-border-primary bg-white overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border-primary bg-surface-secondary text-left text-xs font-medium text-content-muted">
+                  <th className="px-4 py-3 md:px-6 w-10">
+                    <input
+                      type="checkbox"
+                      checked={paginated.length > 0 && paginated.every((a) => selectedIds.has(a.id))}
+                      onChange={() => {
+                        if (paginated.every((a) => selectedIds.has(a.id))) {
+                          setSelectedIds(new Set([...selectedIds].filter((id) => !paginated.some((a) => a.id === id))))
+                        } else {
+                          const next = new Set(selectedIds)
+                          paginated.forEach((a) => next.add(a.id))
+                          setSelectedIds(next)
+                        }
+                      }}
+                      className="size-4 rounded border-border-primary accent-[#006c49]"
+                    />
+                  </th>
                   <th className="px-4 py-3 md:px-6">Student</th>
                   <th className="px-4 py-3 md:px-6">Exam</th>
                   <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Subject</th>
+                  <th className="px-4 py-3 md:px-6 hidden md:table-cell">Grade</th>
                   <th className="px-4 py-3 md:px-6 hidden md:table-cell">Date</th>
                   <th className="px-4 py-3 md:px-6">Score</th>
                   <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Duration</th>
@@ -258,8 +332,24 @@ export function ResultsPageClient() {
                   return (
                     <tr
                       key={attempt.id}
-                      className="border-b border-border-primary last:border-0 transition-colors hover:bg-surface-secondary/50"
+                      className={cn(
+                        "border-b border-border-primary last:border-0 transition-colors",
+                        selectedIds.has(attempt.id) ? "bg-primary/5" : "hover:bg-surface-secondary/50",
+                      )}
                     >
+                      <td className="px-4 py-3.5 md:px-6 w-10">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(attempt.id)}
+                          onChange={() => {
+                            const next = new Set(selectedIds)
+                            if (next.has(attempt.id)) next.delete(attempt.id)
+                            else next.add(attempt.id)
+                            setSelectedIds(next)
+                          }}
+                          className="size-4 rounded border-border-primary accent-[#006c49]"
+                        />
+                      </td>
                       <td className="px-4 py-3.5 md:px-6">
                         <span className="text-sm font-medium text-content-primary">
                           {getStudentName(attempt)}
@@ -270,6 +360,9 @@ export function ResultsPageClient() {
                       </td>
                       <td className="px-4 py-3.5 md:px-6 hidden sm:table-cell">
                         <span className="text-sm text-content-muted">{attempt.subject}</span>
+                      </td>
+                      <td className="px-4 py-3.5 md:px-6 hidden md:table-cell">
+                        <span className="text-sm text-content-muted">{attempt.studentGrade || "—"}</span>
                       </td>
                       <td className="px-4 py-3.5 md:px-6 hidden md:table-cell">
                         <span className="text-sm text-content-muted">{formatDate(attempt.date)}</span>
@@ -350,6 +443,54 @@ export function ResultsPageClient() {
             </div>
           )}
         </>
+      )}
+      {/* Delete confirmation dialog */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-border-primary bg-white p-6 shadow-xl">
+            <h3 className="mb-2 text-lg font-bold text-content-primary">Delete Results?</h3>
+            <p className="mb-6 text-sm text-content-secondary">
+              This will permanently delete {selectedIds.size} result{selectedIds.size > 1 ? "s" : ""}.
+              Students will lose access to their scores and reviews. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl border border-border-primary py-3 text-sm font-semibold text-content-primary transition-all active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true)
+                  try {
+                    await api.results.bulkDelete([...selectedIds])
+                    setAttempts((prev) => prev.filter((a) => !selectedIds.has(a.id)))
+                    setSelectedIds(new Set())
+                    setShowDeleteConfirm(false)
+                  } catch {
+                    alert("Failed to delete results. Please try again.")
+                  } finally {
+                    setDeleting(false)
+                  }
+                }}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger py-3 text-sm font-semibold text-white transition-all active:scale-95 disabled:opacity-60"
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  "Delete"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Container>
   )

@@ -8,6 +8,7 @@ from rest_framework import filters, generics, permissions, serializers, status, 
 from rest_framework.decorators import action
 from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
 from drf_spectacular.utils import extend_schema, inline_serializer
 
 from accounts.permissions import IsStudent, IsTeacher
@@ -306,8 +307,8 @@ class AttemptViewSet(viewsets.ModelViewSet):
         return _result_response(attempt, result)
 
 
-class ResultViewSet(viewsets.ReadOnlyModelViewSet):
-    """Read-only aggregated results for reporting.
+class ResultViewSet(viewsets.ModelViewSet):
+    """Aggregated results for reporting.
 
     Supports filtering (exam, student, passed, percentage range, graded date
     range), full-text search, sorting, and pagination. Queries are optimized
@@ -321,6 +322,7 @@ class ResultViewSet(viewsets.ReadOnlyModelViewSet):
     ordering_fields = ["percentage", "score", "correct_count", "graded_at", "created_at"]
     ordering = ["-created_at"]
     permission_classes = [IsTeacher]
+    parser_classes = [JSONParser]
 
     def get_queryset(self):
         qs = Result.objects.filter(is_deleted=False).select_related(
@@ -332,3 +334,15 @@ class ResultViewSet(viewsets.ReadOnlyModelViewSet):
             if teacher:
                 qs = qs.filter(exam__created_by=teacher)
         return qs
+
+    def perform_destroy(self, instance):
+        instance.is_deleted = True
+        instance.save(update_fields=["is_deleted", "updated_at"])
+
+    @action(detail=False, methods=["post"], url_path="bulk-delete")
+    def bulk_delete(self, request):
+        ids = request.data.get("ids", [])
+        if not ids:
+            return Response({"detail": "No IDs provided."}, status=status.HTTP_400_BAD_REQUEST)
+        count = self.get_queryset().filter(id__in=ids).update(is_deleted=True, updated_at=timezone.now())
+        return Response({"deleted": count})

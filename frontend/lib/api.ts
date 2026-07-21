@@ -256,6 +256,7 @@ export interface ApiResult {
   exam: string
   student: string
   student_name: string
+  student_grade: string
   exam_title: string
   subject: string
   duration_seconds: number
@@ -566,6 +567,8 @@ export const api = {
   results: {
     list: (params?: { exam?: string; student?: string; passed?: boolean; page?: number }) =>
       apiFetch<PaginatedResponse<ApiResult>>(`results/${buildQuery(params || {})}`),
+    delete: (id: string) => apiFetch<void>(`results/${id}/`, { method: "DELETE" }),
+    bulkDelete: (ids: string[]) => apiFetch<{ deleted: number }>("results/bulk-delete/", { method: "POST", body: JSON.stringify({ ids }) }),
   },
 
   reports: {
