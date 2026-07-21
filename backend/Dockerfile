@@ -39,8 +39,11 @@ RUN pip install --no-cache-dir --no-index --find-links=/wheels -r requirements.t
 
 COPY . /app
 
-RUN mkdir -p /app/staticfiles /app/media /app/core/logs \
-    && chown -R appuser:appuser /app
+RUN mkdir -p /app/staticfiles /app/media /app/core/logs
+
+RUN python manage.py collectstatic --noinput
+
+RUN chown -R appuser:appuser /app
 
 USER appuser
 
