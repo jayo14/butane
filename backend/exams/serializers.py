@@ -75,7 +75,7 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             "duration_minutes", "total_marks", "passing_marks", "passing_percentage",
             "available_from", "available_to", "shuffle_questions", "shuffle_answers",
             "show_result", "allow_review", "is_public", "public_url",
-            "published_at", "archived_at", "questions", "created_at", "updated_at",
+            "published_at", "archived_at", "short_code", "questions", "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "created_at", "updated_at", "created_by", "status", "is_public",
@@ -111,6 +111,19 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             question.setdefault("order", index)
             question_serializer.create({**question, "exam": exam})
         return exam
+
+    def update(self, instance, validated_data):
+        questions = validated_data.pop("questions", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if questions is not None:
+            instance.questions.all().delete()
+            qs = QuestionSerializer()
+            for index, question in enumerate(questions, start=1):
+                question.setdefault("order", index)
+                qs.create({**question, "exam": instance})
+        return instance
 
     def update(self, instance, validated_data):
         questions = validated_data.pop("questions", None)

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Clock, Users, Shuffle, Eye, Lock, Calendar, Check } from "lucide-react"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 import type { BasicInfoValues } from "../create-exam-wizard"
 import type { Question, ExamSettings } from "@/types/exam"
 
@@ -103,7 +104,7 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
                   {i + 1}
                 </span>
                 <p className="text-sm font-medium" style={{ color: "#121c2a" }}>
-                  {q.text}
+                  <LatexRenderer text={q.text} />
                 </p>
                 <span className="ml-auto text-xs" style={{ color: "#6c7a71" }}>
                   {totalMarks > 0 ? `${1} mark` : ""}
@@ -131,7 +132,7 @@ export function ReviewPublishStep({ basicInfo, questions, settings }: ReviewPubl
                       >
                         {["A", "B", "C", "D"][oi]}
                       </span>
-                      {opt.text}
+                      <LatexRenderer text={opt.text} />
                       {isCorrect && <Check size={14} className="ml-auto shrink-0" />}
                     </div>
                   )
