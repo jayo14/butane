@@ -9,6 +9,7 @@ interface QuestionViewProps {
     id: string
     number: number
     text: string
+    image?: string | null
     options: { id: string; label: string; text: string }[]
   }
   selectedAnswer: string | null
@@ -24,10 +25,10 @@ export function QuestionView({ question, selectedAnswer, onSelect }: QuestionVie
         <p className="text-lg font-semibold leading-relaxed text-content-primary md:text-xl" tabIndex={0}>
           <LatexRenderer text={question.text} />
         </p>
-        {(question as any).image && (
+        {question.image && (
           <div className="mt-3">
             <img
-              src={(question as any).image}
+              src={question.image}
               alt="Question illustration"
               className="max-h-48 w-auto rounded-lg border object-contain"
               style={{ borderColor: "#bbcabf" }}

@@ -19,6 +19,7 @@ interface ReviewQuestion {
   id: string
   number: number
   text: string
+  image?: string | null
   options: { id: string; label: string; text: string }[]
   correctAnswerId: string
 }
@@ -75,6 +76,7 @@ export function ExamReviewClient() {
           id: q.id,
           number: q.number,
           text: q.text,
+          image: q.image,
           options: q.options,
           correctAnswerId: "",
         })))
@@ -424,10 +426,10 @@ export function ExamReviewClient() {
                   >
                     <LatexRenderer text={q.text} />
                   </h3>
-                  {(q as any).image && (
+                  {q.image && (
                     <div className="mt-3">
                       <img
-                        src={(q as any).image}
+                        src={q.image}
                         alt="Question illustration"
                         className="max-h-48 w-auto rounded-lg border object-contain"
                         style={{ borderColor: "#bbcabf" }}
