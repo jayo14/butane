@@ -15,7 +15,7 @@ interface QuestionViewProps {
   onSelect: (optionId: string) => void
 }
 
-const OPTION_LABELS = ["1", "2", "3", "4"]
+const OPTION_LABELS = ["A", "B", "C", "D"]
 
 export function QuestionView({ question, selectedAnswer, onSelect }: QuestionViewProps) {
   return (
