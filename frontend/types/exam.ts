@@ -8,6 +8,7 @@ export interface Question {
   id: string
   number: number
   text: string
+  image?: string
   options: QuestionOption[]
   correctAnswerId: string
   points: number

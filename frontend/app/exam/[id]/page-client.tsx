@@ -78,7 +78,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
         <div className="absolute inset-0" style={{ backgroundColor: "rgba(0,0,0,0.05)" }} />
       </div>
 
-      <main className="min-h-screen w-full flex items-center justify-center p-6 relative z-10">
+      <main className="min-h-screen w-full flex items-center justify-center p-3 md:p-6 relative z-10">
         <section
           className="max-w-3xl w-full overflow-hidden rounded-xl border"
           style={{
@@ -88,16 +88,32 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
           }}
         >
           <div className="flex flex-col">
-            <div className="w-full text-center pt-14 pb-8 px-8">
+            <div className="w-full text-center pt-10 md:pt-14 pb-6 md:pb-8 px-4 md:px-8">
+              {/* Dee Soar CBT branding */}
+              <div className="flex items-center justify-center gap-2 mb-6">
+                <div
+                  className="inline-flex items-center gap-2 rounded-full px-5 py-1.5 shadow-sm"
+                  style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+                >
+                  <span
+                    className="material-symbols-outlined text-base"
+                    style={{ fontVariationSettings: "'FILL' 0, 'wght' 500" }}
+                  >
+                    school
+                  </span>
+                  <span className="text-xs font-bold uppercase tracking-wider">Dee Soar CBT</span>
+                </div>
+              </div>
+
               <div className="flex items-center justify-center gap-3 mb-3">
                 <h1
-                  className="text-[32px] font-bold leading-tight tracking-[-0.01em]"
+                  className="text-2xl md:text-[32px] font-bold leading-tight tracking-[-0.01em]"
                   style={{ color: "#006c49", fontFamily: "'Source Serif 4', serif" }}
                 >
                   {exam.title}
                 </h1>
                 <span
-                  className="rounded-full px-3 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+                  className="rounded-full px-2 md:px-3 py-0.5 text-[10px] md:text-[11px] font-bold uppercase tracking-wider"
                   style={{ backgroundColor: "#82f5c1", color: "#00422b" }}
                 >
                   {config.label}
@@ -109,8 +125,8 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
             </div>
 
             {/* Info Grid - 5 columns */}
-            <div className="px-8 mb-8">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="px-4 md:px-8 mb-6 md:mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 md:gap-3">
                 {[
                   {
                     icon: "schedule",
@@ -161,10 +177,10 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                       className="h-1 w-full transition-all group-hover:h-1.5"
                       style={{ backgroundColor: card.accent }}
                     />
-                    <div className="p-4 flex flex-col items-center gap-2 relative">
+                    <div className="p-3 md:p-4 flex flex-col items-center gap-1.5 md:gap-2 relative">
                       {/* Decorative icon background */}
                       <div
-                        className="absolute -right-3 -top-3 text-[56px] leading-none select-none transition-all group-hover:scale-110"
+                        className="absolute -right-2 md:-right-3 -top-2 md:-top-3 text-[36px] md:text-[56px] leading-none select-none transition-all group-hover:scale-110"
                         style={{
                           color: card.bgLight,
                           fontFamily: "'Material Symbols Outlined'",
@@ -195,8 +211,8 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
             </div>
 
             {/* Form - only name */}
-            <div className="w-full max-w-xl mx-auto py-4 px-8">
-              <div className="space-y-5">
+            <div className="w-full max-w-xl mx-auto py-3 md:py-4 px-4 md:px-8">
+              <div className="space-y-4 md:space-y-5">
                 <div className="space-y-1.5">
                   <label
                     className="flex items-center gap-2 ml-1 text-sm font-semibold tracking-[0.02em]"
@@ -210,7 +226,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                     value={studentName}
                     onChange={(e) => setStudentName(e.target.value)}
                     placeholder="e.g. Julian Henderson"
-                    className="w-full p-4 rounded-full border text-base transition-all outline-none"
+                    className="w-full p-3 md:p-4 rounded-full border text-sm md:text-base transition-all outline-none"
                     style={{
                       borderColor: "rgba(187,202,191,0.4)",
                       backgroundColor: "#ffffff",
@@ -220,6 +236,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                   />
                 </div>
 
+                {/* Admission Number — hidden from UI, kept for reference
                 <div className="space-y-1.5">
                   <label
                     className="flex items-center gap-2 ml-1 text-sm font-semibold tracking-[0.02em]"
@@ -242,13 +259,14 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                     }}
                   />
                 </div>
+                */}
 
 
               </div>
             </div>
 
             {/* Action */}
-            <div className="w-full text-center pt-8 pb-14 px-8">
+            <div className="w-full text-center pt-6 md:pt-8 pb-10 md:pb-14 px-4 md:px-8">
               {startError && (
                 <p className="mb-4 text-sm" style={{ color: "#ba1a1a" }}>{startError}</p>
               )}
@@ -256,7 +274,7 @@ export function StudentWelcomePageClient({ exam }: StudentWelcomePageClientProps
                 type="button"
                 onClick={handleBegin}
                 disabled={!studentName.trim() || !canStart}
-                className="group w-full md:w-auto px-12 py-5 font-bold text-base shadow-xl transition-all flex items-center justify-center gap-3 mx-auto rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                className="group w-full md:w-auto px-8 md:px-12 py-4 md:py-5 font-bold text-sm md:text-base shadow-xl transition-all flex items-center justify-center gap-3 mx-auto rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{
                   backgroundColor: canStart ? "#006c49" : "#6c7a71",
                   color: "#ffffff",

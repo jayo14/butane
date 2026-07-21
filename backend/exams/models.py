@@ -263,6 +263,7 @@ class Question(TimestampedModel):
     )
     order = models.PositiveIntegerField(default=0, db_index=True)
     text = models.TextField()
+    image = models.URLField(max_length=500, null=True, blank=True, help_text="Cloudinary image URL for the question")
     type = models.CharField(max_length=20, choices=QUESTION_TYPES, default="single_choice")
     marks = models.PositiveIntegerField(default=1)
     explanation = models.TextField(blank=True, help_text="Shown after submission if review is allowed")

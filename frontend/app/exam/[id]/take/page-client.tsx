@@ -48,6 +48,7 @@ export function ExamTakeClient() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
+  const [showMobileNav, setShowMobileNav] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const mainRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
@@ -77,8 +78,12 @@ export function ExamTakeClient() {
         if (token) {
           examData = await api.public.exam(token)
         } else if (attemptId && accessToken && examId) {
-          await api.public.resumeAttempt(attemptId, accessToken)
+          const attempt = await api.public.resumeAttempt(attemptId, accessToken)
           examData = await api.public.exam(examId)
+          if (attempt?.duration_seconds != null) {
+            const remaining = Math.max(examData.duration_minutes * 60 - attempt.duration_seconds, 0)
+            setTimeLeft(remaining)
+          }
         } else if (examId) {
           examData = await api.public.exam(examId)
         }
@@ -107,7 +112,8 @@ export function ExamTakeClient() {
 
         setExam(mappedExam)
         setQuestions(mappedQuestions)
-        setTimeLeft(mappedExam.duration * 60)
+        // Only set timeLeft from duration if not already set by resume
+        setTimeLeft((prev) => prev === 0 ? mappedExam.duration * 60 : prev)
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load exam")
       } finally {
@@ -333,10 +339,23 @@ export function ExamTakeClient() {
   return (
     <main className="flex-grow flex overflow-hidden h-screen" style={{ backgroundColor: "#eff3ff" }}>
       {/* Left Panel: Question Area (70%) */}
-      <section className="w-full lg:w-[70%] h-full p-4 md:p-10 overflow-y-auto">
+      <section className="w-full lg:w-[70%] h-full p-4 md:p-10 overflow-y-auto relative">
+        {/* Dee Soar CBT header */}
+        <div className="mb-4">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-bold uppercase tracking-wider shadow-sm"
+            style={{ backgroundColor: "#006c49", color: "#ffffff" }}
+          >
+            <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 0, 'wght' 500" }}>
+              school
+            </span>
+            Dee Soar CBT
+          </span>
+        </div>
+
         <div className="max-w-4xl mx-auto space-y-6">
           {/* Question Card */}
-          <div className="bg-white rounded-xl p-6 md:p-10 shadow-sm border" style={{ borderColor: "#bbcabf" }}>
+          <div className="bg-white rounded-xl p-4 md:p-10 shadow-sm border" style={{ borderColor: "#bbcabf" }}>
             {/* Question header */}
             <div className="flex justify-between items-start mb-6">
               <div>
@@ -352,6 +371,16 @@ export function ExamTakeClient() {
                 >
                   {question?.text ? <LatexRenderer text={question.text} /> : ""}
                 </h2>
+                {question?.image && (
+                  <div className="mt-4">
+                    <img
+                      src={question.image}
+                      alt="Question illustration"
+                      className="max-h-64 w-auto rounded-lg border object-contain"
+                      style={{ borderColor: "#bbcabf" }}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -413,14 +442,14 @@ export function ExamTakeClient() {
             </div>
 
             {/* Navigation */}
-            <div className="mt-8 md:mt-12 flex justify-between items-center">
+            <div className="mt-6 md:mt-12 flex gap-3 md:gap-0 justify-between items-center">
               <button
                 type="button"
                 onClick={() => {
                   if (currentIndex > 0) setCurrentIndex((i) => i - 1)
                 }}
                 disabled={currentIndex === 0}
-                className="px-6 md:px-8 py-3 rounded-lg text-sm font-semibold tracking-[0.02em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="flex-1 md:flex-none px-4 md:px-8 py-3 rounded-lg text-xs md:text-sm font-semibold tracking-[0.02em] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 style={{
                   color: "#006c49",
                   border: "1px solid #006c49",
@@ -434,7 +463,7 @@ export function ExamTakeClient() {
                 <button
                   type="button"
                   onClick={() => setCurrentIndex((i) => i + 1)}
-                  className="px-8 md:px-10 py-3 rounded-lg text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105 flex items-center gap-2"
+                  className="flex-1 md:flex-none px-6 md:px-10 py-3 rounded-lg text-xs md:text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105 flex items-center justify-center gap-2"
                   style={{
                     backgroundColor: "#006c49",
                     color: "#ffffff",
@@ -452,7 +481,7 @@ export function ExamTakeClient() {
                 <button
                   type="button"
                   onClick={handleSubmitClick}
-                  className="px-8 md:px-10 py-3 rounded-lg text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105"
+                  className="flex-1 md:flex-none px-6 md:px-10 py-3 rounded-lg text-xs md:text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105"
                   style={{
                     backgroundColor: "#006c49",
                     color: "#ffffff",
@@ -497,7 +526,7 @@ export function ExamTakeClient() {
         <div className="flex flex-col w-full h-full p-6 md:p-8">
           {/* Student name */}
           {studentName && (
-            <div className="mb-6 text-center">
+            <div className="mb-6 text-center shrink-0">
               <span
                 className="text-[10px] font-bold uppercase tracking-widest"
                 style={{ color: "#6c7a71" }}
@@ -514,7 +543,7 @@ export function ExamTakeClient() {
           )}
 
           {/* Timer */}
-          <div className="mb-8 text-center">
+          <div className="mb-8 text-center shrink-0">
             <div
               className="inline-flex flex-col items-center justify-center w-32 h-32 md:w-36 md:h-36 rounded-full border-4 mb-4"
               style={{
@@ -546,76 +575,79 @@ export function ExamTakeClient() {
             </h3>
           </div>
 
-          {/* Question Grid */}
-          <div className="grid grid-cols-5 gap-2 md:gap-3 mb-8">
-            {questions.map((q, i) => {
-              const isAnswered = !!answers[q.id]
-              const isFlagged = flagged.has(q.id)
-              const isCurrent = i === currentIndex
-              let bgColor = "#dee9fd"
-              let textColor = "#3c4a42"
-              let ring = ""
+          {/* Scrollable question grid area */}
+          <div className="flex-1 overflow-y-auto min-h-0 space-y-6">
+            {/* Question Grid */}
+            <div className="grid grid-cols-5 gap-2 md:gap-3">
+              {questions.map((q, i) => {
+                const isAnswered = !!answers[q.id]
+                const isFlagged = flagged.has(q.id)
+                const isCurrent = i === currentIndex
+                let bgColor = "#dee9fd"
+                let textColor = "#3c4a42"
+                let ring = ""
 
-              if (isAnswered && isCurrent) {
-                bgColor = "#006c49"
-                textColor = "#ffffff"
-                ring = "ring-4 ring-[#006c49]/10"
-              } else if (isAnswered) {
-                bgColor = "#006c49"
-                textColor = "#ffffff"
-              } else if (isCurrent) {
-                bgColor = "#10b981"
-                textColor = "#00422b"
-                ring = "ring-4 ring-[#10b981]/10 border-2 border-[#006c49]"
-              } else if (isFlagged) {
-                bgColor = "#ffdad6"
-                textColor = "#93000a"
-              }
+                if (isAnswered && isCurrent) {
+                  bgColor = "#006c49"
+                  textColor = "#ffffff"
+                  ring = "ring-4 ring-[#006c49]/10"
+                } else if (isAnswered) {
+                  bgColor = "#006c49"
+                  textColor = "#ffffff"
+                } else if (isCurrent) {
+                  bgColor = "#10b981"
+                  textColor = "#00422b"
+                  ring = "ring-4 ring-[#10b981]/10 border-2 border-[#006c49]"
+                } else if (isFlagged) {
+                  bgColor = "#ffdad6"
+                  textColor = "#93000a"
+                }
 
-              return (
-                <button
-                  key={q.id}
-                  onClick={() => setCurrentIndex(i)}
-                  className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold shadow-sm transition-all hover:brightness-95 relative ${ring}`}
-                  style={{ backgroundColor: bgColor, color: textColor }}
-                  aria-label={`Go to question ${i + 1}${isAnswered ? " (answered)" : ""}${isFlagged ? " (flagged)" : ""}`}
-                >
-                  {i + 1}
-                  {isFlagged && (
-                    <span
-                      className="absolute top-0.5 right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 rounded-full"
-                      style={{ backgroundColor: "#ba1a1a" }}
-                    />
-                  )}
-                </button>
-              )
-            })}
-          </div>
-
-          {/* Legend */}
-          <div
-            className="space-y-3 p-4 md:p-5 rounded-xl border"
-            style={{ backgroundColor: "#eff3ff", borderColor: "#bbcabf" }}
-          >
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: "#006c49" }} />
-              <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
-                Answered
-              </span>
+                return (
+                  <button
+                    key={q.id}
+                    onClick={() => setCurrentIndex(i)}
+                    className={`aspect-square rounded-lg flex items-center justify-center text-sm font-bold shadow-sm transition-all hover:brightness-95 relative ${ring}`}
+                    style={{ backgroundColor: bgColor, color: textColor }}
+                    aria-label={`Go to question ${i + 1}${isAnswered ? " (answered)" : ""}${isFlagged ? " (flagged)" : ""}`}
+                  >
+                    {i + 1}
+                    {isFlagged && (
+                      <span
+                        className="absolute top-0.5 right-0.5 w-1.5 h-1.5 md:w-2 md:h-2 rounded-full"
+                        style={{ backgroundColor: "#ba1a1a" }}
+                      />
+                    )}
+                  </button>
+                )
+              })}
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded" style={{ backgroundColor: "#dee9fd" }} />
-              <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
-                Unanswered
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-4 h-4 rounded relative" style={{ backgroundColor: "#ffdad6" }}>
-                <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#ba1a1a" }} />
+
+            {/* Legend */}
+            <div
+              className="space-y-3 p-4 md:p-5 rounded-xl border"
+              style={{ backgroundColor: "#eff3ff", borderColor: "#bbcabf" }}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#006c49" }} />
+                <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+                  Answered
+                </span>
               </div>
-              <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
-                Flagged
-              </span>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded" style={{ backgroundColor: "#dee9fd" }} />
+                <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+                  Unanswered
+                </span>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="w-4 h-4 rounded relative" style={{ backgroundColor: "#ffdad6" }}>
+                  <span className="absolute top-0 right-0 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#ba1a1a" }} />
+                </div>
+                <span className="text-xs font-semibold tracking-[0.02em]" style={{ color: "#3c4a42" }}>
+                  Flagged
+                </span>
+              </div>
             </div>
           </div>
 
@@ -623,14 +655,14 @@ export function ExamTakeClient() {
           <button
             type="button"
             onClick={handleSubmitClick}
-            className="mt-auto w-full py-4 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md"
+            className="mt-auto w-full py-4 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md shrink-0"
             style={{ backgroundColor: "#006c49", color: "#ffffff" }}
           >
             Submit Assessment
           </button>
 
           {/* Keyboard shortcut hint */}
-          <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>
+          <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-wider shrink-0" style={{ color: "#6c7a71" }}>
             <kbd className="mx-0.5 rounded border px-1 py-0.5" style={{ borderColor: "#bbcabf" }}>1-4</kbd> Select
             <kbd className="mx-0.5 rounded border px-1 py-0.5" style={{ borderColor: "#bbcabf" }}>←→</kbd> Navigate
             <kbd className="mx-0.5 rounded border px-1 py-0.5" style={{ borderColor: "#bbcabf" }}>F</kbd> Flag
@@ -643,13 +675,10 @@ export function ExamTakeClient() {
       <div className="lg:hidden fixed bottom-6 right-6 z-20">
         <button
           type="button"
-          onClick={() => {
-            const aside = document.querySelector("aside")
-            if (aside) aside.classList.toggle("hidden")
-          }}
-          className="flex size-14 items-center justify-center rounded-full shadow-lg"
+          onClick={() => setShowMobileNav(true)}
+          className="flex size-14 items-center justify-center rounded-full shadow-lg active:scale-95 transition-transform"
           style={{ backgroundColor: "#006c49", color: "#ffffff" }}
-          aria-label="Toggle question navigator"
+          aria-label="Open question navigator"
         >
           <span
             className="material-symbols-outlined"
@@ -659,6 +688,99 @@ export function ExamTakeClient() {
           </span>
         </button>
       </div>
+
+      {/* Mobile sidebar overlay */}
+      {showMobileNav && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-black/40" onClick={() => setShowMobileNav(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-[85vw] max-w-sm flex flex-col shadow-2xl"
+               style={{ backgroundColor: "#ffffff" }}>
+            <div className="flex items-center justify-between p-4 border-b shrink-0" style={{ borderColor: "#bbcabf" }}>
+              <span className="text-sm font-bold" style={{ color: "#121c2a" }}>Question Navigator</span>
+              <button
+                type="button"
+                onClick={() => setShowMobileNav(false)}
+                className="flex size-8 items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              {/* Student name */}
+              {studentName && (
+                <div className="mb-4 text-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#6c7a71" }}>Student</span>
+                  <p className="text-sm font-semibold truncate mt-0.5" style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}>{studentName}</p>
+                </div>
+              )}
+              {/* Timer */}
+              <div className="mb-4 text-center">
+                <div className="inline-flex flex-col items-center justify-center w-28 h-28 rounded-full border-4 mb-3"
+                  style={{
+                    borderColor: timeLeft < 300 ? "rgba(186,26,26,0.2)" : "rgba(0,108,73,0.2)",
+                    backgroundColor: "#f9f9ff",
+                  }}>
+                  <span className="text-[9px] font-bold uppercase tracking-widest mb-0.5" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#006c49" }}>
+                    {timeLeft < 300 ? "Urgent" : "Remaining"}
+                  </span>
+                  <span className="text-lg font-bold" style={{ color: timeLeft < 300 ? "#ba1a1a" : "#121c2a", fontFamily: "'Source Serif 4', serif" }}>
+                    {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+                  </span>
+                </div>
+              </div>
+              {/* Question Grid */}
+              <div className="grid grid-cols-5 gap-2 mb-4">
+                {questions.map((q, i) => {
+                  const isAnswered = !!answers[q.id]
+                  const isFlagged = flagged.has(q.id)
+                  const isCurrent = i === currentIndex
+                  let bgColor = "#dee9fd"
+                  let textColor = "#3c4a42"
+                  let ring = ""
+                  if (isAnswered && isCurrent) { bgColor = "#006c49"; textColor = "#ffffff"; ring = "ring-4 ring-[#006c49]/10" }
+                  else if (isAnswered) { bgColor = "#006c49"; textColor = "#ffffff" }
+                  else if (isCurrent) { bgColor = "#10b981"; textColor = "#00422b"; ring = "ring-4 ring-[#10b981]/10 border-2 border-[#006c49]" }
+                  else if (isFlagged) { bgColor = "#ffdad6"; textColor = "#93000a" }
+                  return (
+                    <button key={q.id} onClick={() => { setCurrentIndex(i); setShowMobileNav(false) }}
+                      className={`aspect-square rounded-lg flex items-center justify-center text-xs font-bold shadow-sm transition-all relative ${ring}`}
+                      style={{ backgroundColor: bgColor, color: textColor }}
+                      aria-label={`Go to question ${i + 1}`}>
+                      {i + 1}
+                      {isFlagged && <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full" style={{ backgroundColor: "#ba1a1a" }} />}
+                    </button>
+                  )
+                })}
+              </div>
+              {/* Legend */}
+              <div className="space-y-2 p-3 rounded-xl border mb-4" style={{ backgroundColor: "#eff3ff", borderColor: "#bbcabf" }}>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: "#006c49" }} />
+                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Answered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded" style={{ backgroundColor: "#dee9fd" }} />
+                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Unanswered</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded relative" style={{ backgroundColor: "#ffdad6" }}>
+                    <span className="absolute top-0 right-0 w-1 h-1 rounded-full" style={{ backgroundColor: "#ba1a1a" }} />
+                  </div>
+                  <span className="text-[11px] font-semibold" style={{ color: "#3c4a42" }}>Flagged</span>
+                </div>
+              </div>
+            </div>
+            {/* Submit button inside drawer */}
+            <div className="p-4 border-t shrink-0" style={{ borderColor: "#bbcabf" }}>
+              <button type="button" onClick={handleSubmitClick}
+                className="w-full py-3.5 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md"
+                style={{ backgroundColor: "#006c49", color: "#ffffff" }}>
+                Submit Assessment
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Submit confirmation dialog */}
       {showSubmitConfirm && (

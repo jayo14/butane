@@ -6,6 +6,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ChevronDown, ChevronRight, Plus, Trash2, Copy, ArrowUp, ArrowDown, MoreHorizontal } from "lucide-react"
 import type { Question } from "@/types/exam"
 import { LatexRenderer } from "@/components/ui/latex-renderer"
+import { ImageUploader } from "@/components/ui/image-uploader"
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
@@ -133,6 +134,11 @@ export function QuestionCard({
         <span className="flex-1 truncate font-medium" style={{ color: "#121c2a" }}>
           <LatexRenderer text={question.text || "Untitled question"} />
         </span>
+        {question.image && (
+          <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider" style={{ color: "#006c49" }}>
+            📷
+          </span>
+        )}
         {correctLabel && (
           <span className="shrink-0 text-[10px] font-bold uppercase" style={{ color: "#006c49" }}>
             {correctLabel}
@@ -252,6 +258,16 @@ export function QuestionCard({
           {errors.text && <p className="mt-1 text-[10px] font-medium" style={{ color: "#ba1a1a" }}>{errors.text}</p>}
         </div>
 
+        {/* Image */}
+        <div>
+          <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>Image (optional)</label>
+          <ImageUploader
+            imageUrl={question.image}
+            onUpload={(url) => onChange({ ...question, image: url })}
+            onRemove={() => onChange({ ...question, image: undefined })}
+          />
+        </div>
+
         {/* Options */}
         <div>
           <label className="mb-1.5 block text-[10px] font-bold uppercase tracking-wider" style={{ color: "#6c7a71" }}>Options</label>
@@ -273,13 +289,20 @@ export function QuestionCard({
                       {option.label}
                     </span>
                   </label>
-                  <input
-                    value={option.text}
-                    onChange={(e) => updateOption(option.id, e.target.value)}
-                    placeholder={`Option ${option.label}...`}
-                    className="min-w-0 flex-1 rounded border bg-white px-2 py-1.5 text-xs outline-none transition-all focus:border-[#006c49]/50"
-                    style={{ borderColor: "#bbcabf", color: "#121c2a" }}
-                  />
+                  <div className="min-w-0 flex-1">
+                    <input
+                      value={option.text}
+                      onChange={(e) => updateOption(option.id, e.target.value)}
+                      placeholder={`Option ${option.label}...`}
+                      className="w-full rounded border bg-white px-2 py-1.5 text-xs outline-none transition-all focus:border-[#006c49]/50"
+                      style={{ borderColor: "#bbcabf", color: "#121c2a" }}
+                    />
+                    {option.text && (
+                      <div className="mt-0.5 rounded bg-gray-50 px-2 py-1 text-xs leading-relaxed" style={{ color: "#6c7a71" }}>
+                        <LatexRenderer text={option.text} />
+                      </div>
+                    )}
+                  </div>
                   {isCorrect && (
                     <span className="shrink-0 text-[9px] font-bold uppercase tracking-wider" style={{ color: "#006c49" }}>Correct</span>
                   )}

@@ -18,7 +18,7 @@ class QuestionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Question
-        fields = ["id", "order", "text", "type", "marks", "explanation", "choices"]
+        fields = ["id", "order", "text", "image", "type", "marks", "explanation", "choices"]
         read_only_fields = ["id"]
 
     def validate_choices(self, choices):

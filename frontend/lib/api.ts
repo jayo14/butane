@@ -219,6 +219,7 @@ export interface ApiQuestion {
   exam: string
   order: number
   text: string
+  image?: string | null
   type: "single_choice" | "multiple_choice" | "true_false"
   marks: number
   explanation: string
@@ -260,6 +261,7 @@ export interface ApiPublicQuestion {
   id: string
   number: number
   text: string
+  image?: string | null
   type: string
   marks: number
   options: { id: string; label: string; text: string }[]
@@ -556,6 +558,26 @@ export const api = {
     examStats: (examId: string) => apiFetch<any>(`reports/exams/${examId}/`),
     questionStats: (examId: string) => apiFetch<any[]>(`reports/exams/${examId}/questions/`),
     studentHistory: (studentId: string) => apiFetch<any>(`reports/students/${studentId}/`),
+  },
+
+  upload: {
+    image: async (file: File): Promise<{ url: string }> => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+      const formData = new FormData()
+      formData.append("file", file)
+      const headers: Record<string, string> = {}
+      if (token) headers["Authorization"] = `Bearer ${token}`
+      const res = await fetch(`${BASE_URL}/api/upload/`, {
+        method: "POST",
+        headers,
+        body: formData,
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new ApiError(res.status, body.detail || "Upload failed")
+      }
+      return res.json()
+    },
   },
 
   health: () => apiFetch<{ status: string; database: string }>("health/"),

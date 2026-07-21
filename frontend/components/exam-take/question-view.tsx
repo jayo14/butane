@@ -24,6 +24,16 @@ export function QuestionView({ question, selectedAnswer, onSelect }: QuestionVie
         <p className="text-lg font-semibold leading-relaxed text-content-primary md:text-xl" tabIndex={0}>
           <LatexRenderer text={question.text} />
         </p>
+        {(question as any).image && (
+          <div className="mt-3">
+            <img
+              src={(question as any).image}
+              alt="Question illustration"
+              className="max-h-48 w-auto rounded-lg border object-contain"
+              style={{ borderColor: "#bbcabf" }}
+            />
+          </div>
+        )}
       </div>
 
       <div className="space-y-3" role="radiogroup" aria-label="Answer options">

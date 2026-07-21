@@ -424,6 +424,16 @@ export function ExamReviewClient() {
                   >
                     <LatexRenderer text={q.text} />
                   </h3>
+                  {(q as any).image && (
+                    <div className="mt-3">
+                      <img
+                        src={(q as any).image}
+                        alt="Question illustration"
+                        className="max-h-48 w-auto rounded-lg border object-contain"
+                        style={{ borderColor: "#bbcabf" }}
+                      />
+                    </div>
+                  )}
 
                   {/* Answer display */}
                   {isAnswered && selectedOption ? (

@@ -13,6 +13,7 @@ from drf_spectacular.views import (
     SpectacularRedocView,
     SpectacularSwaggerView,
 )
+from exams.upload_views import ImageUploadView
 
 
 def health(request):
@@ -31,6 +32,7 @@ urlpatterns = [
     path("health/", health, name="health"),
     # REST API
     path("api/accounts/", include("accounts.urls")),
+    path("api/upload/", ImageUploadView.as_view(), name="image-upload"),
     path("api/", include("exams.urls")),
     # OpenAPI schema + docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
