@@ -68,14 +68,20 @@ export function ReportsClient() {
   const [distribution, setDistribution] = useState<DistributionBucket[]>([])
   const [gradeAverages] = useState<GradeAverage[]>([])
   const [attempts, setAttempts] = useState<ExamAttempt[]>([])
+  const [selectedExamId, setSelectedExamId] = useState("")
+  const [examOptions, setExamOptions] = useState<{ id: string; title: string }[]>([])
+  const [questionStats, setQuestionStats] = useState<any[]>([])
+  const [questionStatsLoading, setQuestionStatsLoading] = useState(false)
 
   useEffect(() => {
     async function load() {
       try {
-        const [resultsRes, studentsRes] = await Promise.all([
+        const [resultsRes, studentsRes, examsRes] = await Promise.all([
           api.results.list(),
           api.students.list().catch(() => ({ results: [] })),
+          api.exams.list({ page_size: 100 }).catch(() => ({ results: [] })),
         ])
+        setExamOptions(((examsRes as any)?.results || []).map((e: any) => ({ id: e.id, title: e.title })))
         const allAttempts = (resultsRes?.results || []).map((r: any) => ({
           id: r.id,
           examId: r.exam,
@@ -120,6 +126,15 @@ export function ReportsClient() {
     }
     load()
   }, [])
+
+  useEffect(() => {
+    if (!selectedExamId) { setQuestionStats([]); return }
+    setQuestionStatsLoading(true)
+    api.reports.questionStats(selectedExamId)
+      .then((data: any) => setQuestionStats((data?.questions || []).sort((a: any, b: any) => a.correct_rate - b.correct_rate)))
+      .catch(() => setQuestionStats([]))
+      .finally(() => setQuestionStatsLoading(false))
+  }, [selectedExamId])
 
   const maxDistCount = Math.max(...distribution.map((d) => d.count), 1)
   const maxGradeCount = Math.max(...gradeAverages.map((g) => g.count), 1)
@@ -247,9 +262,75 @@ export function ReportsClient() {
             title="Question Statistics"
             description="Lowest correct rate first"
           />
-          <div className="flex items-center justify-center py-12">
-            <p className="text-sm text-content-muted">Question statistics require selecting a specific exam.</p>
+          <div className="mb-3">
+            <select
+              value={selectedExamId}
+              onChange={(e) => setSelectedExamId(e.target.value)}
+              className="h-9 w-full rounded-lg border border-border-primary bg-white px-3 text-sm text-content-primary focus-visible:outline-2 focus-visible:outline-primary"
+            >
+              <option value="">Select an exam...</option>
+              {examOptions.map((ex) => (
+                <option key={ex.id} value={ex.id}>{ex.title}</option>
+              ))}
+            </select>
           </div>
+          {questionStatsLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 size={20} className="animate-spin" style={{ color: "#006c49" }} />
+            </div>
+          ) : !selectedExamId ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-sm text-content-muted">Select an exam to view question statistics.</p>
+            </div>
+          ) : questionStats.length === 0 ? (
+            <div className="flex items-center justify-center py-8">
+              <p className="text-sm text-content-muted">No attempts yet for this exam.</p>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {questionStats.map((qs: any) => (
+                <div key={qs.question_id} className="rounded-lg border border-border-primary p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate text-xs font-medium text-content-primary">
+                      Q{qs.number}. {qs.text}
+                    </span>
+                    <Badge
+                      variant={
+                        qs.correct_rate >= 70 ? "success" :
+                        qs.correct_rate >= 50 ? "warning" : "danger"
+                      }
+                      size="sm"
+                    >
+                      {qs.correct_rate}%
+                    </Badge>
+                  </div>
+                  <div className="mt-1.5 h-1.5 w-full rounded-full bg-surface-secondary overflow-hidden">
+                    <div
+                      className={cn(
+                        "h-full rounded-full",
+                        qs.correct_rate >= 70 ? "bg-success" : qs.correct_rate >= 50 ? "bg-warning" : "bg-danger",
+                      )}
+                      style={{ width: `${qs.correct_rate}%` }}
+                    />
+                  </div>
+                  <div className="mt-1 flex items-center gap-3 text-[10px] text-content-muted">
+                    <span className="flex items-center gap-1">
+                      <CheckCircle2 size={10} className="text-success" />
+                      {qs.correct_responses}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <XCircle size={10} className="text-danger" />
+                      {qs.responses - qs.correct_responses}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <HelpCircle size={10} />
+                      {qs.responses} total
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </Card>
       </div>
 
