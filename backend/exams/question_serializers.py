@@ -58,7 +58,19 @@ class QuestionSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if choices is not None:
-            instance.choices.all().delete()
-            for choice in choices:
-                Choice.objects.create(question=instance, **choice)
+            existing = {c.label: c for c in instance.choices.all()}
+            seen = set()
+            for choice_data in choices:
+                label = choice_data.get("label", "")
+                if label in existing:
+                    c = existing[label]
+                    c.text = choice_data.get("text", c.text)
+                    c.is_correct = choice_data.get("is_correct", c.is_correct)
+                    c.save(update_fields=["text", "is_correct", "updated_at"])
+                else:
+                    Choice.objects.create(question=instance, **choice_data)
+                seen.add(label)
+            for label, c in existing.items():
+                if label not in seen:
+                    c.delete()
         return instance

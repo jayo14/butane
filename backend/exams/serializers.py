@@ -131,9 +131,12 @@ class ExamDetailSerializer(serializers.ModelSerializer):
                     qs.create({**question, "exam": instance})
             for qid, q in existing.items():
                 if qid not in seen:
-                    q.answers.all().delete()
-                    q.choices.all().delete()
-                    q.delete()
+                    if q.answers.exists():
+                        q.order = 9999
+                        q.save(update_fields=["order", "updated_at"])
+                    else:
+                        q.choices.all().delete()
+                        q.delete()
         return instance
 
     def update(self, instance, validated_data):
