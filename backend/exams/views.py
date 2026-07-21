@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.conf import settings
 from django.db import models, transaction
 from django.shortcuts import get_object_or_404
-from rest_framework import filters, generics, serializers, status, viewsets
+from rest_framework import filters, generics, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import Throttled
 from rest_framework.response import Response
@@ -214,6 +214,11 @@ class AttemptViewSet(viewsets.ModelViewSet):
     ordering_fields = ["started_at", "submitted_at"]
     ordering = ["-started_at"]
     permission_classes = [IsStudent]
+
+    def get_permissions(self):
+        if self.action in ("create", "submit"):
+            return [IsStudent()]
+        return [permissions.IsAuthenticated()]
 
     @transaction.atomic
     @extend_schema(

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
@@ -9,19 +9,19 @@ import {
   Clock,
   FileText,
   Users,
-  Target,
   CheckCircle2,
   XCircle,
-  TrendingUp,
   Edit3,
   Copy,
-  Send,
+  Search,
   Trash2,
   BarChart3,
   ExternalLink,
   GraduationCap,
+  MoreHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { api, transformExam } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -59,16 +59,98 @@ const statusConfig: Record<string, { label: string; variant: "info" | "warning" 
   cancelled: { label: "Cancelled", variant: "danger" },
 }
 
-interface ExamDetailClientProps {
-  exam: Exam
-  questions: { id: string; number: number; text: string }[]
-  attempts: AttemptWithStudent[]
-  stats: ExamStats
-}
-
-export function ExamDetailClient({ exam, questions, attempts, stats }: ExamDetailClientProps) {
+export function ExamDetailClient({ examId }: { examId: string }) {
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<"overview" | "attempts">("overview")
+
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [exam, setExam] = useState<Exam | null>(null)
+  const [questions, setQuestions] = useState<{ id: string; number: number; text: string }[]>([])
+  const [attempts, setAttempts] = useState<AttemptWithStudent[]>([])
+  const [stats, setStats] = useState<ExamStats>({ totalAttempts: 0, passed: 0, failed: 0, averageScore: 0 })
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [examApi, questionsData, results] = await Promise.all([
+          api.exams.get(examId),
+          api.questions.list(examId).catch(() => []),
+          api.results.list({ exam: examId }).catch(() => ({ results: [] })),
+        ])
+
+        const transformedExam = transformExam(examApi)
+        if (!transformedExam) {
+          setError("Exam not found")
+          return
+        }
+        setExam(transformedExam)
+        const qList = Array.isArray(questionsData) ? questionsData : (questionsData as any)?.results ?? []
+        setQuestions(qList.map((q: any) => ({ id: q.id, number: q.order, text: q.text })))
+
+        const allAttempts = results.results.map((r: any) => ({
+          id: r.attempt,
+          examId: r.exam,
+          examTitle: r.exam_title,
+          subject: r.subject,
+          date: r.graded_at,
+          score: r.score,
+          totalMarks: r.total_marks,
+          passed: r.passed,
+          duration: r.duration_seconds || 0,
+          studentName: r.student_name,
+          studentGrade: "",
+        }))
+
+        setAttempts(allAttempts)
+        setStats({
+          totalAttempts: allAttempts.length,
+          passed: allAttempts.filter((a: any) => a.passed).length,
+          failed: allAttempts.filter((a: any) => !a.passed).length,
+          averageScore: allAttempts.length > 0
+            ? Math.round(allAttempts.reduce((sum: number, a: any) => {
+                const pct = a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0
+                return sum + pct
+              }, 0) / allAttempts.length)
+            : 0,
+        })
+      } catch {
+        setError("Failed to load exam details")
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [examId])
+
+  if (loading) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <div className="mx-auto mb-4 size-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="text-sm text-content-muted">Loading exam details...</p>
+          </div>
+        </div>
+      </Container>
+    )
+  }
+
+  if (error || !exam) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center py-20">
+          <div className="text-center">
+            <p className="text-danger mb-2">{error || "Something went wrong"}</p>
+            <Link href="/dashboard/exams" className="text-sm text-primary hover:underline">
+              Back to Exams
+            </Link>
+          </div>
+        </div>
+      </Container>
+    )
+  }
+
   const config = statusConfig[exam.status] ?? { label: exam.status, variant: "primary" as const }
 
   return (
@@ -103,13 +185,13 @@ export function ExamDetailClient({ exam, questions, attempts, stats }: ExamDetai
                 { key: "duplicate", label: "Duplicate", icon: <Copy size={14} /> },
                 { key: "analytics", label: "View Analytics", icon: <BarChart3 size={14} /> },
                 { key: "divider1", label: "", divider: true },
-                { key: "toggle-status", label: exam.status === "completed" ? "Republish" : "Publish", icon: <Send size={14} /> },
-                { key: "divider2", label: "", divider: true },
                 { key: "delete", label: "Delete", icon: <Trash2 size={14} />, danger: true },
               ]}
               onAction={(key) => {
                 if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
                 if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
+                if (key === "duplicate") api.exams.duplicate(exam.id).then(() => router.refresh())
+                if (key === "delete") { if (confirm("Delete this exam?")) api.exams.delete(exam.id).then(() => router.push("/dashboard/exams")) }
               }}
               variant="ghost"
               size="sm"
@@ -261,34 +343,50 @@ export function ExamDetailClient({ exam, questions, attempts, stats }: ExamDetai
             ) : (
               <div className="space-y-2">
                 {attempts.map((attempt) => {
-                  const pct = Math.round((attempt.score / attempt.totalMarks) * 100)
+                  const pct = attempt.totalMarks > 0 ? Math.round((attempt.score / attempt.totalMarks) * 100) : 0
                   return (
                     <div
                       key={attempt.id}
                       className="flex items-center justify-between rounded-lg border border-border-primary p-3 transition-colors hover:bg-surface-secondary/50"
                     >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <Link
+                        href={`/dashboard/exams/${examId}/attempts/${attempt.id}`}
+                        className="flex items-center gap-3 min-w-0 flex-1 group"
+                      >
                         <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
                           {attempt.studentName.split(" ").map((n) => n[0]).join("")}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-sm font-medium text-content-primary truncate">{attempt.studentName}</p>
+                          <p className="text-sm font-medium text-content-primary truncate group-hover:text-primary transition-colors">{attempt.studentName}</p>
                           <p className="text-xs text-content-muted">{attempt.studentGrade}</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-4 shrink-0">
+                      </Link>
+                      <div className="flex items-center gap-3 shrink-0">
                         <span className="text-sm text-content-muted hidden sm:inline">{formatDate(attempt.date)}</span>
                         <div className="text-right">
                           <p className={cn("text-sm font-semibold", pct >= 60 ? "text-success" : "text-danger")}>
-                            {attempt.score}/{attempt.totalMarks}
+                            {attempt.totalMarks > 0 ? `${attempt.score}/${attempt.totalMarks}` : "-/-"}
                           </p>
-                          <p className={cn("text-xs", pct >= 60 ? "text-success" : "text-danger")}>({pct}%)</p>
+                          <p className={cn("text-xs", pct >= 60 ? "text-success" : "text-danger")}>
+                            {attempt.totalMarks > 0 ? `(${pct}%)` : "(-%)"}
+                          </p>
                         </div>
                         {attempt.passed ? (
                           <CheckCircle2 size={18} className="text-success shrink-0" />
                         ) : (
                           <XCircle size={18} className="text-danger shrink-0" />
                         )}
+                        <Dropdown
+                          trigger={<MoreHorizontal size={16} />}
+                          items={[
+                            { key: "review", label: "Review Performance", icon: <Search size={14} /> },
+                          ]}
+                          onAction={(key) => {
+                            if (key === "review") router.push(`/dashboard/exams/${examId}/attempts/${attempt.id}`)
+                          }}
+                          variant="ghost"
+                          size="sm"
+                        />
                       </div>
                     </div>
                   )

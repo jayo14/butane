@@ -27,6 +27,7 @@ function createQuestion(number: number): Question {
     id: `q-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     number,
     text: "",
+    image: undefined,
     options: OPTION_LABELS.map((label) => ({
       id: `opt-${Math.random().toString(36).slice(2, 7)}`,
       label,
@@ -35,6 +36,9 @@ function createQuestion(number: number): Question {
     correctAnswerId: "",
     points: 1,
     difficulty: "medium",
+    tags: undefined,
+    needsReview: undefined,
+    reviewReason: undefined,
   }
 }
 

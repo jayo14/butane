@@ -18,7 +18,7 @@ import { SettingsStep } from "./steps/settings-step"
 import { ReviewPublishStep } from "./steps/review-publish-step"
 import type { Question, ExamSettings } from "@/types/exam"
 import { api, ApiError } from "@/lib/api"
-import type { ApiExam } from "@/lib/api"
+import type { ApiExam, ApiQuestion } from "@/lib/api"
 
 const DRAFT_STORAGE_KEY = "exam-wizard-draft"
 const STEP_STORAGE_KEY = "exam-wizard-step"
@@ -223,70 +223,56 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
   const contentRef = useRef<HTMLDivElement>(null)
   const [copiedShort, setCopiedShort] = useState(false)
-  const [loadedExam, setLoadedExam] = useState(false)
 
-  const isEditMode = !!(editId || initialExam) && !loadedExam
+
+  const isEditMode = !!(editId || initialExam)
 
   useEffect(() => {
-    const examId = editId || initialExam?.id
-    if (!examId) return
-    const id: string = examId
-    let cancelled = false
-    async function loadExam() {
-      try {
-        const [fullExam, questions] = await Promise.all([
-          api.exams.get(id),
-          api.questions.list(id),
-        ])
-        if (cancelled) return
+    if (!initialExam) return
+    const fullExam = initialExam as any
+    const questions: ApiQuestion[] = fullExam.questions || []
 
-        const basicInfo: BasicInfoValues = {
-          title: fullExam.title,
-          subject: fullExam.subject,
-          class: fullExam.class_group,
-          term: fullExam.term,
-          duration: fullExam.duration_minutes,
-          questionCount: fullExam.question_count,
-          instructions: fullExam.instructions || "",
-        }
-
-        const mappedQuestions: Question[] = (questions || []).map((q, i) => ({
-          id: q.id,
-          number: q.order || i + 1,
-          text: q.text,
-          options: q.choices.map((c) => ({
-            id: c.id,
-            label: c.label,
-            text: c.text,
-          })),
-          correctAnswerId: q.choices.find((c) => c.is_correct)?.id || "",
-          points: q.marks,
-          difficulty: "medium",
-        }))
-
-        const settings: ExamSettings = {
-          shuffleQuestions: fullExam.shuffle_questions || false,
-          shuffleAnswers: fullExam.shuffle_answers || false,
-          passMark: fullExam.passing_percentage || 50,
-          availableFrom: fullExam.available_from || "",
-          availableTo: fullExam.available_to || "",
-          timeLimit: fullExam.duration_minutes || 60,
-          showResult: fullExam.show_result ?? true,
-          allowReview: fullExam.allow_review ?? false,
-        }
-
-        const examDraft: ExamDraft = { basicInfo, questions: mappedQuestions, settings }
-        setDraft(examDraft)
-        saveDraftToStorage(examDraft)
-        form.reset(basicInfo)
-        setLoadedExam(true)
-      } catch {
-        // If fetch fails, keep default empty state
-      }
+    const basicInfo: BasicInfoValues = {
+      title: fullExam.title,
+      subject: fullExam.subject,
+      class: fullExam.class_group,
+      term: fullExam.term,
+      duration: fullExam.duration_minutes,
+      questionCount: fullExam.question_count,
+      instructions: fullExam.instructions || "",
     }
-    loadExam()
-    return () => { cancelled = true }
-  }, [editId, initialExam?.id])
+
+    const mappedQuestions: Question[] = questions.map((q, i) => ({
+      id: q.id,
+      number: q.order || i + 1,
+      text: q.text,
+      image: q.image || undefined,
+      options: q.choices.map((c) => ({
+        id: c.id,
+        label: c.label,
+        text: c.text,
+      })),
+      correctAnswerId: q.choices.find((c) => c.is_correct)?.id || "",
+      points: q.marks,
+      difficulty: "medium",
+    }))
+
+    const settings: ExamSettings = {
+      shuffleQuestions: fullExam.shuffle_questions || false,
+      shuffleAnswers: fullExam.shuffle_answers || false,
+      passMark: fullExam.passing_percentage || 50,
+      availableFrom: fullExam.available_from || "",
+      availableTo: fullExam.available_to || "",
+      timeLimit: fullExam.duration_minutes || 60,
+      showResult: fullExam.show_result ?? true,
+      allowReview: fullExam.allow_review ?? false,
+    }
+
+    const examDraft: ExamDraft = { basicInfo, questions: mappedQuestions, settings }
+    setDraft(examDraft)
+    saveDraftToStorage(examDraft)
+    form.reset(basicInfo)
+  }, [initialExam])
 
   useEffect(() => {
     Promise.all([
@@ -410,8 +396,9 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
         questions: draft.questions.map((q, i) => ({
           order: i + 1,
           text: q.text,
+          image: q.image || undefined,
           type: "single_choice" as const,
-          marks: 1,
+          marks: q.points || 1,
           choices: q.options.map((opt, oi) => ({
             label: String.fromCharCode(65 + oi),
             text: opt.text,
@@ -424,13 +411,13 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
       if (isEditMode && examId) {
         const updated = await api.exams.update(examId, payload)
         examId = updated.id
-        if (updated.status === "scheduled" || updated.status === "ongoing" || updated.status === "completed") {
+        if (updated.status === "draft") {
           const published = await api.exams.publish(updated.id)
           setPublishedUrl(published.public_url || `${window.location.origin}/exam/${updated.id}`)
           setShortCode(published.short_code || "")
         } else {
-          setPublishedUrl(`${window.location.origin}/dashboard/exams/${updated.id}`)
-          setShortCode("")
+          setPublishedUrl(`${window.location.origin}/exam/${updated.id}`)
+          setShortCode(updated.short_code || "")
         }
       } else {
         const created = await api.exams.create(payload)

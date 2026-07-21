@@ -23,6 +23,7 @@ class QuestionViewSet(viewsets.ModelViewSet):
 
     serializer_class = QuestionSerializer
     permission_classes = [IsTeacher]
+    pagination_class = None
 
     def get_exam(self) -> Exam:
         exam = get_object_or_404(Exam, id=self.kwargs["exam_id"], is_deleted=False)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import {
   Search,
   X,
@@ -8,20 +9,16 @@ import {
   ChevronRight,
   FileText,
   GraduationCap,
-  CheckCircle2,
-  XCircle,
-  Clock,
-  Calendar,
-  Users,
   Filter,
   Loader2,
+  MoreHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
 import { EmptyState } from "@/components/ui/empty-state"
+import { Dropdown } from "@/components/ui/dropdown"
 import { formatDate, formatDuration } from "@/lib/utils"
 import { api } from "@/lib/api"
 import type { ExamAttempt, StudentWithResults } from "@/types"
@@ -29,6 +26,7 @@ import type { ExamAttempt, StudentWithResults } from "@/types"
 const ITEMS_PER_PAGE = 10
 
 export function ResultsPageClient() {
+  const router = useRouter()
   const [attempts, setAttempts] = useState<ExamAttempt[]>([])
   const [students, setStudents] = useState<StudentWithResults[]>([])
   const [loading, setLoading] = useState(true)
@@ -46,6 +44,7 @@ export function ResultsPageClient() {
       const students = Array.isArray(studentsList) ? studentsList : (studentsList as any).results || []
       setAttempts(results.map((r) => ({
         id: r.id,
+        attemptId: r.attempt,
         examId: r.exam,
         examTitle: r.exam_title,
         subject: r.subject,
@@ -250,7 +249,7 @@ export function ResultsPageClient() {
                   <th className="px-4 py-3 md:px-6 hidden md:table-cell">Date</th>
                   <th className="px-4 py-3 md:px-6">Score</th>
                   <th className="px-4 py-3 md:px-6 hidden sm:table-cell">Duration</th>
-                  <th className="px-4 py-3 md:px-6">Status</th>
+                  <th className="px-4 py-3 md:px-6 w-10"></th>
                 </tr>
               </thead>
               <tbody>
@@ -286,28 +285,20 @@ export function ResultsPageClient() {
                       <td className="px-4 py-3.5 md:px-6 hidden sm:table-cell">
                         <span className="text-sm text-content-muted">{formatDuration(attempt.duration)}</span>
                       </td>
-                      <td className="px-4 py-3.5 md:px-6">
-                        {attempt.totalMarks > 0 && attempt.passed ? (
-                          <Badge variant="success" size="sm">
-                            <span className="flex items-center gap-1">
-                              <CheckCircle2 size={10} />
-                              Passed
-                            </span>
-                          </Badge>
-                        ) : attempt.totalMarks > 0 ? (
-                          <Badge variant="danger" size="sm">
-                            <span className="flex items-center gap-1">
-                              <XCircle size={10} />
-                              Failed
-                            </span>
-                          </Badge>
-                        ) : (
-                          <Badge variant="warning" size="sm">
-                            <span className="flex items-center gap-1">
-                              N/A
-                            </span>
-                          </Badge>
-                        )}
+                      <td className="px-4 py-3.5 md:px-6 w-10">
+                        <Dropdown
+                          trigger={<MoreHorizontal size={16} />}
+                          items={[
+                            { key: "review", label: "Review Performance", icon: <Search size={14} /> },
+                          ]}
+                          onAction={() => {
+                            if (attempt.attemptId) {
+                              router.push(`/dashboard/exams/${attempt.examId}/attempts/${attempt.attemptId}`)
+                            }
+                          }}
+                          variant="ghost"
+                          size="sm"
+                        />
                       </td>
                     </tr>
                   )

@@ -143,11 +143,12 @@ class AttemptAnswerSerializer(serializers.ModelSerializer):
 
 class AttemptSerializer(serializers.ModelSerializer):
     answers = AttemptAnswerSerializer(many=True, required=False)
+    student_name = serializers.CharField(read_only=True)
 
     class Meta:
         model = Attempt
         fields = [
-            "id", "exam", "student", "status", "started_at", "submitted_at",
+            "id", "exam", "student", "student_name", "status", "started_at", "submitted_at",
             "duration_seconds", "answers", "created_at",
         ]
         read_only_fields = ["id", "started_at", "submitted_at", "created_at"]

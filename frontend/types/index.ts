@@ -102,6 +102,7 @@ export interface StudentResultSummary {
 
 export interface ExamAttempt {
   id: string
+  attemptId?: string
   examId: string
   examTitle: string
   subject: string

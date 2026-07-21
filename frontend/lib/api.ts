@@ -241,6 +241,13 @@ export interface ApiAttempt {
   started_at: string
   submitted_at: string | null
   duration_seconds: number
+  answers?: {
+    id: string
+    question: string
+    selected_choice: string | null
+    is_correct: boolean
+    awarded_marks: number
+  }[]
 }
 
 export interface ApiResult {
