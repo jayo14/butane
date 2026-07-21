@@ -61,6 +61,11 @@ function setAccessToken(token: string) {
   localStorage.setItem("access_token", token)
 }
 
+function setRefreshToken(token: string) {
+  if (typeof window === "undefined") return
+  localStorage.setItem("refresh_token", token)
+}
+
 function clearSession() {
   if (typeof window === "undefined") return
   localStorage.removeItem("access_token")
@@ -91,6 +96,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
       }
       const data = await res.json()
       setAccessToken(data.access)
+      if (data.refresh) setRefreshToken(data.refresh)
       return data.access
     } catch {
       clearSession()
@@ -476,7 +482,7 @@ export const api = {
         body: JSON.stringify({ refresh }),
       }),
     refresh: (refresh: string) =>
-      apiFetch<{ access: string }>("accounts/auth/refresh/", {
+      apiFetch<{ access: string; refresh?: string }>("accounts/auth/refresh/", {
         method: "POST",
         body: JSON.stringify({ refresh }),
       }),

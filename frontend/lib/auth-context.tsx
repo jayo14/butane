@@ -113,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await api.auth.refresh(refresh)
       localStorage.setItem(STORAGE_KEYS.access, res.access)
+      if (res.refresh) localStorage.setItem(STORAGE_KEYS.refresh, res.refresh)
       return res.access
     } catch {
       clearSession()
