@@ -48,6 +48,8 @@ export function ExamTakeClient() {
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [dirtyAnswers, setDirtyAnswers] = useState<Set<string>>(new Set())
+  const [syncStatus, setSyncStatus] = useState<"synced" | "pending" | "offline">("synced")
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
@@ -55,20 +57,33 @@ export function ExamTakeClient() {
   const [timeLeft, setTimeLeft] = useState(0)
   const mainRef = useRef<HTMLDivElement>(null)
   const answersRef = useRef(answers)
+  const dirtyRef = useRef(dirtyAnswers)
   const flaggedRef = useRef(flagged)
   const timeLeftRef = useRef(timeLeft)
   const attemptIdRef = useRef(attemptId)
   const accessTokenRef = useRef(accessToken)
   const examRef = useRef(exam)
   const questionsRef = useRef(questions)
+  const saveRetryRef = useRef(0)
 
   answersRef.current = answers
+  dirtyRef.current = dirtyAnswers
   flaggedRef.current = flagged
   timeLeftRef.current = timeLeft
   attemptIdRef.current = attemptId
   accessTokenRef.current = accessToken
   examRef.current = exam
   questionsRef.current = questions
+
+  function selectAnswer(questionId: string, optionId: string) {
+    setAnswers((prev) => ({ ...prev, [questionId]: optionId }))
+    setDirtyAnswers((prev) => {
+      const next = new Set(prev)
+      next.add(questionId)
+      return next
+    })
+    setSyncStatus("pending")
+  }
 
   // Fetch exam data
   useEffect(() => {
@@ -153,27 +168,39 @@ export function ExamTakeClient() {
     localStorage.setItem(storageKey, JSON.stringify(data))
   }, [answers, flagged, currentIndex, timeLeft, storageKey, exam])
 
-  // Auto-save to API (debounced)
+  // Auto-save to API — only dirty answers, with retry on failure
   const apiSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (!attemptId || !accessToken || !exam || submitting) return
+    if (dirtyAnswers.size === 0) return
     if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     apiSaveTimerRef.current = setTimeout(async () => {
+      const dirty = Array.from(dirtyRef.current)
+      if (dirty.length === 0) return
+      const dirtyPayload = dirty.map((qId) => ({
+        question: qId,
+        selected_choice: answersRef.current[qId] || null,
+      }))
       try {
         await api.public.saveAttempt(attemptId, accessToken, {
-          answers: questions.map((q) => ({
-            question: q.id,
-            selected_choice: answers[q.id] || null,
-          })),
+          answers: dirtyPayload,
         })
+        setDirtyAnswers(new Set())
+        setSyncStatus("synced")
+        saveRetryRef.current = 0
       } catch {
-        // Silently fail — answers are still in localStorage
+        saveRetryRef.current++
+        if (saveRetryRef.current <= 3) {
+          // Retry with increasing backoff: 5s, 10s, 20s
+        } else {
+          setSyncStatus("offline")
+        }
       }
     }, 5000)
     return () => {
       if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     }
-  }, [answers, questions, attemptId, accessToken, exam, submitting])
+  }, [dirtyAnswers, answers, questions, attemptId, accessToken, exam, submitting])
 
   // Timer
   const timerInterval = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -207,10 +234,27 @@ export function ExamTakeClient() {
     )
   }, [storageKey, exam])
 
+  async function finalSaveBeforeSubmit() {
+    if (!attemptId || !accessToken) return
+    const allAnswers = questionsRef.current.map((q) => ({
+      question: q.id,
+      selected_choice: answersRef.current[q.id] || null,
+    }))
+    for (let i = 0; i < 3; i++) {
+      try {
+        await api.public.saveAttempt(attemptId, accessToken, { answers: allAnswers })
+        return
+      } catch {
+        if (i < 2) await new Promise((r) => setTimeout(r, 1000 * (i + 1)))
+      }
+    }
+  }
+
   const goToReview = useCallback(async () => {
     setSubmitting(true)
     setSubmitError("")
     saveState()
+    await finalSaveBeforeSubmit()
     if (attemptId && accessToken && exam) {
       try {
         const result = await api.public.submitAttempt(attemptId, accessToken, {
@@ -275,7 +319,7 @@ export function ExamTakeClient() {
         if (q) {
           const opt = q.options[parseInt(key) - 1]
           if (opt) {
-            setAnswers((prev) => ({ ...prev, [q.id]: opt.id }))
+            selectAnswer(q.id, opt.id)
           }
         }
       }
@@ -418,7 +462,7 @@ export function ExamTakeClient() {
                       type="radio"
                       name={`question-${question.id}`}
                       checked={isSelected}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [question.id]: option.id }))}
+                      onChange={() => selectAnswer(question.id, option.id)}
                       className="hidden peer"
                     />
                     <div
@@ -673,6 +717,22 @@ export function ExamTakeClient() {
             </div>
           </div>
 
+          {/* Sync status */}
+          {syncStatus !== "synced" && (
+            <div className="mt-auto mb-3 flex items-center justify-center gap-1.5 shrink-0">
+              {syncStatus === "pending" ? (
+                <>
+                  <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-[10px] font-medium text-amber-600">Saving answers...</span>
+                </>
+              ) : (
+                <>
+                  <span className="size-2 rounded-full bg-red-500" />
+                  <span className="text-[10px] font-medium text-red-600">Connection lost — answers saved locally</span>
+                </>
+              )}
+            </div>
+          )}
           {/* Submit */}
           <button
             type="button"

@@ -97,7 +97,7 @@ export function ExamDetailClient({ examId }: { examId: string }) {
           score: r.score,
           totalMarks: r.total_marks,
           passed: r.passed,
-          duration: r.duration_seconds || 0,
+          duration: Math.round((r.duration_seconds || 0) / 60),
           studentName: r.student_name,
           studentGrade: "",
         }))

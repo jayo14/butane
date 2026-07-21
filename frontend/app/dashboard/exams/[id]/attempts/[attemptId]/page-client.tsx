@@ -8,6 +8,7 @@ import type { ApiAttempt, ApiQuestion } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Container } from "@/components/layout/container"
 import { ArrowLeft, CheckCircle2, XCircle, MinusCircle } from "lucide-react"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 import { cn } from "@/lib/utils"
 import { formatDate } from "@/lib/utils"
 
@@ -164,7 +165,7 @@ export function AttemptReviewClient({ examId, attemptId }: AttemptReviewClientPr
                       {answer.awarded_marks}/{q.marks} marks
                     </span>
                   </div>
-                  <p className="text-content-primary mb-3">{q.text}</p>
+                  <p className="text-content-primary mb-3"><LatexRenderer text={q.text} /></p>
                   {q.image && (
                     <img
                       src={q.image}
@@ -195,7 +196,7 @@ export function AttemptReviewClient({ examId, attemptId }: AttemptReviewClientPr
                           className={cn("flex items-center gap-2 rounded-lg border px-3 py-2 text-sm", bg, "border-transparent")}
                         >
                           <span className="font-semibold text-content-muted shrink-0">{choice.label}.</span>
-                          <span className="text-content-primary">{choice.text}</span>
+                          <span className="text-content-primary"><LatexRenderer text={choice.text} /></span>
                           {indicator && <span className="ml-auto shrink-0">{indicator}</span>}
                         </div>
                       )
