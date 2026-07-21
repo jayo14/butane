@@ -206,7 +206,7 @@ export function QuestionCard({
           </button>
           {menuOpen && (
             <div
-              className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border bg-white py-1 shadow-lg"
+              className="absolute right-0 top-full z-[9999] mt-1 w-44 rounded-lg border bg-white py-1 shadow-lg"
               style={{ borderColor: "#bbcabf" }}
             >
               <button type="button" onClick={() => { onDuplicate(question.id); setMenuOpen(false) }} className="flex w-full items-center gap-2 px-3 py-1.5 text-xs hover:bg-gray-100" style={{ color: "#3c4a42" }}>

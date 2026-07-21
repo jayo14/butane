@@ -114,7 +114,7 @@ export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) 
             </div>
             {subjectOpen && (
               <div
-                className="absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-auto rounded-xl border bg-white shadow-lg"
+                className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-48 overflow-auto rounded-xl border bg-white shadow-lg"
                 style={{ borderColor: "#bbcabf" }}
               >
                 {filteredSubjects.length > 0 ? (

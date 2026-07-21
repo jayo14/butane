@@ -81,7 +81,7 @@ export function NotificationPanel() {
       {isOpen && (
         <div
           ref={panelRef}
-          className="absolute right-0 top-full z-50 mt-2 w-80 animate-in fade-in slide-in-from-top-2 duration-200"
+          className="absolute right-0 top-full z-[9999] mt-2 w-80 animate-in fade-in slide-in-from-top-2 duration-200"
         >
           <div className="overflow-hidden rounded-2xl border border-border-primary bg-white shadow-dropdown">
             <div className="flex items-center justify-between border-b border-border-primary px-4 py-3">
