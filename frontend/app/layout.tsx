@@ -1,4 +1,4 @@
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { Source_Serif_4, Plus_Jakarta_Sans } from "next/font/google"
 import { Providers } from "./providers"
@@ -27,6 +27,17 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "Dee Soar School - CBT Management System",
   description: "Computer-Based Testing Management System for Dee Soar School",
+  openGraph: {
+    siteName: "Dee Soar CBT",
+    type: "website",
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 }
 
 export default function RootLayout({
