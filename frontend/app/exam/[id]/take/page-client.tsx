@@ -42,6 +42,7 @@ export function ExamTakeClient() {
   const [questions, setQuestions] = useState<TakeQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
+  const [submitError, setSubmitError] = useState("")
 
   const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
 
@@ -49,6 +50,7 @@ export function ExamTakeClient() {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [flagged, setFlagged] = useState<Set<string>>(new Set())
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
   const [showMobileNav, setShowMobileNav] = useState(false)
   const [timeLeft, setTimeLeft] = useState(0)
   const mainRef = useRef<HTMLDivElement>(null)
@@ -154,7 +156,7 @@ export function ExamTakeClient() {
   // Auto-save to API (debounced)
   const apiSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    if (!attemptId || !accessToken || !exam) return
+    if (!attemptId || !accessToken || !exam || submitting) return
     if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     apiSaveTimerRef.current = setTimeout(async () => {
       try {
@@ -171,7 +173,7 @@ export function ExamTakeClient() {
     return () => {
       if (apiSaveTimerRef.current) clearTimeout(apiSaveTimerRef.current)
     }
-  }, [answers, questions, attemptId, accessToken, exam])
+  }, [answers, questions, attemptId, accessToken, exam, submitting])
 
   // Timer
   const timerInterval = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -206,6 +208,8 @@ export function ExamTakeClient() {
   }, [storageKey, exam])
 
   const goToReview = useCallback(async () => {
+    setSubmitting(true)
+    setSubmitError("")
     saveState()
     if (attemptId && accessToken && exam) {
       try {
@@ -222,10 +226,25 @@ export function ExamTakeClient() {
           )
         }
       } catch {
-        // Fall back to local submit
+        if (!exam) { setSubmitting(false); return }
+        localStorage.setItem(
+          `exam-result-${exam.id}`,
+          JSON.stringify({ submitted: true }),
+        )
+        if (!exam.allowReview && !exam.showResult) {
+          router.push(`/exam/${exam.id}/submitted`)
+        } else if (!exam.allowReview) {
+          router.push(`/exam/${exam.id}/results`)
+        } else {
+          const reviewParams = new URLSearchParams()
+          if (token) reviewParams.set("token", token)
+          if (examId) reviewParams.set("id", examId)
+          router.push(`/exam/${exam.id}/review?${reviewParams.toString()}`)
+        }
+        return
       }
     }
-    if (!exam) return
+    if (!exam) { setSubmitting(false); return }
     if (!exam.allowReview && !exam.showResult) {
       router.push(`/exam/${exam.id}/submitted`)
     } else if (!exam.allowReview) {
@@ -483,13 +502,14 @@ export function ExamTakeClient() {
                 <button
                   type="button"
                   onClick={handleSubmitClick}
-                  className="flex-1 md:flex-none px-6 md:px-10 py-3 rounded-lg text-xs md:text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105"
+                  disabled={submitting}
+                  className="flex-1 md:flex-none px-6 md:px-10 py-3 rounded-lg text-xs md:text-sm font-semibold tracking-[0.02em] transition-all hover:brightness-105 disabled:opacity-60 disabled:cursor-not-allowed"
                   style={{
                     backgroundColor: "#006c49",
                     color: "#ffffff",
                   }}
                 >
-                  Review All Answers
+                  {submitting ? "Submitting..." : "Review All Answers"}
                 </button>
               )}
             </div>
@@ -657,10 +677,18 @@ export function ExamTakeClient() {
           <button
             type="button"
             onClick={handleSubmitClick}
-            className="mt-auto w-full py-4 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md shrink-0"
+            disabled={submitting}
+            className="mt-auto w-full py-4 rounded-lg text-sm font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-md shrink-0 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             style={{ backgroundColor: "#006c49", color: "#ffffff" }}
           >
-            Submit Assessment
+            {submitting ? (
+              <>
+                <span className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit Assessment"
+            )}
           </button>
 
           {/* Keyboard shortcut hint */}
@@ -777,10 +805,17 @@ export function ExamTakeClient() {
                   <span className="text-[10px] font-semibold" style={{ color: "#3c4a42" }}>Flagged</span>
                 </div>
                 <div className="flex-1" />
-                <button type="button" onClick={handleSubmitClick}
-                  className="px-5 py-2 rounded-lg text-xs font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-sm"
+                <button type="button" onClick={handleSubmitClick} disabled={submitting}
+                  className="px-5 py-2 rounded-lg text-xs font-bold tracking-[0.02em] transition-all hover:brightness-105 shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-1.5"
                   style={{ backgroundColor: "#006c49", color: "#ffffff" }}>
-                  Submit
+                  {submitting ? (
+                    <>
+                      <span className="size-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    "Submit"
+                  )}
                 </button>
               </div>
             </div>
@@ -824,10 +859,18 @@ export function ExamTakeClient() {
                   setShowSubmitConfirm(false)
                   setTimeout(() => goToReview(), 50)
                 }}
-                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95"
+                disabled={submitting}
+                className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 style={{ backgroundColor: "#006c49", color: "#ffffff" }}
               >
-                Submit Now
+                {submitting ? (
+                  <>
+                    <span className="size-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Now"
+                )}
               </button>
             </div>
           </div>

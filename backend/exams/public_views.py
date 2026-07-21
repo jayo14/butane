@@ -246,7 +246,6 @@ class SaveAttemptView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [LoginRateThrottle]
 
-    @transaction.atomic
     def post(self, request, attempt_id: str):
         attempt = get_object_or_404(Attempt, id=attempt_id, is_deleted=False)
         token = (request.data.get("token") or "") if isinstance(request.data, dict) else request.headers.get("X-Access-Token", "")
