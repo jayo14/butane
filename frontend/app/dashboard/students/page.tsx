@@ -22,7 +22,7 @@ export default async function StudentsPage() {
         passRate: 0,
         rank: 0,
       },
-      attempts: [] as { id: string; examId: string; examTitle: string; subject: string; date: string; score: number; totalMarks: number; passed: boolean; duration: number }[],
+      attempts: [] as { id: string; examId: string; examTitle: string; subject: string; date: string; score: number; totalMarks: number; passed: boolean; duration: number; studentName: string }[],
     }))
 
     return <StudentsPageClient students={transformed} />
