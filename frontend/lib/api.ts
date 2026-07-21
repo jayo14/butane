@@ -539,7 +539,7 @@ export const api = {
   },
 
   exams: {
-    list: (params?: { status?: string; search?: string; page?: number }) =>
+    list: (params?: { status?: string; search?: string; page?: number; page_size?: number }) =>
       apiFetch<PaginatedResponse<ApiExam>>(`exams/${buildQuery(params || {})}`),
     get: (id: string) => apiFetch<ApiExam>(`exams/${id}/`),
     create: (data: Partial<ApiExam>) =>
