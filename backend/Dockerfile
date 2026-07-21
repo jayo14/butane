@@ -41,6 +41,8 @@ COPY . /app
 
 RUN mkdir -p /app/staticfiles /app/media /app/core/logs
 
+ENV DJANGO_SECRET_KEY=build-only-not-for-production \
+    DJANGO_DEBUG=true
 RUN python manage.py collectstatic --noinput
 
 RUN chown -R appuser:appuser /app

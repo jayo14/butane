@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 
 interface ReviewExam {
   id: string
@@ -421,7 +422,7 @@ export function ExamReviewClient() {
                     className="text-[24px] font-semibold leading-snug"
                     style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
                   >
-                    {q.text}
+                    <LatexRenderer text={q.text} />
                   </h3>
 
                   {/* Answer display */}
@@ -441,7 +442,7 @@ export function ExamReviewClient() {
                           selectedOption.label}
                       </span>
                       <span className="font-medium" style={{ color: "#121c2a" }}>
-                        {selectedOption.text}
+                        <LatexRenderer text={selectedOption.text} />
                       </span>
                     </div>
                   ) : (

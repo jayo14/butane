@@ -5,6 +5,7 @@ import { useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
 import { GripVertical, ChevronDown, ChevronRight, Plus, Trash2, Copy, ArrowUp, ArrowDown, MoreHorizontal } from "lucide-react"
 import type { Question } from "@/types/exam"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
 
@@ -130,7 +131,7 @@ export function QuestionCard({
           MC
         </span>
         <span className="flex-1 truncate font-medium" style={{ color: "#121c2a" }}>
-          {question.text || "Untitled question"}
+          <LatexRenderer text={question.text || "Untitled question"} />
         </span>
         {correctLabel && (
           <span className="shrink-0 text-[10px] font-bold uppercase" style={{ color: "#006c49" }}>

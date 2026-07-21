@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api, ApiError } from "@/lib/api"
 import type { ApiPublicQuestion, ApiPublicExam } from "@/lib/api"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 
 interface TakeExam {
   id: string
@@ -349,7 +350,7 @@ export function ExamTakeClient() {
                   className="text-xl md:text-[32px] font-bold leading-tight tracking-[-0.01em]"
                   style={{ color: "#121c2a", fontFamily: "'Source Serif 4', serif" }}
                 >
-                  {question?.text}
+                  {question?.text ? <LatexRenderer text={question.text} /> : ""}
                 </h2>
               </div>
             </div>
@@ -391,7 +392,7 @@ export function ExamTakeClient() {
                         className="flex-1 text-base md:text-lg"
                         style={{ color: "#121c2a", fontFamily: "'Plus Jakarta Sans', sans-serif" }}
                       >
-                        {option.text}
+                        <LatexRenderer text={option.text} />
                       </span>
                       <span
                         className={`shrink-0 transition-opacity ${

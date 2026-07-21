@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils"
 import { Check } from "lucide-react"
+import { LatexRenderer } from "@/components/ui/latex-renderer"
 
 interface QuestionViewProps {
   question: {
@@ -21,7 +22,7 @@ export function QuestionView({ question, selectedAnswer, onSelect }: QuestionVie
     <div className="animate-in fade-in slide-in-from-right-3 duration-300" role="group" aria-label={`Question ${question.number}`}>
       <div className="mb-8">
         <p className="text-lg font-semibold leading-relaxed text-content-primary md:text-xl" tabIndex={0}>
-          {question.text}
+          <LatexRenderer text={question.text} />
         </p>
       </div>
 
@@ -56,14 +57,14 @@ export function QuestionView({ question, selectedAnswer, onSelect }: QuestionVie
                 {OPTION_LABELS[i]}
               </span>
 
-              <span
-                className={cn(
-                  "flex-1 text-sm font-medium leading-relaxed md:text-base",
-                  isSelected ? "text-primary" : "text-content-primary",
-                )}
-              >
-                {option.text}
-              </span>
+                <span
+                  className={cn(
+                    "flex-1 text-sm font-medium leading-relaxed md:text-base",
+                    isSelected ? "text-primary" : "text-content-primary",
+                  )}
+                >
+                  <LatexRenderer text={option.text} />
+                </span>
 
               <span
                 className={cn(
