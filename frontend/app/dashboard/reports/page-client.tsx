@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   TrendingUp,
   BarChart3,
@@ -13,10 +13,13 @@ import {
   HelpCircle,
   ArrowUp,
   ArrowDown,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
 import type { ExamAttempt } from "@/types"
 
 interface ReportsStats {
@@ -42,14 +45,6 @@ interface GradeAverage {
   count: number
 }
 
-interface ReportsClientProps {
-  stats: ReportsStats
-  distribution: DistributionBucket[]
-  gradeAverages: GradeAverage[]
-  questions: { id: string; number: number; text: string; correctAnswerId: string }[]
-  attempts: ExamAttempt[]
-}
-
 function getScoreColor(score: number): string {
   if (score >= 80) return "text-success"
   if (score >= 60) return "text-primary"
@@ -64,25 +59,80 @@ function getScoreBg(score: number): string {
   return "bg-danger"
 }
 
-export function ReportsClient({ stats, distribution, gradeAverages, questions, attempts }: ReportsClientProps) {
+export function ReportsClient() {
   const [chartView, setChartView] = useState<"distribution" | "grades">("distribution")
+  const [loading, setLoading] = useState(true)
+  const [stats, setStats] = useState<ReportsStats>({
+    totalStudents: 0, totalExams: 0, avgScore: 0, highest: 0, lowest: 0, passRate: 0, totalPassed: 0, totalAttempts: 0,
+  })
+  const [distribution, setDistribution] = useState<DistributionBucket[]>([])
+  const [gradeAverages] = useState<GradeAverage[]>([])
+  const [attempts, setAttempts] = useState<ExamAttempt[]>([])
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const [resultsRes, studentsRes] = await Promise.all([
+          api.results.list(),
+          api.students.list().catch(() => ({ results: [] })),
+        ])
+        const allAttempts = (resultsRes?.results || []).map((r: any) => ({
+          id: r.id,
+          examId: r.exam,
+          examTitle: r.exam_title,
+          subject: r.subject,
+          date: r.graded_at,
+          score: r.score,
+          totalMarks: r.total_marks,
+          passed: r.passed,
+          duration: r.duration_seconds || 0,
+          studentName: r.student_name,
+        }))
+        setAttempts(allAttempts)
+
+        const scores = allAttempts.map((a: any) => (a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0))
+        const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0
+        const highest = scores.length > 0 ? Math.round(Math.max(...scores)) : 0
+        const lowest = scores.length > 0 ? Math.round(Math.min(...scores)) : 0
+        const passed = allAttempts.filter((a: any) => a.passed).length
+        const passRate = allAttempts.length > 0 ? Math.round((passed / allAttempts.length) * 100) : 0
+        const totalStudents = (studentsRes as any)?.results?.length || 0
+
+        setStats({
+          totalStudents,
+          totalExams: allAttempts.length,
+          avgScore, highest, lowest, passRate,
+          totalPassed: passed,
+          totalAttempts: allAttempts.length,
+        })
+        setDistribution([
+          { range: "0-29%", count: scores.filter((s: number) => s < 30).length, color: "bg-danger" },
+          { range: "30-49%", count: scores.filter((s: number) => s >= 30 && s < 50).length, color: "bg-warning" },
+          { range: "50-69%", count: scores.filter((s: number) => s >= 50 && s < 70).length, color: "bg-primary" },
+          { range: "70-89%", count: scores.filter((s: number) => s >= 70 && s < 90).length, color: "bg-info" },
+          { range: "90-100%", count: scores.filter((s: number) => s >= 90).length, color: "bg-success" },
+        ])
+      } catch {
+        // Leave defaults (all zeros)
+      } finally {
+        setLoading(false)
+      }
+    }
+    load()
+  }, [])
 
   const maxDistCount = Math.max(...distribution.map((d) => d.count), 1)
   const maxGradeCount = Math.max(...gradeAverages.map((g) => g.count), 1)
 
-  // Approximate question stats based on attempt patterns
-  const questionStats = questions.map((q, i) => {
-    const answered = attempts.filter((a) => a.score > 0).length
-    const correct = Math.round(answered * (0.4 + Math.random() * 0.5))
-    return {
-      id: q.id,
-      number: q.number,
-      text: q.text.length > 60 ? q.text.slice(0, 60) + "..." : q.text,
-      correct,
-      total: answered,
-      rate: answered > 0 ? Math.round((correct / answered) * 100) : 0,
-    }
-  }).sort((a, b) => a.rate - b.rate)
+  if (loading) {
+    return (
+      <Container>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={32} className="animate-spin" style={{ color: "#006c49" }} />
+        </div>
+      </Container>
+    )
+  }
 
   return (
     <div>
@@ -197,48 +247,8 @@ export function ReportsClient({ stats, distribution, gradeAverages, questions, a
             title="Question Statistics"
             description="Lowest correct rate first"
           />
-          <div className="space-y-2.5">
-            {questionStats.slice(0, 10).map((qs) => (
-              <div key={qs.id} className="rounded-lg border border-border-primary p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-xs font-medium text-content-primary">
-                    Q{qs.number}. {qs.text}
-                  </span>
-                  <Badge
-                    variant={
-                      qs.rate >= 70 ? "success" :
-                      qs.rate >= 50 ? "warning" : "danger"
-                    }
-                    size="sm"
-                  >
-                    {qs.rate}%
-                  </Badge>
-                </div>
-                <div className="mt-1.5 h-1.5 w-full rounded-full bg-surface-secondary overflow-hidden">
-                  <div
-                    className={cn(
-                      "h-full rounded-full",
-                      qs.rate >= 70 ? "bg-success" : qs.rate >= 50 ? "bg-warning" : "bg-danger",
-                    )}
-                    style={{ width: `${qs.rate}%` }}
-                  />
-                </div>
-                <div className="mt-1 flex items-center gap-3 text-[10px] text-content-muted">
-                  <span className="flex items-center gap-1">
-                    <CheckCircle2 size={10} className="text-success" />
-                    {qs.correct}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <XCircle size={10} className="text-danger" />
-                    {qs.total - qs.correct}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <HelpCircle size={10} />
-                    {qs.total} total
-                  </span>
-                </div>
-              </div>
-            ))}
+          <div className="flex items-center justify-center py-12">
+            <p className="text-sm text-content-muted">Question statistics require selecting a specific exam.</p>
           </div>
         </Card>
       </div>
