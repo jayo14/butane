@@ -118,11 +118,22 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         if questions is not None:
-            instance.questions.all().delete()
+            existing = {str(q.id): q for q in instance.questions.all()}
+            seen = set()
             qs = QuestionSerializer()
             for index, question in enumerate(questions, start=1):
+                qid = question.pop("id", None) or question.pop("uuid", None)
                 question.setdefault("order", index)
-                qs.create({**question, "exam": instance})
+                if qid and qid in existing:
+                    qs.update(existing[qid], {**question, "exam": instance})
+                    seen.add(qid)
+                else:
+                    qs.create({**question, "exam": instance})
+            for qid, q in existing.items():
+                if qid not in seen:
+                    q.answers.all().delete()
+                    q.choices.all().delete()
+                    q.delete()
         return instance
 
     def update(self, instance, validated_data):

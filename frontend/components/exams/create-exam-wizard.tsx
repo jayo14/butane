@@ -393,18 +393,22 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
         show_result: draft.settings.showResult,
         allow_review: draft.settings.allowReview,
         instructions: draft.basicInfo.instructions || "",
-        questions: draft.questions.map((q, i) => ({
-          order: i + 1,
-          text: q.text,
-          image: q.image || undefined,
-          type: "single_choice" as const,
-          marks: q.points || 1,
-          choices: q.options.map((opt, oi) => ({
-            label: String.fromCharCode(65 + oi),
-            text: opt.text,
-            is_correct: opt.id === q.correctAnswerId,
-          })),
-        })),
+        questions: draft.questions.map((q, i) => {
+          const out: Record<string, any> = {
+            order: i + 1,
+            text: q.text,
+            image: q.image || undefined,
+            type: "single_choice" as const,
+            marks: q.points || 1,
+            choices: q.options.map((opt, oi) => ({
+              label: String.fromCharCode(65 + oi),
+              text: opt.text,
+              is_correct: opt.id === q.correctAnswerId,
+            })),
+          }
+          if (q.id && !q.id.startsWith("q-")) out.id = q.id
+          return out
+        }),
       } as any
 
       let examId = initialExam?.id
