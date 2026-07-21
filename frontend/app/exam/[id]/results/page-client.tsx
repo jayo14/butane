@@ -76,13 +76,14 @@ export function ExamResultsClient() {
 
   const examId = searchParams.get("id") || ""
   const token = searchParams.get("token") || ""
+  const attemptId = searchParams.get("attemptId") || ""
 
   const [exam, setExam] = useState<ResultsExam | null>(null)
   const [questions, setQuestions] = useState<ResultsQuestion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState("")
 
-  const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
+  const storageKey = exam && attemptId ? `${STORAGE_KEY_PREFIX}${exam.id}-${attemptId}` : ""
 
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const [timeLeft, setTimeLeft] = useState<number | null>(null)
@@ -142,7 +143,7 @@ export function ExamResultsClient() {
     } catch {}
 
     try {
-      const resultSaved = localStorage.getItem(`exam-result-${exam.id}`)
+      const resultSaved = localStorage.getItem(`exam-result-${exam.id}-${attemptId}`)
       if (resultSaved) {
         const parsed = JSON.parse(resultSaved)
         setResultData(parsed)

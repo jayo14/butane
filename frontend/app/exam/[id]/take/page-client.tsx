@@ -44,7 +44,7 @@ export function ExamTakeClient() {
   const [error, setError] = useState("")
   const [submitError, setSubmitError] = useState("")
 
-  const storageKey = exam ? `${STORAGE_KEY_PREFIX}${exam.id}` : ""
+  const storageKey = exam && attemptId ? `${STORAGE_KEY_PREFIX}${exam.id}-${attemptId}` : ""
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Record<string, string>>({})
@@ -265,34 +265,39 @@ export function ExamTakeClient() {
         })
         if (result) {
           localStorage.setItem(
-            `exam-result-${exam.id}`,
+            `exam-result-${exam.id}-${attemptId}`,
             JSON.stringify(result),
           )
         }
       } catch {
         if (!exam) { setSubmitting(false); return }
         localStorage.setItem(
-          `exam-result-${exam.id}`,
+          `exam-result-${exam.id}-${attemptId}`,
           JSON.stringify({ submitted: true }),
         )
+        const resultParams = new URLSearchParams()
+        if (attemptId) resultParams.set("attemptId", attemptId)
         if (!exam.allowReview && !exam.showResult) {
-          router.push(`/exam/${exam.id}/submitted`)
+          router.push(`/exam/${exam.id}/submitted?${resultParams.toString()}`)
         } else if (!exam.allowReview) {
-          router.push(`/exam/${exam.id}/results`)
+          router.push(`/exam/${exam.id}/results?${resultParams.toString()}`)
         } else {
           const reviewParams = new URLSearchParams()
           if (token) reviewParams.set("token", token)
           if (examId) reviewParams.set("id", examId)
+          if (attemptId) reviewParams.set("attemptId", attemptId)
           router.push(`/exam/${exam.id}/review?${reviewParams.toString()}`)
         }
         return
       }
     }
     if (!exam) { setSubmitting(false); return }
+    const resultParams = new URLSearchParams()
+    if (attemptId) resultParams.set("attemptId", attemptId)
     if (!exam.allowReview && !exam.showResult) {
-      router.push(`/exam/${exam.id}/submitted`)
+      router.push(`/exam/${exam.id}/submitted?${resultParams.toString()}`)
     } else if (!exam.allowReview) {
-      router.push(`/exam/${exam.id}/results`)
+      router.push(`/exam/${exam.id}/results?${resultParams.toString()}`)
     } else {
       const reviewParams = new URLSearchParams()
       if (token) reviewParams.set("token", token)

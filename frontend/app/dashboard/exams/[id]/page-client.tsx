@@ -190,7 +190,11 @@ export function ExamDetailClient({ examId }: { examId: string }) {
               onAction={(key) => {
                 if (key === "edit") router.push(`/dashboard/exams/${exam.id}/edit`)
                 if (key === "analytics") router.push(`/dashboard/exams/${exam.id}/analytics`)
-                if (key === "duplicate") api.exams.duplicate(exam.id).then(() => router.refresh())
+                if (key === "duplicate") {
+                  api.exams.duplicate(exam.id).then((newExam) => {
+                    router.push(`/dashboard/exams/${newExam.id}`)
+                  })
+                }
                 if (key === "delete") { if (confirm("Delete this exam?")) api.exams.delete(exam.id).then(() => router.push("/dashboard/exams")) }
               }}
               variant="ghost"
