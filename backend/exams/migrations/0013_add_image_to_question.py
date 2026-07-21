@@ -10,9 +10,19 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name='question',
-            name='image',
-            field=models.URLField(blank=True, help_text='Cloudinary image URL for the question', max_length=500, null=True),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    "ALTER TABLE exams_question ADD COLUMN IF NOT EXISTS image varchar(500) NULL",
+                    reverse_sql=migrations.RunSQL.no_work,
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name='question',
+                    name='image',
+                    field=models.URLField(blank=True, help_text='Cloudinary image URL for the question', max_length=500, null=True),
+                ),
+            ],
         ),
     ]
