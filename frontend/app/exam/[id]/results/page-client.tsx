@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { api } from "@/lib/api"
 
@@ -125,6 +125,18 @@ export function ExamResultsClient({ examId }: { examId: string }) {
       }
     }
     loadExam()
+  }, [token, examId])
+
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    timeoutRef.current = setTimeout(() => {
+      setLoading(false)
+      setError("Request timed out. Please check your connection and try again.")
+    }, 15000)
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    }
   }, [token, examId])
 
   // Restore state from localStorage
