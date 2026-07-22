@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import filters, generics, permissions, serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import Throttled
+from rest_framework.exceptions import Throttled, ValidationError
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
 from drf_spectacular.utils import extend_schema, inline_serializer
@@ -99,7 +99,12 @@ class ExamViewSet(viewsets.ModelViewSet):
         return qs
 
     def perform_create(self, serializer):
-        teacher = get_object_or_404(Teacher, user=self.request.user)
+        try:
+            teacher = self.request.user.teacher_profile
+        except Teacher.DoesNotExist:
+            raise ValidationError(
+                {"created_by": "Your account is not linked to a teacher profile. Contact an administrator."}
+            )
         serializer.save(created_by=teacher)
 
     def _own_exam(self, exam) -> None:
@@ -187,7 +192,12 @@ class ExamViewSet(viewsets.ModelViewSet):
         """Create a deep copy of the exam as a new draft owned by the teacher."""
         exam = self.get_object()
         self._own_exam(exam)
-        teacher = get_object_or_404(Teacher, user=request.user)
+        try:
+            teacher = request.user.teacher_profile
+        except Teacher.DoesNotExist:
+            raise ValidationError(
+                {"created_by": "Your account is not linked to a teacher profile. Contact an administrator."}
+            )
         new_exam = exam.duplicate(created_by=teacher)
         return Response(ExamDetailSerializer(new_exam).data, status=status.HTTP_201_CREATED)
 
