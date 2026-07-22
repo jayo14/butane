@@ -13,6 +13,7 @@ export async function generateMetadata({ searchParams }: TakePageProps): Promise
   }
 }
 
-export default function ExamTakePage() {
-  return <ExamTakeClient />
+export default async function ExamTakePage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  return <ExamTakeClient examId={id} />
 }
