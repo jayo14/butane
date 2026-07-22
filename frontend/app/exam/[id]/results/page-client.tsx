@@ -70,7 +70,7 @@ function AnimatedScoreCircle({ score }: { score: number }) {
   )
 }
 
-export function ExamResultsClient() {
+export function ExamResultsClient({ examId }: { examId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
