@@ -16,16 +16,20 @@ import {
   Trash2,
   LogOut,
   RefreshCw,
+  Palette,
+  GraduationCap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-type SettingsTab = "profile" | "school" | "password" | "preferences" | "notifications" | "danger"
+type SettingsTab = "profile" | "school" | "branding" | "grading" | "password" | "preferences" | "notifications" | "danger"
 
 const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Teacher Profile", icon: User },
   { id: "school", label: "School Profile", icon: School },
+  { id: "branding", label: "Branding", icon: Palette },
+  { id: "grading", label: "Grading Scale", icon: GraduationCap },
   { id: "password", label: "Password", icon: Lock },
   { id: "preferences", label: "Preferences", icon: Settings },
   { id: "notifications", label: "Notifications", icon: Bell },
@@ -109,6 +113,23 @@ export function SettingsClient() {
     website: "https://deesoar.edu",
   })
 
+  const [branding, setBranding] = useState({
+    name: "Dee Soar School",
+    motto: "",
+    address: "123 Education Lane, Learning City",
+    principal_name: "",
+    vice_principal_name: "",
+    primary_color: "#006c49",
+    secondary_color: "#3c4a42",
+  })
+  const [brandingSaving, setBrandingSaving] = useState(false)
+  const [brandingSaved, setBrandingSaved] = useState(false)
+  const [principalPreview, setPrincipalPreview] = useState<string | null>(null)
+  const [vicePrincipalPreview, setVicePrincipalPreview] = useState<string | null>(null)
+  const [gradeScales, setGradeScales] = useState<any[]>([])
+  const [gradeScalesSaving, setGradeScalesSaving] = useState(false)
+  const [gradeScalesSaved, setGradeScalesSaved] = useState(false)
+
   const [passwords, setPasswords] = useState({
     current: "",
     new: "",
@@ -140,6 +161,79 @@ export function SettingsClient() {
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     }, 800)
+  }
+
+  useEffect(() => {
+    async function loadBranding() {
+      try {
+        const data = await api.academics.schoolProfile()
+        if (data) {
+          setBranding({
+            name: data.name || "Dee Soar School",
+            motto: data.motto || "",
+            address: data.address || "",
+            principal_name: data.principal_name || "",
+            vice_principal_name: data.vice_principal_name || "",
+            primary_color: data.primary_color || "#006c49",
+            secondary_color: data.secondary_color || "#3c4a42",
+          })
+          setSchool((s) => ({ ...s, name: data.name || s.name, address: data.address || s.address }))
+        }
+      } catch {
+        // leave defaults
+      }
+    }
+    loadBranding()
+  }, [])
+
+  useEffect(() => {
+    async function loadGradeScales() {
+      try {
+        const data = await api.academics.gradeScales()
+        setGradeScales(Array.isArray(data) ? data : [])
+      } catch {
+        setGradeScales([])
+      }
+    }
+    loadGradeScales()
+  }, [])
+
+  function handleBrandingSave() {
+    setBrandingSaving(true)
+    setBrandingSaved(false)
+    api.academics.schoolProfileUpdate(branding)
+      .then(() => {
+        setBrandingSaved(true)
+        setTimeout(() => setBrandingSaved(false), 2000)
+      })
+      .catch(() => {})
+      .finally(() => setBrandingSaving(false))
+  }
+
+  function handleGradeScalesSave() {
+    setGradeScalesSaving(true)
+    setGradeScalesSaved(false)
+    Promise.all(gradeScales.map((scale) => api.academics.gradeScalesUpdate(scale)))
+      .then(() => {
+        setGradeScalesSaved(true)
+        setTimeout(() => setGradeScalesSaved(false), 2000)
+      })
+      .catch(() => {})
+      .finally(() => setGradeScalesSaving(false))
+  }
+
+  function addGradeScale() {
+    setGradeScales([...gradeScales, { min_score: 0, max_score: 100, grade: "", remark: "" }])
+  }
+
+  function updateGradeScale(index: number, field: string, value: any) {
+    const next = [...gradeScales]
+    next[index] = { ...next[index], [field]: value }
+    setGradeScales(next)
+  }
+
+  function removeGradeScale(index: number) {
+    setGradeScales(gradeScales.filter((_: any, i: number) => i !== index))
   }
 
   function checkPasswordStrength(val: string) {
@@ -431,6 +525,168 @@ export function SettingsClient() {
                       className={inputClass}
                     />
                   </FormField>
+                </div>
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Branding Section */}
+          {activeTab === "branding" && (
+            <SectionCard title="School Branding" description="Customize the appearance of report cards and certificates">
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="School Name">
+                    <input
+                      type="text"
+                      value={branding.name}
+                      onChange={(e) => setBranding({ ...branding, name: e.target.value })}
+                      className={inputClass}
+                    />
+                  </FormField>
+                  <FormField label="Motto">
+                    <input
+                      type="text"
+                      value={branding.motto}
+                      onChange={(e) => setBranding({ ...branding, motto: e.target.value })}
+                      className={inputClass}
+                    />
+                  </FormField>
+                </div>
+                <FormField label="Address">
+                  <input
+                    type="text"
+                    value={branding.address}
+                    onChange={(e) => setBranding({ ...branding, address: e.target.value })}
+                    className={inputClass}
+                  />
+                </FormField>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="Principal Name">
+                    <input
+                      type="text"
+                      value={branding.principal_name}
+                      onChange={(e) => setBranding({ ...branding, principal_name: e.target.value })}
+                      className={inputClass}
+                    />
+                  </FormField>
+                  <FormField label="Vice Principal Name">
+                    <input
+                      type="text"
+                      value={branding.vice_principal_name}
+                      onChange={(e) => setBranding({ ...branding, vice_principal_name: e.target.value })}
+                      className={inputClass}
+                    />
+                  </FormField>
+                </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <FormField label="Primary Color">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={branding.primary_color}
+                        onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })}
+                        className="size-10 cursor-pointer rounded-lg border border-border-primary bg-white p-1"
+                      />
+                      <input
+                        type="text"
+                        value={branding.primary_color}
+                        onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })}
+                        className={cn(inputClass, "flex-1")}
+                        placeholder="#006c49"
+                      />
+                    </div>
+                  </FormField>
+                  <FormField label="Secondary Color">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="color"
+                        value={branding.secondary_color}
+                        onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })}
+                        className="size-10 cursor-pointer rounded-lg border border-border-primary bg-white p-1"
+                      />
+                      <input
+                        type="text"
+                        value={branding.secondary_color}
+                        onChange={(e) => setBranding({ ...branding, secondary_color: e.target.value })}
+                        className={cn(inputClass, "flex-1")}
+                        placeholder="#3c4a42"
+                      />
+                    </div>
+                  </FormField>
+                </div>
+                <div className="flex items-center gap-2">
+                  {brandingSaved && (
+                    <span className="flex items-center gap-1 text-xs text-success animate-in fade-in">
+                      <Check size={14} />
+                      Branding saved
+                    </span>
+                  )}
+                  <Button variant="primary" onClick={handleBrandingSave} isLoading={brandingSaving} leftIcon={<Save size={16} />}>
+                    Save Branding
+                  </Button>
+                </div>
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Grading Scale Section */}
+          {activeTab === "grading" && (
+            <SectionCard title="Grading Scale" description="Define grade boundaries and remarks">
+              <div className="space-y-4">
+                {gradeScales.map((scale, index) => (
+                  <div key={index} className="grid gap-4 sm:grid-cols-6 items-end">
+                    <FormField label="Min Score">
+                      <input
+                        type="number"
+                        value={scale.min_score}
+                        onChange={(e) => updateGradeScale(index, "min_score", parseFloat(e.target.value))}
+                        className={inputClass}
+                      />
+                    </FormField>
+                    <FormField label="Max Score">
+                      <input
+                        type="number"
+                        value={scale.max_score}
+                        onChange={(e) => updateGradeScale(index, "max_score", parseFloat(e.target.value))}
+                        className={inputClass}
+                      />
+                    </FormField>
+                    <FormField label="Grade">
+                      <input
+                        type="text"
+                        value={scale.grade}
+                        onChange={(e) => updateGradeScale(index, "grade", e.target.value)}
+                        className={inputClass}
+                      />
+                    </FormField>
+                    <FormField label="Remark">
+                      <input
+                        type="text"
+                        value={scale.remark}
+                        onChange={(e) => updateGradeScale(index, "remark", e.target.value)}
+                        className={inputClass}
+                      />
+                    </FormField>
+                    <div className="sm:col-span-2 flex items-end gap-2">
+                      <Button variant="outline" size="sm" onClick={() => removeGradeScale(index)}>
+                        <Trash2 size={14} />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                <div className="flex items-center gap-2 pt-2">
+                  <Button variant="secondary" onClick={addGradeScale} leftIcon={<GraduationCap size={16} />}>
+                    Add Grade
+                  </Button>
+                  {gradeScalesSaved && (
+                    <span className="flex items-center gap-1 text-xs text-success animate-in fade-in">
+                      <Check size={14} />
+                      Grading scale saved
+                    </span>
+                  )}
+                  <Button variant="primary" onClick={handleGradeScalesSave} isLoading={gradeScalesSaving} leftIcon={<Save size={16} />}>
+                    Save Scale
+                  </Button>
                 </div>
               </div>
             </SectionCard>
