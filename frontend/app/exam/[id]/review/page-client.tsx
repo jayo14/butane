@@ -27,12 +27,11 @@ interface ReviewQuestion {
 const STORAGE_KEY_PREFIX = "exam-take-"
 const OPTION_LABELS = ["A", "B", "C", "D", "E", "F"]
 
-export function ExamReviewClient() {
+export function ExamReviewClient({ examId }: { examId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const token = searchParams.get("token") || ""
-  const examId = searchParams.get("id") || ""
 
   const [exam, setExam] = useState<ReviewExam | null>(null)
   const [questions, setQuestions] = useState<ReviewQuestion[]>([])
