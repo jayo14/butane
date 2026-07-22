@@ -39,6 +39,16 @@ def _get_public_exam(token: str) -> Exam:
     return exam
 
 
+def _set_request_school_from_exam(request, exam: Exam) -> None:
+    if hasattr(request, "school") and request.school is None:
+        request.school = exam.school
+
+
+def _set_request_school_from_attempt(request, attempt: Attempt) -> None:
+    if hasattr(request, "school") and request.school is None and attempt.exam_id:
+        request.school = attempt.exam.school
+
+
 def _validate_available(exam: Exam) -> None:
     """Ensure the exam is published, within its availability window, and not expired."""
     if exam.status not in {"ongoing", "completed"}:
@@ -134,6 +144,7 @@ class PublicExamDetailView(APIView):
     def get(self, request, token: str):
         exam = _get_public_exam(token)
         _validate_available(exam)
+        _set_request_school_from_exam(request, exam)
         # Never expose the public_token back to the client.
         data = PublicExamSerializer(exam).data
         return Response(data)
@@ -156,6 +167,7 @@ class CodeLookupView(APIView):
         if exam is None:
             raise NotFound("No exam found with this code.")
         _validate_available(exam)
+        _set_request_school_from_exam(request, exam)
         data = PublicExamSerializer(exam).data
         return Response(data)
 
@@ -175,6 +187,7 @@ class StartAttemptView(APIView):
     def post(self, request, token: str):
         exam = _get_public_exam(token)
         _validate_available(exam)
+        _set_request_school_from_exam(request, exam)
 
         serializer = StartExamRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -232,6 +245,7 @@ class ResumeAttemptView(APIView):
         token = request.headers.get("X-Access-Token", request.query_params.get("token", ""))
         if not attempt.access_token_hash or _hash_token(token) != attempt.access_token_hash:
             raise PermissionDenied("Invalid attempt token.")
+        _set_request_school_from_attempt(request, attempt)
         return Response(PublicAttemptSerializer(attempt).data)
 
 
@@ -253,6 +267,7 @@ class SaveAttemptView(APIView):
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
+        _set_request_school_from_attempt(request, attempt)
 
         serializer = SaveAttemptRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -318,6 +333,7 @@ class SubmitAttemptView(APIView):
             raise PermissionDenied("Invalid attempt token.")
         if attempt.status == "submitted":
             raise ValidationError("This attempt has already been submitted.")
+        _set_request_school_from_attempt(request, attempt)
 
         # Persist any final answers sent with the submission.
         answers = (request.data.get("answers") or []) if isinstance(request.data, dict) else []

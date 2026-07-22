@@ -60,6 +60,7 @@ def generate_report_card(student: Student, classroom: ClassRoom, term) -> Report
                 "total_score": total_score,
                 "average_score": average_score,
                 "class_size": Enrollment.objects.filter(classroom=classroom, session__is_current=True).count(),
+                "school": classroom.school,
             },
         )
     return report
