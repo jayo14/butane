@@ -9,7 +9,7 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from accounts.models import Student, Teacher, User
-from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
 from academics.signals import result_post_save
 from academics.services import generate_class_report_cards, generate_report_card
 from exams.models import Exam, GradeLevel, Question, Choice, Term, Attempt
@@ -66,7 +66,9 @@ class BackfillMigrationTests(TestCase):
         ClassRoom.objects.filter(name="JSS1").delete()
         Enrollment.objects.filter(student=student).delete()
 
-        from academics.migrations.0002_backfill import backfill_academic_structure
+        import importlib
+
+        backfill_academic_structure = importlib.import_module("academics.migrations.0002_backfill").backfill_academic_structure
 
         backfill_academic_structure(self.apps, None)
 
@@ -441,4 +443,127 @@ class ReportCardFlowIntegrationTests(APITestCase):
 def _create_subject(name="Mathematics") -> "exams.Subject":
     from exams.models import Subject
     return Subject.objects.create(name=name, code=name[:4].upper())
+
+
+class SchoolProfileModelTests(TestCase):
+    def test_singleton_behavior(self):
+        profile1 = SchoolProfile.load()
+        profile2 = SchoolProfile.load()
+        self.assertEqual(profile1.pk, profile2.pk)
+
+    def test_default_values(self):
+        profile = SchoolProfile.load()
+        self.assertEqual(profile.name, "Dee Soar School")
+        self.assertEqual(profile.primary_color, "#006c49")
+        self.assertEqual(profile.secondary_color, "#3c4a42")
+
+
+class SchoolProfileAPITests(APITestCase):
+    def test_admin_can_get_school_profile(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        resp = self.client.get("/api/academics/school-profile/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["name"], "Dee Soar School")
+
+    def test_admin_can_update_school_profile(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        resp = self.client.patch("/api/academics/school-profile/", {"name": "New Name", "motto": "Test Motto"}, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["name"], "New Name")
+        self.assertEqual(resp.data["motto"], "Test Motto")
+
+    def test_teacher_cannot_update_school_profile(self):
+        _, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.patch("/api/academics/school-profile/", {"name": "Hacked"}, format="json")
+        self.assertIn(resp.status_code, (401, 403))
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="A", last_name="Dmin", role="admin"
+        )
+        return user, user
+
+
+class GradeScaleModelTests(TestCase):
+    def test_string_representation(self):
+        scale = GradeScale(min_score=70, max_score=100, grade="A", remark="Excellent")
+        self.assertEqual(str(scale), "A (70-100)")
+
+
+class PDFBrandingTests(APITestCase):
+    def test_pdf_includes_school_profile_branding(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1"
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=85.0, entered_by=teacher)
+
+        SchoolProfile.objects.filter(pk=1).delete()
+        SchoolProfile.objects.create(
+            pk=1,
+            name="Branded Academy",
+            primary_color="#ff0000",
+            secondary_color="#00ff00",
+        )
+
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+        report_id = generate_resp.data[0]["id"]
+
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        approve_resp = self.client.post(f"/api/academics/report-cards/{report_id}/approve/")
+        self.assertEqual(approve_resp.status_code, 200)
+
+        pdf_resp = self.client.get(f"/api/academics/report-cards/{report_id}/pdf/")
+        self.assertEqual(pdf_resp.status_code, 200)
+        self.assertEqual(pdf_resp["Content-Type"], "application/pdf")
+        content = b"".join(pdf_resp.streaming_content if hasattr(pdf_resp, 'streaming_content') else [pdf_resp.content])
+        self.assertIn(b"Branded Academy", content)
+
+    def test_pdf_returns_403_for_non_approved(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1"
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=85.0, entered_by=teacher)
+
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        report_id = generate_resp.data[0]["id"]
+
+        pdf_resp = self.client.get(f"/api/academics/report-cards/{report_id}/pdf/")
+        self.assertEqual(pdf_resp.status_code, 403)
 
