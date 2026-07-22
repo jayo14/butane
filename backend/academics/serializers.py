@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
 
 
 class AcademicSessionSerializer(serializers.ModelSerializer):
@@ -68,3 +68,16 @@ class ReportCardSerializer(serializers.ModelSerializer):
             "id", "created_at", "updated_at", "total_score", "average_score",
             "position", "class_size", "status", "approved_by", "approved_at",
         ]
+
+
+class SchoolProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SchoolProfile
+        fields = [
+            "id", "name", "logo", "motto", "address",
+            "principal_name", "principal_signature",
+            "vice_principal_name", "vice_principal_signature",
+            "primary_color", "secondary_color",
+            "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]
