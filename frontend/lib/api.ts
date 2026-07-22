@@ -594,6 +594,12 @@ export const api = {
       apiFetch<any>(`academics/report-cards/${id}/approve/`, { method: "POST" }),
     reportCardPdf: (id: string) =>
       apiFetch<Blob>(`academics/report-cards/${id}/pdf/`, { responseType: "blob" }),
+    schoolProfile: () => apiFetch<any>("academics/school-profile/"),
+    schoolProfileUpdate: (data: any) =>
+      apiFetch<any>("academics/school-profile/", { method: "PATCH", body: JSON.stringify(data) }),
+    gradeScales: () => apiFetch<any[]>("academics/grade-scales/"),
+    gradeScalesUpdate: (data: any) =>
+      apiFetch<any>("academics/grade-scales/", { method: "POST", body: JSON.stringify(data) }),
   },
 
   upload: {
