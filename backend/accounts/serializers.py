@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import Student, Teacher
+from .models import Invitation, Student, Teacher
 
 User = get_user_model()
 
@@ -64,3 +64,13 @@ class StudentSerializer(serializers.ModelSerializer):
             "enrollment_date", "avatar", "created_at", "updated_at", "is_deleted",
         ]
         read_only_fields = ["id", "created_at", "updated_at", "is_deleted"]
+
+
+class InvitationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Invitation
+        fields = [
+            "id", "school", "email", "role", "status", "expires_at",
+            "invited_by", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "status", "expires_at", "invited_by", "created_at", "updated_at"]

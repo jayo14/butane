@@ -1,12 +1,21 @@
 """Accounts app: authentication, users, and teacher/student profiles."""
 from __future__ import annotations
 
+import hashlib
 import uuid
+from datetime import timedelta
+from pathlib import Path
 
+from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
-from core.models import SoftDeleteModel
+from core.models import SoftDeleteModel, TimestampedModel
+
+
+def _hash_invite_token(raw: str) -> str:
+    secret = getattr(settings, "TOKEN_HASH_SECRET", settings.JWT_SECRET).encode("utf-8")
+    return hashlib.sha256(secret + raw.encode("utf-8")).hexdigest()
 
 
 class UserManager(BaseUserManager):
@@ -168,3 +177,45 @@ class Student(SoftDeleteModel):
             short = str(self.id).replace("-", "")[:12].upper()
             self.student_id = f"STU-{short}"
         super().save(*args, **kwargs)
+
+
+class Invitation(TimestampedModel):
+    """Email invitation to join a school as a teacher or admin."""
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("accepted", "Accepted"),
+        ("expired", "Expired"),
+    ]
+
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="invitations",
+    )
+    email = models.EmailField()
+    role = models.CharField(max_length=20, choices=User.ROLE_CHOICES, default="teacher")
+    token_hash = models.CharField(max_length=64, unique=True, db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
+    expires_at = models.DateTimeField()
+    invited_by = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="sent_invitations",
+    )
+
+    class Meta:
+        db_table = "accounts_invitation"
+        ordering = ["-created_at"]
+
+    def __str__(self) -> str:
+        return f"{self.email} → {self.school} ({self.role})"
+
+    @staticmethod
+    def generate_token() -> tuple[str, str]:
+        """Return (raw_token, token_hash)."""
+        from django.utils.crypto import get_random_string
+
+        raw = get_random_string(48)
+        return raw, _hash_invite_token(raw)
+

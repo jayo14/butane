@@ -1,21 +1,14 @@
-"""URL routing for the accounts app."""
-from __future__ import annotations
+from django.urls import include, path
+from rest_framework import routers
 
-from django.urls import path
-
-from rest_framework_simplejwt.views import TokenRefreshView
-
-from .views import (
-    ChangePasswordView,
-    CurrentUserView,
-    LoginView,
-    LogoutView,
-    ProfileView,
-    StudentListView,
-    TeacherListView,
-)
+from .views import InvitationViewSet, TeacherListView, StudentListView
 
 app_name = "accounts"
+
+router = routers.DefaultRouter()
+router.register(r"teachers", TeacherListView, basename="teacher")
+router.register(r"students", StudentListView, basename="student")
+router.register(r"invitations", InvitationViewSet, basename="invitation")
 
 urlpatterns = [
     # Authentication (teacher/admin only)
@@ -27,6 +20,5 @@ urlpatterns = [
     path("profile/", ProfileView.as_view(), name="profile"),
     path("auth/change-password/", ChangePasswordView.as_view(), name="change_password"),
     # Directories
-    path("teachers/", TeacherListView.as_view(), name="teacher_list"),
-    path("students/", StudentListView.as_view(), name="student_list"),
+    path("", include(router.urls)),
 ]

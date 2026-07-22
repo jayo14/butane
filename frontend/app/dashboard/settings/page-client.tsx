@@ -18,18 +18,21 @@ import {
   RefreshCw,
   Palette,
   GraduationCap,
+  Users,
+  UserPlus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
-type SettingsTab = "profile" | "school" | "branding" | "grading" | "password" | "preferences" | "notifications" | "danger"
+type SettingsTab = "profile" | "school" | "branding" | "grading" | "team" | "password" | "preferences" | "notifications" | "danger"
 
 const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Teacher Profile", icon: User },
   { id: "school", label: "School Profile", icon: School },
   { id: "branding", label: "Branding", icon: Palette },
   { id: "grading", label: "Grading Scale", icon: GraduationCap },
+  { id: "team", label: "Team", icon: Users },
   { id: "password", label: "Password", icon: Lock },
   { id: "preferences", label: "Preferences", icon: Settings },
   { id: "notifications", label: "Notifications", icon: Bell },
@@ -129,6 +132,10 @@ export function SettingsClient() {
   const [gradeScales, setGradeScales] = useState<any[]>([])
   const [gradeScalesSaving, setGradeScalesSaving] = useState(false)
   const [gradeScalesSaved, setGradeScalesSaved] = useState(false)
+  const [invites, setInvites] = useState({ email: "", role: "teacher" })
+  const [inviting, setInviting] = useState(false)
+  const [inviteMessage, setInviteMessage] = useState("")
+  const [inviteError, setInviteError] = useState("")
 
   const [passwords, setPasswords] = useState({
     current: "",
@@ -687,6 +694,82 @@ export function SettingsClient() {
                   <Button variant="primary" onClick={handleGradeScalesSave} isLoading={gradeScalesSaving} leftIcon={<Save size={16} />}>
                     Save Scale
                   </Button>
+                </div>
+              </div>
+            </SectionCard>
+          )}
+
+          {/* Team Section */}
+          {activeTab === "team" && (
+            <SectionCard title="Team" description="Invite teachers and admins to your school">
+              <div className="space-y-6">
+                <div className="rounded-xl border border-border-primary p-5">
+                  <h3 className="text-sm font-semibold text-content-primary">Invite Teacher</h3>
+                  <p className="mt-1 text-sm text-content-muted">
+                    Send an email invitation to join your school as a teacher or admin.
+                  </p>
+                  {inviteError && (
+                    <div className="mt-3 rounded-lg border border-danger/40 bg-danger-light p-3 text-sm text-danger">{inviteError}</div>
+                  )}
+                  {inviteMessage && (
+                    <div className="mt-3 rounded-lg border border-success/40 bg-success-light p-3 text-sm text-success">{inviteMessage}</div>
+                  )}
+                  <div className="mt-4 grid gap-4 sm:grid-cols-3">
+                    <div>
+                      <label className="block text-sm font-medium">Email</label>
+                      <input
+                        type="email"
+                        value={invites.email}
+                        onChange={(e) => setInvites({ ...invites, email: e.target.value })}
+                        className={cn(inputClass, "mt-1")}
+                        placeholder="teacher@example.com"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium">Role</label>
+                      <select
+                        value={invites.role}
+                        onChange={(e) => setInvites({ ...invites, role: e.target.value })}
+                        className={cn(inputClass, "mt-1")}
+                      >
+                        <option value="teacher">Teacher</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    </div>
+                    <div className="flex items-end">
+                      <Button
+                        variant="primary"
+                        onClick={async () => {
+                          setInviting(true)
+                          setInviteError("")
+                          setInviteMessage("")
+                          try {
+                            const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
+                            const res = await fetch(`${base}/api/accounts/invitations/`, {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ email: invites.email, role: invites.role }),
+                            })
+                            if (!res.ok) {
+                              const body = await res.json().catch(() => ({}))
+                              throw new Error(body.detail || "Failed to send invitation")
+                            }
+                            setInviteMessage(`Invitation sent to ${invites.email}`)
+                            setInvites({ email: "", role: "teacher" })
+                          } catch (err: any) {
+                            setInviteError(err.message)
+                          } finally {
+                            setInviting(false)
+                          }
+                        }}
+                        disabled={!invites.email}
+                        isLoading={inviting}
+                        leftIcon={<UserPlus size={16} />}
+                      >
+                        Send Invite
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
             </SectionCard>
