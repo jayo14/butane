@@ -1,6 +1,15 @@
 from django.urls import include, path
 from rest_framework import routers
 
+from .auth import (
+    ChangePasswordView,
+    CurrentUserView,
+    LoginView,
+    LogoutView,
+    ProfileView,
+)
+from rest_framework_simplejwt.views import TokenRefreshView
+
 from .views import InvitationViewSet, TeacherListView, StudentListView
 
 app_name = "accounts"

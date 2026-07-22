@@ -7,7 +7,7 @@ from pathlib import Path
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
-from rest_framework import permissions, status, viewsets
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
@@ -27,7 +27,7 @@ User = get_user_model()
     responses=TeacherSerializer(many=True),
     tags=["Accounts"],
 )
-class TeacherListView(SchoolScopedViewSetMixin, generics.ListAPIView):
+class TeacherListView(SchoolScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Teacher.objects.filter(is_deleted=False)
     serializer_class = TeacherSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -38,7 +38,7 @@ class TeacherListView(SchoolScopedViewSetMixin, generics.ListAPIView):
     responses=StudentSerializer(many=True),
     tags=["Accounts"],
 )
-class StudentListView(SchoolScopedViewSetMixin, generics.ListAPIView):
+class StudentListView(SchoolScopedViewSetMixin, viewsets.ReadOnlyModelViewSet):
     queryset = Student.objects.filter(is_deleted=False)
     serializer_class = StudentSerializer
     permission_classes = [permissions.IsAuthenticated]
