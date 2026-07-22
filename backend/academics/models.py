@@ -4,7 +4,7 @@ from __future__ import annotations
 from django.core.exceptions import ValidationError
 from django.db import models
 
-from core.models import TimestampedModel
+from core.models import SoftDeleteModel, TimestampedModel
 
 
 class AcademicSession(TimestampedModel):
@@ -221,3 +221,36 @@ class ReportCard(SoftDeleteModel):
 
     def __str__(self) -> str:
         return f"{self.student} — {self.classroom} ({self.term})"
+
+
+class SchoolProfile(TimestampedModel):
+    """Singleton school profile used for branding."""
+
+    name = models.CharField(max_length=160, default="Dee Soar School")
+    logo = models.ImageField(upload_to="school/logo/", null=True, blank=True)
+    motto = models.CharField(max_length=255, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    principal_name = models.CharField(max_length=160, blank=True)
+    principal_signature = models.ImageField(upload_to="school/signatures/", null=True, blank=True)
+    vice_principal_name = models.CharField(max_length=160, blank=True)
+    vice_principal_signature = models.ImageField(upload_to="school/signatures/", null=True, blank=True)
+    primary_color = models.CharField(max_length=7, default="#006c49", help_text="Hex color, e.g. #006c49")
+    secondary_color = models.CharField(max_length=7, default="#3c4a42", help_text="Hex color, e.g. #3c4a42")
+
+    class Meta:
+        db_table = "academics_school_profile"
+        verbose_name = "school profile"
+        verbose_name_plural = "school profiles"
+
+    def __str__(self) -> str:
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
