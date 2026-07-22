@@ -39,17 +39,34 @@ class IsOwnerOrTeacher(permissions.BasePermission):
     Expects the target object to expose ``user`` (pointing at the owning
     :class:`accounts.models.User`) or ``student``/``teacher`` profile whose
     ``.user`` is the owner. Falls back to teacher/admin for broad access.
+
+    Also enforces school scoping: the object's school must match the
+    requesting user's school (admins bypass this).
     """
 
     def has_object_permission(self, request, view, obj) -> bool:
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        if user.role in {"teacher", "admin"}:
+        if user.role == "admin":
+            return True
+        if user.role == "teacher":
             return True
 
         owner = getattr(obj, "user", None)
         if owner is None:
             student = getattr(obj, "student", None)
             owner = getattr(student, "user", None)
-        return bool(owner) and owner == user
+        if owner and owner == user:
+            return True
+
+        obj_school = getattr(obj, "school", None)
+        if obj_school is None:
+            student = getattr(obj, "student", None)
+            if student:
+                obj_school = getattr(student, "school", None)
+        request_school = getattr(request, "school", None)
+        if obj_school and request_school and obj_school == request_school:
+            return True
+
+        return False

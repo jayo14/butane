@@ -15,7 +15,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
 
-from core.throttling import LoginRateThrottle
+from core.views import SchoolScopedViewSetMixin
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
 from .models import Attempt, AttemptAnswer, Exam, GradeLevel, Question, Result, Subject, Term
@@ -31,7 +31,7 @@ from .serializers import (
 )
 
 
-class SubjectViewSet(viewsets.ModelViewSet):
+class SubjectViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     """CRUD for subjects used in exam creation."""
 
     queryset = Subject.objects.all()
@@ -42,7 +42,7 @@ class SubjectViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
-class GradeLevelViewSet(viewsets.ModelViewSet):
+class GradeLevelViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     """CRUD for grade/class levels."""
 
     queryset = GradeLevel.objects.all()
@@ -64,7 +64,7 @@ class TermViewSet(viewsets.ModelViewSet):
     pagination_class = None
 
 
-class ExamViewSet(viewsets.ModelViewSet):
+class ExamViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     """CRUD + lifecycle actions (publish, share, duplicate, archive) for exams.
 
     Only the owning teacher (or an admin) may create/update/delete or perform
@@ -105,9 +105,12 @@ class ExamViewSet(viewsets.ModelViewSet):
             raise ValidationError(
                 {"created_by": "Your account is not linked to a teacher profile. Contact an administrator."}
             )
-        serializer.save(created_by=teacher)
+        serializer.save(created_by=teacher, school=teacher.school)
 
     def _own_exam(self, exam) -> None:
+        request_school = getattr(self.request, "school", None)
+        if exam.school_id and request_school and exam.school_id != request_school.id:
+            self.permission_denied(self.request, message="You do not have access to this exam.")
         if exam.created_by.user_id != self.request.user.id and self.request.user.role != "admin":
             self.permission_denied(self.request, message="You do not own this exam.")
 
