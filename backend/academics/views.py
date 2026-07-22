@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.permissions import IsAdmin, IsTeacher
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
 from .serializers import AcademicSessionSerializer, AssessmentComponentSerializer, AssessmentScoreSerializer, ClassRoomSerializer, EnrollmentSerializer, GradeScaleSerializer, ReportCardSerializer
 from .services import generate_class_report_cards
 
@@ -201,8 +201,11 @@ class ReportCardViewSet(viewsets.ModelViewSet):
 
         from django.conf import settings
 
-        school_name = getattr(settings, "SCHOOL_NAME", "Butane School")
-        school_logo_url = getattr(settings, "SCHOOL_LOGO_URL", "")
+        profile = SchoolProfile.load()
+        school_name = profile.name
+        school_logo_url = profile.logo.url if profile.logo else ""
+        primary_color = profile.primary_color or "#006c49"
+        secondary_color = profile.secondary_color or "#3c4a42"
         site_url = getattr(settings, "SITE_URL", "").rstrip("/")
 
         html = render_to_string(
@@ -214,6 +217,8 @@ class ReportCardViewSet(viewsets.ModelViewSet):
                 "school_name": school_name,
                 "school_logo_url": school_logo_url,
                 "site_url": site_url,
+                "primary_color": primary_color,
+                "secondary_color": secondary_color,
             },
         )
 
@@ -227,3 +232,27 @@ class ReportCardViewSet(viewsets.ModelViewSet):
         filename = f"report-card-{report.student.user.full_name}-{report.term.name}.pdf"
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+
+
+class SchoolProfileViewSet(viewsets.ViewSet):
+    permission_classes = [IsAdmin]
+    queryset = SchoolProfile.objects.all()
+    serializer_class = None
+
+    def get_serializer(self, *args, **kwargs):
+        from .serializers import SchoolProfileSerializer
+
+        return SchoolProfileSerializer(*args, **kwargs)
+
+    def list(self, request):
+        profile = SchoolProfile.load()
+        serializer = self.get_serializer(profile)
+        return Response(serializer.data)
+
+    def partial_update(self, request):
+        profile = SchoolProfile.load()
+        serializer = self.get_serializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
