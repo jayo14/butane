@@ -130,14 +130,16 @@ export function ExamResultsClient({ examId }: { examId: string }) {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current)
-    timeoutRef.current = setTimeout(() => {
-      setLoading(false)
-      setError("Request timed out. Please check your connection and try again.")
-    }, 15000)
+    if (!exam) {
+      timeoutRef.current = setTimeout(() => {
+        setLoading(false)
+        setError("Request timed out. Please check your connection and try again.")
+      }, 15000)
+    }
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current)
     }
-  }, [token, examId])
+  }, [token, examId, exam])
 
   // Restore state from localStorage
   useEffect(() => {
