@@ -74,7 +74,6 @@ export function ExamResultsClient({ examId }: { examId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  const examId = searchParams.get("id") || ""
   const token = searchParams.get("token") || ""
   const attemptId = searchParams.get("attemptId") || ""
 
