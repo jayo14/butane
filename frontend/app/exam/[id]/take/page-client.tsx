@@ -28,7 +28,7 @@ interface TakeQuestion {
 const STORAGE_KEY_PREFIX = "exam-take-"
 const OPTION_LABELS = ["A", "B", "C", "D"]
 
-export function ExamTakeClient() {
+export function ExamTakeClient({ examId }: { examId: string }) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -36,7 +36,6 @@ export function ExamTakeClient() {
   const accessToken = searchParams.get("accessToken") || ""
   const token = searchParams.get("token") || ""
   const studentName = searchParams.get("name") || ""
-  const examId = searchParams.get("id") || ""
 
   const [exam, setExam] = useState<TakeExam | null>(null)
   const [questions, setQuestions] = useState<TakeQuestion[]>([])
