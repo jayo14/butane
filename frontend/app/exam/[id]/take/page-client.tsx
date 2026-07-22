@@ -277,6 +277,7 @@ export function ExamTakeClient() {
         )
         const resultParams = new URLSearchParams()
         if (attemptId) resultParams.set("attemptId", attemptId)
+        if (examId) resultParams.set("id", examId)
         if (!exam.allowReview && !exam.showResult) {
           router.push(`/exam/${exam.id}/submitted?${resultParams.toString()}`)
         } else if (!exam.allowReview) {
@@ -294,6 +295,7 @@ export function ExamTakeClient() {
     if (!exam) { setSubmitting(false); return }
     const resultParams = new URLSearchParams()
     if (attemptId) resultParams.set("attemptId", attemptId)
+    if (examId) resultParams.set("id", examId)
     if (!exam.allowReview && !exam.showResult) {
       router.push(`/exam/${exam.id}/submitted?${resultParams.toString()}`)
     } else if (!exam.allowReview) {
