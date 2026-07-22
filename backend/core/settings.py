@@ -74,6 +74,7 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "cloudinary",
     # Local apps
+    "schools",
     "accounts",
     "exams",
     "academics",
@@ -87,6 +88,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "schools.middleware.CurrentSchoolMiddleware",
     "core.middleware.RequestLoggingMiddleware",
     "core.middleware.DatabaseRetryMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",

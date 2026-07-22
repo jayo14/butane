@@ -31,6 +31,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("health/", health, name="health"),
     # REST API
+    path("api/schools/", include("schools.urls")),
     path("api/accounts/", include("accounts.urls")),
     path("api/upload/", ImageUploadView.as_view(), name="image-upload"),
     path("api/", include("exams.urls")),

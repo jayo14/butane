@@ -54,3 +54,16 @@ class SoftDeleteModel(TimestampedModel):
         self.deleted_at = timezone.now()
         self.save(update_fields=["is_deleted", "deleted_at", "updated_at"])
         return (1, {type(self)._meta.label: 1})
+
+
+class SchoolScopedModel(TimestampedModel):
+    """Abstract base adding a school FK for multi-tenancy."""
+
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="%(class)s_%(app_label)s_set",
+    )
+
+    class Meta:
+        abstract = True
