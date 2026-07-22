@@ -156,3 +156,68 @@ class AssessmentScore(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.student} — {self.component}: {self.score}"
+
+
+class GradeScale(TimestampedModel):
+    """Global grading scale (e.g. A, B, C)."""
+
+    min_score = models.FloatField(help_text="Minimum score for this grade (inclusive).")
+    max_score = models.FloatField(help_text="Maximum score for this grade (inclusive).")
+    grade = models.CharField(max_length=8, help_text='e.g. "A", "B2"')
+    remark = models.CharField(max_length=80, help_text='e.g. "Excellent", "Good"')
+
+    class Meta:
+        db_table = "academics_grade_scale"
+        ordering = ["-min_score"]
+
+    def __str__(self) -> str:
+        return f"{self.grade} ({self.min_score}-{self.max_score})"
+
+
+class ReportCard(SoftDeleteModel):
+    """Generated report card for a student in a classroom/term."""
+
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("submitted", "Submitted"),
+        ("approved", "Approved"),
+    ]
+
+    student = models.ForeignKey(
+        "accounts.Student",
+        on_delete=models.PROTECT,
+        related_name="report_cards",
+    )
+    classroom = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.PROTECT,
+        related_name="report_cards",
+    )
+    term = models.ForeignKey(
+        "exams.Term",
+        on_delete=models.PROTECT,
+        related_name="report_cards",
+    )
+    total_score = models.FloatField(default=0.0, help_text="Sum of all assessment scores.")
+    average_score = models.FloatField(default=0.0, help_text="Average across subjects.")
+    position = models.PositiveIntegerField(null=True, blank=True, help_text="Computed rank in class.")
+    class_size = models.PositiveIntegerField(default=0, help_text="Snapshot of class size at generation time.")
+    teacher_remark = models.TextField(blank=True)
+    principal_remark = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    approved_by = models.ForeignKey(
+        "accounts.Teacher",
+        on_delete=models.PROTECT,
+        related_name="approved_report_cards",
+        null=True,
+        blank=True,
+    )
+    approved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        db_table = "academics_report_card"
+        ordering = ["-created_at"]
+        unique_together = [("student", "classroom", "term")]
+
+    def __str__(self) -> str:
+        return f"{self.student} — {self.classroom} ({self.term})"

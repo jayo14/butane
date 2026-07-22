@@ -577,6 +577,25 @@ export const api = {
     studentHistory: (studentId: string) => apiFetch<any>(`reports/students/${studentId}/`),
   },
 
+  academics: {
+    sessions: (params?: { page?: number; page_size?: number }) =>
+      apiFetch<PaginatedResponse<any>>(`academics/sessions/${buildQuery(params || {})}`),
+    classrooms: (params?: { page?: number; page_size?: number }) =>
+      apiFetch<PaginatedResponse<any>>(`academics/classrooms/${buildQuery(params || {})}`),
+    components: (params?: { classroom?: string; term?: string }) =>
+      apiFetch<any[]>(`academics/components/${buildQuery(params || {})}`),
+    scoresBulk: (payload: { component_id: string; scores: { student_id: string; score: number }[] }) =>
+      apiFetch<any>("academics/scores/bulk/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardsGenerate: (payload: { classroom_id: string; term_id: string }) =>
+      apiFetch<any[]>("academics/report-cards/generate/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardsSubmit: (id: string) =>
+      apiFetch<any>(`academics/report-cards/${id}/submit/`, { method: "POST" }),
+    reportCardsApprove: (id: string) =>
+      apiFetch<any>(`academics/report-cards/${id}/approve/`, { method: "POST" }),
+    reportCardPdf: (id: string) =>
+      apiFetch<Blob>(`academics/report-cards/${id}/pdf/`, { responseType: "blob" }),
+  },
+
   upload: {
     image: async (file: File): Promise<{ url: string }> => {
       const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null

@@ -1,14 +1,17 @@
 """Tests for the academics domain."""
 from __future__ import annotations
 
+import itertools
+
 from uuid import uuid4
 
 from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from accounts.models import Student, Teacher, User
-from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment
+from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
 from academics.signals import result_post_save
+from academics.services import generate_class_report_cards, generate_report_card
 from exams.models import Exam, GradeLevel, Question, Choice, Term, Attempt
 
 
@@ -272,6 +275,13 @@ class AcademicsBulkScoreAPITests(APITestCase):
         teacher = Teacher.objects.create(user=user, department="Math")
         return teacher, user
 
+    def _create_student(self, email="student@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="S", last_name="Tudent", role="student"
+        )
+        student = Student.objects.create(user=user, grade="JSS1")
+        return student, user
+
 
 class AcademicsAPITests(APITestCase):
     def test_teacher_can_list_sessions(self):
@@ -307,6 +317,128 @@ class AcademicsAPITests(APITestCase):
         return student, user
 
 
+class ReportCardServiceTests(TestCase):
+    def test_generate_report_card_computes_totals(self):
+        subject = _create_subject()
+        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade)
+        term = Term.objects.create(name="First Term", display_order=1)
+        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
+        teacher = Teacher.objects.create(user=user, department="Math")
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        user2 = User.objects.create_user(email="s@example.com", password="pwd", role="student")
+        student = Student.objects.create(user=user2, grade="JSS1")
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+
+        report = generate_report_card(student, classroom, term)
+        self.assertEqual(report.total_score, 80.0)
+        self.assertAlmostEqual(report.average_score, 80.0)
+
+    def test_generate_class_report_cards_computes_positions_with_ties(self):
+        subject = _create_subject()
+        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade)
+        term = Term.objects.create(name="First Term", display_order=1)
+        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
+        teacher = Teacher.objects.create(user=user, department="Math")
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True
+        )
+        students = []
+        for i in range(4):
+            u = User.objects.create_user(email=f"s{i}@example.com", password="pwd", role="student")
+            s = Student.objects.create(user=u, grade="JSS1")
+            Enrollment.objects.create(student=s, classroom=classroom, session=session)
+            students.append(s)
+        AssessmentScore.objects.create(component=component, student=students[0], score=90.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component, student=students[1], score=80.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component, student=students[2], score=80.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component, student=students[3], score=70.0, entered_by=teacher)
+
+        reports = generate_class_report_cards(classroom, term)
+        positions = { r.student_id: r.position for r in reports }
+        self.assertEqual(positions[students[0].id], 1)
+        self.assertEqual(positions[students[1].id], 2)
+        self.assertEqual(positions[students[2].id], 2)
+        self.assertEqual(positions[students[3].id], 4)
+
+
+class ReportCardFlowIntegrationTests(APITestCase):
+    def test_generate_submit_approve_pdf_flow(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1"
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=85.0, entered_by=teacher)
+
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+        report_id = generate_resp.data[0]["id"]
+
+        submit_resp = self.client.post(f"/api/academics/report-cards/{report_id}/submit/")
+        self.assertEqual(submit_resp.status_code, 200)
+        self.assertEqual(submit_resp.data["status"], "submitted")
+
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        approve_resp = self.client.post(f"/api/academics/report-cards/{report_id}/approve/")
+        self.assertEqual(approve_resp.status_code, 200)
+        self.assertEqual(approve_resp.data["status"], "approved")
+
+        pdf_resp = self.client.get(f"/api/academics/report-cards/{report_id}/pdf/")
+        self.assertEqual(pdf_resp.status_code, 200)
+        self.assertEqual(pdf_resp["Content-Type"], "application/pdf")
+
+        self.client.force_authenticate(user=user)
+        draft = ReportCard.objects.create(student=student, classroom=classroom, term=term, status="draft")
+        pdf_draft_resp = self.client.get(f"/api/academics/report-cards/{draft.id}/pdf/")
+        self.assertEqual(pdf_draft_resp.status_code, 403)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="A", last_name="Dmin", role="admin"
+        )
+        return user, user
+
+    def _create_student(self, email="student@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="S", last_name="Tudent", role="student"
+        )
+        student = Student.objects.create(user=user, grade="JSS1")
+        return student, user
+
+
 def _create_subject(name="Mathematics") -> "exams.Subject":
     from exams.models import Subject
     return Subject.objects.create(name=name, code=name[:4].upper())
+

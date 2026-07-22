@@ -1,14 +1,19 @@
 """ViewSets for the academics domain."""
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 from django.db import transaction
+from django.template.loader import render_to_string
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.permissions import IsTeacher
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment
-from .serializers import AcademicSessionSerializer, AssessmentComponentSerializer, AssessmentScoreSerializer, ClassRoomSerializer, EnrollmentSerializer
+from accounts.permissions import IsAdmin, IsTeacher
+from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+from .serializers import AcademicSessionSerializer, AssessmentComponentSerializer, AssessmentScoreSerializer, ClassRoomSerializer, EnrollmentSerializer, GradeScaleSerializer, ReportCardSerializer
+from .services import generate_class_report_cards
 
 
 class AcademicSessionViewSet(viewsets.ModelViewSet):
@@ -109,3 +114,116 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+
+class GradeScaleViewSet(viewsets.ModelViewSet):
+    queryset = GradeScale.objects.all()
+    serializer_class = GradeScaleSerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        return [IsTeacher()]
+
+
+class ReportCardViewSet(viewsets.ModelViewSet):
+    queryset = ReportCard.objects.select_related("student", "classroom", "term", "approved_by")
+    serializer_class = ReportCardSerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        if self.action == "approve":
+            return [IsAdmin()]
+        return [IsTeacher()]
+
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="generate")
+    def generate(self, request):
+        classroom_id = request.data.get("classroom_id")
+        term_id = request.data.get("term_id")
+        if not classroom_id or not term_id:
+            return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            classroom = ClassRoom.objects.get(pk=classroom_id)
+            term = type("Term", (), {"id": term_id, "name": ""})()
+        except ClassRoom.DoesNotExist:
+            return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        from exams.models import Term as TermModel
+        try:
+            term = TermModel.objects.get(pk=term_id)
+        except TermModel.DoesNotExist:
+            return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        reports = generate_class_report_cards(classroom, term)
+        serializer = self.get_serializer(reports, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], url_path="submit")
+    def submit(self, request, pk=None):
+        report = self.get_object()
+        if report.status != "draft":
+            return Response({"detail": "Only draft report cards can be submitted."}, status=status.HTTP_400_BAD_REQUEST)
+        report.status = "submitted"
+        report.save(update_fields=["status", "updated_at"])
+        serializer = self.get_serializer(report)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], url_path="approve")
+    def approve(self, request, pk=None):
+        report = self.get_object()
+        if report.status != "submitted":
+            return Response({"detail": "Only submitted report cards can be approved."}, status=status.HTTP_400_BAD_REQUEST)
+        report.status = "approved"
+        report.approved_by = request.user.teacher_profile
+        report.approved_at = __import__("django.utils").timezone.now()
+        report.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+        serializer = self.get_serializer(report)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["get"], url_path="pdf")
+    def pdf(self, request, pk=None):
+        report = self.get_object()
+        if report.status != "approved":
+            return Response({"detail": "Report card is not approved."}, status=status.HTTP_403_FORBIDDEN)
+
+        components = list(
+            AssessmentComponent.objects.filter(classroom=report.classroom, term=report.term)
+            .select_related("subject")
+            .prefetch_related("scores__student")
+        )
+        scores = AssessmentScore.objects.filter(
+            component__in=components,
+            student=report.student,
+        ).select_related("component__subject")
+
+        from django.conf import settings
+
+        school_name = getattr(settings, "SCHOOL_NAME", "Butane School")
+        school_logo_url = getattr(settings, "SCHOOL_LOGO_URL", "")
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+
+        html = render_to_string(
+            "academics/report_card.html",
+            {
+                "report": report,
+                "components": components,
+                "scores": scores,
+                "school_name": school_name,
+                "school_logo_url": school_logo_url,
+                "site_url": site_url,
+            },
+        )
+
+        try:
+            from weasyprint import HTML
+            pdf_file = HTML(string=html, base_url=site_url).write_pdf()
+        except Exception as exc:
+            return Response({"detail": f"PDF generation failed: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        response = Response(pdf_file, content_type="application/pdf")
+        filename = f"report-card-{report.student.user.full_name}-{report.term.name}.pdf"
+        response["Content-Disposition"] = f"attachment; filename={filename}"
+        return response
