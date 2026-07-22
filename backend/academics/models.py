@@ -1,6 +1,7 @@
-"""Academic structures: sessions, classrooms, and student enrollments."""
+"""Academic structures: sessions, classrooms, student enrollments, and assessment components/scores."""
 from __future__ import annotations
 
+from django.core.exceptions import ValidationError
 from django.db import models
 
 from core.models import TimestampedModel
@@ -72,3 +73,86 @@ class Enrollment(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.student} → {self.classroom} ({self.session})"
+
+
+class AssessmentComponent(TimestampedModel):
+    """A named assessment component within a subject/class/term."""
+
+    COMPONENT_TYPES = [
+        ("ca", "CA"),
+        ("assignment", "Assignment"),
+        ("practical", "Practical"),
+        ("exam", "Exam"),
+        ("project", "Project"),
+    ]
+
+    subject = models.ForeignKey(
+        "exams.Subject",
+        on_delete=models.PROTECT,
+        related_name="assessment_components",
+    )
+    classroom = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.PROTECT,
+        related_name="assessment_components",
+    )
+    term = models.ForeignKey(
+        "exams.Term",
+        on_delete=models.PROTECT,
+        related_name="assessment_components",
+    )
+    name = models.CharField(max_length=80, help_text='e.g. "CA1", "Exam"')
+    max_score = models.PositiveIntegerField(default=100, help_text="Maximum attainable score for this component.")
+    component_type = models.CharField(max_length=20, choices=COMPONENT_TYPES, default="ca")
+
+    class Meta:
+        db_table = "academics_assessment_component"
+        ordering = ["term__display_order", "subject__name", "name"]
+        unique_together = [("subject", "classroom", "term", "name")]
+
+    def __str__(self) -> str:
+        return f"{self.subject} / {self.classroom} / {self.term} / {self.name}"
+
+    def clean(self):
+        total = (
+            AssessmentComponent.objects.filter(
+                subject=self.subject,
+                classroom=self.classroom,
+                term=self.term,
+            ).exclude(pk=self.pk)
+            .exclude(is_deleted=True)
+            .values_list("max_score", flat=True)
+        )
+        if sum(total) + self.max_score > 100:
+            raise ValidationError(
+                {"max_score": "Total component scores for this subject/class/term exceed 100."}
+            )
+
+
+class AssessmentScore(TimestampedModel):
+    """A student's score for a specific assessment component."""
+
+    component = models.ForeignKey(
+        AssessmentComponent,
+        on_delete=models.PROTECT,
+        related_name="scores",
+    )
+    student = models.ForeignKey(
+        "accounts.Student",
+        on_delete=models.PROTECT,
+        related_name="assessment_scores",
+    )
+    score = models.FloatField(default=0.0, help_text="Score obtained by the student.")
+    entered_by = models.ForeignKey(
+        "accounts.Teacher",
+        on_delete=models.PROTECT,
+        related_name="entered_scores",
+    )
+
+    class Meta:
+        db_table = "academics_assessment_score"
+        ordering = ["component__term__display_order", "student__user__last_name"]
+        unique_together = [("component", "student")]
+
+    def __str__(self) -> str:
+        return f"{self.student} — {self.component}: {self.score}"
