@@ -6,22 +6,22 @@
   <title>Report Card</title>
   <style>
     body { font-family: "DejaVu Sans", sans-serif; margin: 0; padding: 24px; color: #121c2a; }
-    .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid #006c49; padding-bottom: 16px; margin-bottom: 24px; }
+    .header { display: flex; align-items: center; gap: 16px; border-bottom: 2px solid {{ primary_color }}; padding-bottom: 16px; margin-bottom: 24px; }
     .logo { width: 64px; height: 64px; object-fit: contain; }
-    .header-text h1 { margin: 0; font-size: 22px; color: #006c49; }
-    .header-text p { margin: 4px 0 0; font-size: 12px; color: #3c4a42; }
+    .header-text h1 { margin: 0; font-size: 22px; color: {{ primary_color }}; }
+    .header-text p { margin: 4px 0 0; font-size: 12px; color: {{ secondary_color }}; }
     .meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 24px; }
     .meta div { font-size: 13px; }
-    .meta strong { color: #006c49; }
+    .meta strong { color: {{ primary_color }}; }
     table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
     th, td { border: 1px solid #bbcabf; padding: 8px; text-align: left; font-size: 13px; }
-    th { background: #f4f7f5; color: #006c49; }
+    th { background: #f4f7f5; color: {{ primary_color }}; }
     .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     .totals div { padding: 12px; border-radius: 8px; background: #eff3ff; }
-    .totals strong { display: block; font-size: 12px; color: #3c4a42; text-transform: uppercase; letter-spacing: 0.05em; }
+    .totals strong { display: block; font-size: 12px; color: {{ secondary_color }}; text-transform: uppercase; letter-spacing: 0.05em; }
     .totals span { font-size: 18px; font-weight: bold; color: #121c2a; }
     .remarks { margin-top: 24px; }
-    .remarks h3 { margin: 0 0 8px; font-size: 14px; color: #006c49; }
+    .remarks h3 { margin: 0 0 8px; font-size: 14px; color: {{ primary_color }}; }
     .remarks p { margin: 0 0 12px; padding: 10px; border-radius: 8px; background: #fcfbf7; border: 1px solid #bbcabf; font-size: 13px; }
     .footer { margin-top: 32px; border-top: 1px solid #bbcabf; padding-top: 12px; font-size: 11px; color: #6c7a71; text-align: center; }
   </style>
