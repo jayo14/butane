@@ -5,6 +5,7 @@ import { useForm, FormProvider, type Resolver } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ChevronLeft, ChevronRight, Cloud, CloudOff, Loader2, Trash2, FileText,
   Copy, Plus, AlertCircle, Sparkles, ArrowLeft, Zap,
@@ -206,7 +207,8 @@ function useKeyboard(handlers: Record<string, () => void>) {
   }, [handlers])
 }
 
-export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExam; editId?: string } = {}) {
+export function CreateExamWizard({ initialExam, editId, onSuccess }: { initialExam?: ApiExam; editId?: string; onSuccess?: () => void } = {}) {
+  const router = useRouter()
   const [currentStep, setCurrentStep] = useState(loadStep)
   const [draft, setDraft] = useState<ExamDraft>(loadDraft)
   const [isPublishing, setIsPublishing] = useState(false)
@@ -415,14 +417,16 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
       if (isEditMode && examId) {
         const updated = await api.exams.update(examId, payload)
         examId = updated.id
-        if (updated.status === "draft") {
-          const published = await api.exams.publish(updated.id)
-          setPublishedUrl(published.public_url || `${window.location.origin}/exam/${updated.id}`)
-          setShortCode(published.short_code || "")
+        clearDraftFromStorage()
+        setIsPublishing(false)
+        if (onSuccess) {
+          onSuccess()
         } else {
           setPublishedUrl(`${window.location.origin}/exam/${updated.id}`)
           setShortCode(updated.short_code || "")
+          setPublished(true)
         }
+        return
       } else {
         const created = await api.exams.create(payload)
         examId = created.id
@@ -899,12 +903,12 @@ export function CreateExamWizard({ initialExam, editId }: { initialExam?: ApiExa
                     {isPublishing ? (
                       <>
                         <Loader2 size={18} className="animate-spin" />
-                        Publishing...
+                        {isEditMode ? "Saving..." : "Publishing..."}
                       </>
                     ) : (
                       <>
-                        Publish Exam
-                        <Zap size={18} />
+                        {isEditMode ? "Save Changes" : "Publish Exam"}
+                        {!isEditMode && <Zap size={18} />}
                       </>
                     )}
                   </button>
