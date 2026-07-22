@@ -124,9 +124,7 @@ export function ExamResultsClient({ examId }: { examId: string }) {
         setLoading(false)
       }
     }
-    if (token || examId) {
-      loadExam()
-    }
+    loadExam()
   }, [token, examId])
 
   // Restore state from localStorage
