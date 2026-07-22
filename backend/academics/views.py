@@ -10,13 +10,14 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from core.views import SchoolScopedViewSetMixin
 from accounts.permissions import IsAdmin, IsTeacher
 from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
 from .serializers import AcademicSessionSerializer, AssessmentComponentSerializer, AssessmentScoreSerializer, ClassRoomSerializer, EnrollmentSerializer, GradeScaleSerializer, ReportCardSerializer
 from .services import generate_class_report_cards
 
 
-class AcademicSessionViewSet(viewsets.ModelViewSet):
+class AcademicSessionViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = AcademicSession.objects.all()
     serializer_class = AcademicSessionSerializer
 
@@ -26,7 +27,7 @@ class AcademicSessionViewSet(viewsets.ModelViewSet):
         return [IsTeacher()]
 
 
-class ClassRoomViewSet(viewsets.ModelViewSet):
+class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = ClassRoom.objects.all()
     serializer_class = ClassRoomSerializer
 
@@ -36,7 +37,7 @@ class ClassRoomViewSet(viewsets.ModelViewSet):
         return [IsTeacher()]
 
 
-class EnrollmentViewSet(viewsets.ModelViewSet):
+class EnrollmentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
 
@@ -46,7 +47,7 @@ class EnrollmentViewSet(viewsets.ModelViewSet):
         return [IsTeacher()]
 
 
-class AssessmentComponentViewSet(viewsets.ModelViewSet):
+class AssessmentComponentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = AssessmentComponent.objects.select_related("subject", "classroom", "term")
     serializer_class = AssessmentComponentSerializer
 
@@ -56,7 +57,7 @@ class AssessmentComponentViewSet(viewsets.ModelViewSet):
         return [IsTeacher()]
 
 
-class AssessmentScoreViewSet(viewsets.ModelViewSet):
+class AssessmentScoreViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = AssessmentScore.objects.select_related("component", "student", "entered_by")
     serializer_class = AssessmentScoreSerializer
 
@@ -116,7 +117,7 @@ class AssessmentScoreViewSet(viewsets.ModelViewSet):
         )
 
 
-class GradeScaleViewSet(viewsets.ModelViewSet):
+class GradeScaleViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = GradeScale.objects.all()
     serializer_class = GradeScaleSerializer
 
@@ -126,7 +127,7 @@ class GradeScaleViewSet(viewsets.ModelViewSet):
         return [IsTeacher()]
 
 
-class ReportCardViewSet(viewsets.ModelViewSet):
+class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = ReportCard.objects.select_related("student", "classroom", "term", "approved_by")
     serializer_class = ReportCardSerializer
 
