@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { CreateExamWizard } from "@/components/exams/create-exam-wizard"
 import { api } from "@/lib/api"
 import type { ApiExam } from "@/lib/api"
@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react"
 
 export default function EditExamPage() {
   const params = useParams()
+  const router = useRouter()
   const id = params?.id as string | undefined
   const [exam, setExam] = useState<ApiExam | null>(null)
   const [loading, setLoading] = useState(true)
@@ -49,5 +50,5 @@ export default function EditExamPage() {
     )
   }
 
-  return <CreateExamWizard initialExam={exam} />
+  return <CreateExamWizard initialExam={exam} onSuccess={() => router.push("/dashboard/exams")} />
 }
