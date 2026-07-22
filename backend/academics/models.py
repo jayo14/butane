@@ -14,6 +14,13 @@ class AcademicSession(TimestampedModel):
     start_date = models.DateField()
     end_date = models.DateField()
     is_current = models.BooleanField(default=False, help_text="Only one session should be current at a time.")
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="academic_sessions",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "academics_session"
@@ -36,6 +43,13 @@ class ClassRoom(TimestampedModel):
         "exams.GradeLevel",
         on_delete=models.PROTECT,
         related_name="classrooms",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="classrooms",
+        null=True,
+        blank=True,
     )
 
     class Meta:
@@ -100,6 +114,13 @@ class AssessmentComponent(TimestampedModel):
         "exams.Term",
         on_delete=models.PROTECT,
         related_name="assessment_components",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="assessment_components",
+        null=True,
+        blank=True,
     )
     name = models.CharField(max_length=80, help_text='e.g. "CA1", "Exam"')
     max_score = models.PositiveIntegerField(default=100, help_text="Maximum attainable score for this component.")
@@ -198,6 +219,13 @@ class ReportCard(SoftDeleteModel):
         on_delete=models.PROTECT,
         related_name="report_cards",
     )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="report_cards",
+        null=True,
+        blank=True,
+    )
     total_score = models.FloatField(default=0.0, help_text="Sum of all assessment scores.")
     average_score = models.FloatField(default=0.0, help_text="Average across subjects.")
     position = models.PositiveIntegerField(null=True, blank=True, help_text="Computed rank in class.")
@@ -224,8 +252,14 @@ class ReportCard(SoftDeleteModel):
 
 
 class SchoolProfile(TimestampedModel):
-    """Singleton school profile used for branding."""
+    """School profile used for branding."""
 
+    school = models.OneToOneField(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="profile",
+        unique=True,
+    )
     name = models.CharField(max_length=160, default="Dee Soar School")
     logo = models.ImageField(upload_to="school/logo/", null=True, blank=True)
     motto = models.CharField(max_length=255, blank=True)
@@ -244,13 +278,4 @@ class SchoolProfile(TimestampedModel):
 
     def __str__(self) -> str:
         return self.name
-
-    def save(self, *args, **kwargs):
-        self.pk = 1
-        super().save(*args, **kwargs)
-
-    @classmethod
-    def load(cls):
-        obj, _ = cls.objects.get_or_create(pk=1)
-        return obj
 

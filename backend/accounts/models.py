@@ -101,6 +101,13 @@ class Teacher(SoftDeleteModel):
     phone = models.CharField(max_length=32, blank=True)
     avatar = models.ImageField(upload_to="teachers/avatars/", null=True, blank=True)
     bio = models.TextField(blank=True)
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="teachers",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "accounts_teacher"
@@ -141,6 +148,13 @@ class Student(SoftDeleteModel):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     enrollment_date = models.DateField(null=True, blank=True)
     avatar = models.ImageField(upload_to="students/avatars/", null=True, blank=True)
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="students",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "accounts_student"

@@ -23,6 +23,13 @@ class Subject(TimestampedModel):
     name = models.CharField(max_length=160, unique=True)
     code = models.CharField(max_length=32, unique=True, blank=True, help_text="e.g. MATH")
     description = models.TextField(blank=True)
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="subjects",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "exams_subject"
@@ -39,6 +46,13 @@ class GradeLevel(TimestampedModel):
 
     name = models.CharField(max_length=40, unique=True, help_text="e.g. JSS1")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="grade_levels",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "exams_grade_level"
@@ -123,6 +137,13 @@ class Exam(SoftDeleteModel):
     short_code = models.CharField(
         max_length=8, unique=True, null=True, blank=True, db_index=True,
         help_text="Short 8-char code for quick exam lookup.",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="exams",
+        null=True,
+        blank=True,
     )
 
     class Meta:
