@@ -334,6 +334,15 @@ export interface ApiSubmitResult {
   answers?: { question: string; selected_choice: string | null; is_correct: boolean }[]
 }
 
+export interface ApiNotification {
+  id: string
+  recipient: string
+  message: string
+  link: string
+  is_read: boolean
+  created_at: string
+}
+
 export interface PaginatedResponse<T> {
   count: number
   next: string | null
@@ -625,6 +634,15 @@ export const api = {
   health: () => apiFetch<{ status: string; database: string }>("health/"),
 
   // ---- Public (unauthenticated) student endpoints ----
+  notifications: {
+    list: (params?: { page?: number; page_size?: number }) =>
+      apiFetch<PaginatedResponse<ApiNotification>>(`notifications/notifications/${buildQuery(params || {})}`),
+    markRead: (id: string) =>
+      apiFetch<ApiNotification>(`notifications/notifications/${id}/mark-read/`, { method: "POST" }),
+    markAllRead: () =>
+      apiFetch<void>("notifications/notifications/mark-all-read/", { method: "POST" }),
+  },
+
   public: {
     exam: (token: string) => apiFetch<ApiPublicExam>(`public/exams/${token}/`),
     codeLookup: (code: string) => apiFetch<ApiPublicExam>(`public/code/${code}/`),
