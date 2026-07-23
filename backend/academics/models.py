@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from core.models import SoftDeleteModel, TimestampedModel
 
@@ -10,7 +11,7 @@ from core.models import SoftDeleteModel, TimestampedModel
 class AcademicSession(TimestampedModel):
     """A named academic session (e.g. "2025/2026")."""
 
-    name = models.CharField(max_length=20, unique=True, help_text='e.g. "2025/2026"')
+    name = models.CharField(max_length=20, help_text='e.g. "2025/2026"')
     start_date = models.DateField()
     end_date = models.DateField()
     is_current = models.BooleanField(default=False, help_text="Only one session should be current at a time.")
@@ -25,6 +26,9 @@ class AcademicSession(TimestampedModel):
     class Meta:
         db_table = "academics_session"
         ordering = ["-start_date"]
+        constraints = [
+            UniqueConstraint(fields=["name", "school"], name="uq_session_name_per_school"),
+        ]
 
     def __str__(self) -> str:
         return self.name
