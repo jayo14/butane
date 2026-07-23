@@ -78,6 +78,7 @@ INSTALLED_APPS = [
     "accounts",
     "exams",
     "academics",
+    "notifications",
 ]
 
 MIDDLEWARE = [

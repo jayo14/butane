@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/upload/", ImageUploadView.as_view(), name="image-upload"),
     path("api/", include("exams.urls")),
     path("api/academics/", include("academics.urls")),
+    path("api/notifications/", include("notifications.urls")),
     # OpenAPI schema + docs
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="swagger-ui"),
