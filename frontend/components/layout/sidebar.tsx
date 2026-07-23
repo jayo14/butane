@@ -16,6 +16,7 @@ import {
   BookOpen,
   ClipboardList,
   BarChart3,
+  FileText,
   User,
   Settings,
   GraduationCap,
@@ -30,6 +31,7 @@ const iconMap: Record<string, React.ReactNode> = {
   "book-open": <BookOpen size={20} />,
   "clipboard-list": <ClipboardList size={20} />,
   "bar-chart-3": <BarChart3 size={20} />,
+  "file-text": <FileText size={20} />,
   user: <User size={20} />,
   settings: <Settings size={20} />,
 }
