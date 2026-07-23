@@ -371,6 +371,7 @@ export interface ApiTerm {
   id: string
   name: string
   display_order: number
+  session: string | null
   created_at: string
   updated_at: string
 }
@@ -591,6 +592,8 @@ export const api = {
       apiFetch<PaginatedResponse<any>>(`academics/sessions/${buildQuery(params || {})}`),
     classrooms: (params?: { page?: number; page_size?: number }) =>
       apiFetch<PaginatedResponse<any>>(`academics/classrooms/${buildQuery(params || {})}`),
+    enrollments: (params?: { classroom?: string; session__is_current?: string }) =>
+      apiFetch<PaginatedResponse<any>>(`academics/enrollments/${buildQuery(params || {})}`),
     components: (params?: { classroom?: string; term?: string }) =>
       apiFetch<any[]>(`academics/components/${buildQuery(params || {})}`),
     scoresBulk: (payload: { component_id: string; scores: { student_id: string; score: number }[] }) =>

@@ -39,7 +39,7 @@ class GradeLevelSerializer(serializers.ModelSerializer):
 class TermSerializer(serializers.ModelSerializer):
     class Meta:
         model = Term
-        fields = ["id", "name", "display_order", "created_at", "updated_at"]
+        fields = ["id", "name", "display_order", "session", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
