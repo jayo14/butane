@@ -9,7 +9,7 @@ from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from accounts.models import Invitation
+from accounts.models import Invitation, Teacher
 from accounts.permissions import IsAdmin
 from django.conf import settings
 
@@ -63,6 +63,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             role="admin",
             is_active=False,
         )
+        Teacher.objects.create(user=user, school=school)
 
         token, token_hash = Invitation.generate_token()
         Invitation.objects.create(
@@ -143,8 +144,10 @@ class SchoolViewSet(viewsets.ModelViewSet):
     def onboarding_status(self, request):
         """Check or mark onboarding as complete."""
         school = getattr(request, "school", None)
-        if not school:
-            return Response({"onboarding_completed": False}, status=status.HTTP_200_OK)
+        if not school and request.user.is_authenticated:
+            teacher = Teacher.objects.filter(user=request.user, is_deleted=False).first()
+            if teacher and teacher.school:
+                school = teacher.school
         if request.method == "POST":
             school.onboarding_completed = True
             school.save(update_fields=["onboarding_completed"])
