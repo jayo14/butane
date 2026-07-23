@@ -11,7 +11,6 @@ from rest_framework import generics, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.email import EmailService
 from core.views import SchoolScopedViewSetMixin
 from drf_spectacular.utils import extend_schema
 
@@ -74,13 +73,8 @@ class InvitationViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             f"{self.request.get_host()}"
             f"/accept-invite/{raw_token}/"
         )
-        EmailService.send(
-            subject=f"You've been invited to join {school.name}",
-            body=f"Click the link to accept your invitation: {invite_url}",
-            to=[email],
-            html_message=f"<p>You've been invited to join <strong>{school.name}</strong>.</p>"
-                         f"<p><a href='{invite_url}'>Click here to accept your invitation</a></p>",
-        )
+        from .tasks import send_invitation_email
+        send_invitation_email.delay(email, school.name, invite_url)
         return invitation
 
     @action(detail=False, methods=["post"], url_path="accept", permission_classes=[permissions.AllowAny])
@@ -129,6 +123,9 @@ class InvitationViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
 
             invitation.status = "accepted"
             invitation.save(update_fields=["status"])
+
+        from notifications.tasks import notify_invitation_accepted
+        notify_invitation_accepted.delay(str(invitation.id))
 
         return Response(
             {"detail": "Invitation accepted. You can now log in."},

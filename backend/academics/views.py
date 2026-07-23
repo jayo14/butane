@@ -181,6 +181,10 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         report.approved_by = request.user.teacher_profile
         report.approved_at = __import__("django.utils").timezone.now()
         report.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
+
+        from notifications.tasks import notify_report_card_approved
+        notify_report_card_approved.delay(str(report.id))
+
         serializer = self.get_serializer(report)
         return Response(serializer.data)
 
