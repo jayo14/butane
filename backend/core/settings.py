@@ -4,6 +4,7 @@ Environment-driven configuration. All secrets and environment-specific values
 are read from environment variables (see .env.example). Designed to run in both
 development (DEBUG=true) and production (DEBUG=false) without code changes.
 """
+import sys
 from pathlib import Path
 
 from core.dj_env import Env
@@ -246,6 +247,7 @@ CELERY_ACCEPT_CONTENT = ["json"]
 CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
+CELERY_TASK_ALWAYS_EAGER = "test" in sys.argv or "pytest" in sys.argv[0]
 
 # --- drf-spectacular (Swagger/OpenAPI) -------------------------------------
 SPECTACULAR_SETTINGS = {
