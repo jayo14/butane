@@ -126,3 +126,15 @@ class SchoolViewSet(viewsets.ModelViewSet):
         invitation.save(update_fields=["status"])
 
         return Response({"detail": "School and admin account activated successfully."}, status=status.HTTP_200_OK)
+
+    @action(detail=False, methods=["get"], url_path="lookup", permission_classes=[permissions.AllowAny])
+    def lookup(self, request):
+        """Search active schools by name (autocomplete)."""
+        q = request.query_params.get("q", "").strip()
+        if len(q) < 2:
+            return Response([], status=status.HTTP_200_OK)
+        schools = School.objects.filter(status="active", name__icontains=q).order_by("name")[:8]
+        return Response(
+            [{"id": str(s.id), "name": s.name, "slug": s.slug} for s in schools],
+            status=status.HTTP_200_OK,
+        )
