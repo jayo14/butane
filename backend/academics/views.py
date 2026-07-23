@@ -206,7 +206,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
 
         from django.conf import settings
 
-        profile = SchoolProfile.load()
+        profile = SchoolProfile.load(school=getattr(request, "school", None))
         school_name = profile.name
         school_logo_url = profile.logo.url if profile.logo else ""
         primary_color = profile.primary_color or "#006c49"
@@ -250,12 +250,12 @@ class SchoolProfileViewSet(viewsets.ViewSet):
         return SchoolProfileSerializer(*args, **kwargs)
 
     def list(self, request):
-        profile = SchoolProfile.load()
+        profile = SchoolProfile.load(school=getattr(request, "school", None))
         serializer = self.get_serializer(profile)
         return Response(serializer.data)
 
     def partial_update(self, request):
-        profile = SchoolProfile.load()
+        profile = SchoolProfile.load(school=getattr(request, "school", None))
         serializer = self.get_serializer(profile, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

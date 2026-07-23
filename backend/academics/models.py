@@ -279,3 +279,10 @@ class SchoolProfile(TimestampedModel):
     def __str__(self) -> str:
         return self.name
 
+    @classmethod
+    def load(cls, school=None):
+        if school:
+            profile, _ = cls.objects.get_or_create(school=school)
+            return profile
+        return cls.objects.first() or cls()
+
