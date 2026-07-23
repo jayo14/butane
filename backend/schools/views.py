@@ -147,7 +147,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
         If ``SCHOOL_ONBOARDING_ENABLED`` is ``False`` (the default) the
         endpoint always reports as completed so clients skip the wizard.
         """
-        if not getattr(settings, "SCHOOL_ONBOARDING_ENABLED", False):
+        if request.method == "GET" and not settings.SCHOOL_ONBOARDING_ENABLED:
             return Response({"onboarding_completed": True}, status=status.HTTP_200_OK)
 
         school = getattr(request, "school", None)
