@@ -591,8 +591,12 @@ export const api = {
   academics: {
     sessions: (params?: { page?: number; page_size?: number }) =>
       apiFetch<PaginatedResponse<any>>(`academics/sessions/${buildQuery(params || {})}`),
+    sessionsCreate: (data: { name: string; start_date: string; end_date: string; is_current?: boolean }) =>
+      apiFetch<any>("academics/sessions/", { method: "POST", body: JSON.stringify(data) }),
     classrooms: (params?: { page?: number; page_size?: number }) =>
       apiFetch<PaginatedResponse<any>>(`academics/classrooms/${buildQuery(params || {})}`),
+    classroomsCreate: (data: { name: string; grade_level: string }) =>
+      apiFetch<any>("academics/classrooms/", { method: "POST", body: JSON.stringify(data) }),
     enrollments: (params?: { classroom?: string; session__is_current?: string }) =>
       apiFetch<PaginatedResponse<any>>(`academics/enrollments/${buildQuery(params || {})}`),
     components: (params?: { classroom?: string; term?: string }) =>

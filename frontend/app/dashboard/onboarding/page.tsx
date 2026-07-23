@@ -76,25 +76,16 @@ export default function OnboardingPage() {
     setLoading(true)
     setError("")
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/academics/sessions/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: data.session_name,
-          start_date: data.start_date,
-          end_date: data.end_date,
-          is_current: true,
-        }),
+      const session = await api.academics.sessionsCreate({
+        name: data.session_name,
+        start_date: data.start_date,
+        end_date: data.end_date,
+        is_current: true,
       })
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        throw new Error(body.detail || Object.values(body).flat().join(", ") || "Failed to create session")
-      }
-      const session = await res.json()
       setSessionId(session.id)
       setStep("classrooms")
     } catch (err: any) {
-      setError(err.message)
+      setError(err.message || "Failed to create session")
     } finally {
       setLoading(false)
     }
@@ -129,20 +120,9 @@ export default function OnboardingPage() {
     try {
       for (const grade of grades) {
         const gradeRes = await api.gradeLevels.create({ name: grade.name })
-        if (grade.classrooms.length === 0) {
-          await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/academics/classrooms/`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: grade.name, grade_level: gradeRes.id }),
-          })
-        } else {
-          for (const classroom of grade.classrooms) {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/academics/classrooms/`, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ name: classroom, grade_level: gradeRes.id }),
-            })
-          }
+        const names = grade.classrooms.length > 0 ? grade.classrooms : [grade.name]
+        for (const name of names) {
+          await api.academics.classroomsCreate({ name, grade_level: gradeRes.id })
         }
       }
       setStep("terms")
