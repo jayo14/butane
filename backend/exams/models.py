@@ -7,6 +7,7 @@ import uuid
 
 from django.conf import settings
 from django.db import models
+from django.db.models import UniqueConstraint
 
 from accounts.models import Student, Teacher
 from core.models import SoftDeleteModel, TimestampedModel
@@ -67,7 +68,7 @@ class GradeLevel(TimestampedModel):
 class Term(TimestampedModel):
     """An academic term (e.g. First Term, Second Term, Third Term)."""
 
-    name = models.CharField(max_length=40, unique=True, help_text="e.g. First Term")
+    name = models.CharField(max_length=40, help_text="e.g. First Term")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
     session = models.ForeignKey(
         "academics.AcademicSession",
@@ -79,6 +80,9 @@ class Term(TimestampedModel):
     class Meta:
         db_table = "exams_term"
         ordering = ["display_order", "name"]
+        constraints = [
+            UniqueConstraint(fields=["name", "session"], name="uq_term_name_per_session"),
+        ]
 
     def __str__(self) -> str:
         return self.name

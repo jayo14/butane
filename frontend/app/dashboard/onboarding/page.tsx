@@ -14,9 +14,14 @@ import { api } from "@/lib/api"
 
 const profileSchema = z.object({
   school_name: z.string().min(1, "School name is required"),
+  school_motto: z.string().optional(),
   school_address: z.string().optional(),
   school_phone: z.string().optional(),
   school_email: z.string().email().optional().or(z.literal("")),
+  principal_name: z.string().optional(),
+  vice_principal_name: z.string().optional(),
+  primary_color: z.string().optional(),
+  secondary_color: z.string().optional(),
 })
 
 const sessionSchema = z.object({
@@ -60,9 +65,14 @@ export default function OnboardingPage() {
     setError("")
     try {
       const payload: Record<string, any> = { name: data.school_name }
+      if (data.school_motto) payload.motto = data.school_motto
       if (data.school_address) payload.address = data.school_address
       if (data.school_phone) payload.phone = data.school_phone
       if (data.school_email) payload.email = data.school_email
+      if (data.principal_name) payload.principal_name = data.principal_name
+      if (data.vice_principal_name) payload.vice_principal_name = data.vice_principal_name
+      if (data.primary_color) payload.primary_color = data.primary_color
+      if (data.secondary_color) payload.secondary_color = data.secondary_color
       await api.academics.schoolProfileUpdate(payload)
       setStep("session")
     } catch (err: any) {
@@ -183,9 +193,18 @@ export default function OnboardingPage() {
             <h2 className="text-xl font-bold">School Profile</h2>
             <p className="text-sm text-content-secondary">Tell us about your school.</p>
             <Input label="School Name" {...profileForm.register("school_name")} error={profileForm.formState.errors.school_name?.message} />
-            <Input label="School Address (optional)" {...profileForm.register("school_address")} />
+            <Input label="Motto (optional)" {...profileForm.register("school_motto")} />
+            <Input label="Address (optional)" {...profileForm.register("school_address")} />
             <Input label="Phone (optional)" {...profileForm.register("school_phone")} />
             <Input label="Email (optional)" type="email" {...profileForm.register("school_email")} />
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Principal Name (optional)" {...profileForm.register("principal_name")} />
+              <Input label="Vice Principal Name (optional)" {...profileForm.register("vice_principal_name")} />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <Input label="Primary Color (optional)" type="color" {...profileForm.register("primary_color")} />
+              <Input label="Secondary Color (optional)" type="color" {...profileForm.register("secondary_color")} />
+            </div>
             <div className="flex justify-end pt-2">
               <Button type="submit" variant="primary" isLoading={loading}>
                 Continue <ArrowRight size={16} />
