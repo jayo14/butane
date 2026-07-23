@@ -34,18 +34,74 @@ backend/
 │   ├── logging_utils.py    # JSON log formatter
 │   └── logs/               # rotating log files (gitignored)
 ├── accounts/               # auth, users, teacher/student profiles
-│   ├── models.py           # User, Teacher, Student
-│   ├── permissions.py     # role-based permission classes
+│   ├── models.py           # User, Teacher, Student, Invitation
+│   ├── permissions.py      # role-based permission classes
 │   ├── serializers.py
-│   ├── views.py            # JWT login, /me, listings
+│   ├── views.py            # JWT login, /me, invitations
+│   ├── urls.py
+│   └── tasks.py            # Celery tasks (invitation emails)
+├── exams/                  # the exam domain
+│   ├── models.py           # Exam, Question, Choice, Attempt, AttemptAnswer, Result, Subject, GradeLevel, Term
+│   ├── serializers.py
+│   ├── filters.py
+│   ├── views.py            # viewsets + submit/grade action
 │   └── urls.py
-└── exams/                  # the exam domain
-    ├── models.py           # Exam, Question, Choice, Attempt, AttemptAnswer, Result
+├── schools/                # multi-tenant school model
+│   ├── models.py           # School
+│   ├── middleware.py       # CurrentSchoolMiddleware
+│   └── urls.py
+├── academics/              # academic structure (sessions, classrooms, report cards)
+│   ├── models.py           # AcademicSession, ClassRoom, Enrollment, ReportCard, etc.
+│   ├── serializers.py
+│   ├── views.py
+│   ├── services.py
+│   ├── signals.py
+│   ├── urls.py
+│   └── tasks.py
+└── notifications/          # in-app notification system
+    ├── models.py           # Notification
+    ├── views.py
     ├── serializers.py
-    ├── filters.py
-    ├── views.py            # viewsets + submit/grade action
-    └── urls.py
+    ├── urls.py
+    ├── admin.py
+    ├── tasks.py            # Celery tasks (notify report approved, invitation accepted)
+    └── tests.py
 ```
+
+### Module-boundary convention
+
+Each feature domain is implemented as exactly one Django app on the backend and
+one route directory under `frontend/app/dashboard/<module>/` on the frontend.
+This rule applies to every future module — Attendance, Parent Portal, Student
+Portal, Library, Messaging, Finance, or any other:
+
+- **Backend**: create `backend/<module>/` with its own `models.py`, `views.py`,
+  `serializers.py`, `urls.py`, and `tasks.py`. Register it in
+  `core/settings.py:INSTALLED_APPS` and wire its URLs in `core/urls.py`:
+  `path("api/<module>/", include("<module>.urls"))`.
+- **Frontend**: create `frontend/app/dashboard/<module>/` for pages and
+  `frontend/components/<module>/` for reusable UI. Add API calls via
+  `frontend/lib/api.ts` under the `api.<module>` namespace.
+
+Cross-app calls on the backend must obey these rules:
+
+1. **Any app may query `schools.models.School`** for tenancy resolution
+   (typically through `SchoolScopedModel` or `request.school`). This is the
+   only universal dependency.
+2. **No feature app may import models from another feature app directly.**
+   For example, `finance` must not import `attendance.models.Attendance`, and
+   `messaging` must not import `library.models.Book`. Shared lookup data
+   (students, teachers) lives in `accounts` and is accessible through the
+   request user or via the REST API — not through direct model imports.
+3. **Billing/limits** — if a future `billing` app enforces rate limits or
+   feature gates, other apps call `billing.limits.check_limit(school, feature)`
+   and nothing else. No billing model is imported outside of `billing`.
+4. **Shared infrastructure** lives in `core/` — abstract model bases, the
+   Celery app, email service, pagination, exception handling, and settings.
+   No feature-domain logic belongs in `core/`.
+
+This convention keeps coupling low, makes it safe to add new modules without
+touching existing ones, and lets each module be tested in isolation.
 
 ## Configuration
 
