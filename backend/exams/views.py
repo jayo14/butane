@@ -62,6 +62,7 @@ class TermViewSet(viewsets.ModelViewSet):
     ordering_fields = ["display_order", "name"]
     ordering = ["display_order", "name"]
     pagination_class = None
+    filterset_fields = ["session"]
 
 
 class ExamViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):

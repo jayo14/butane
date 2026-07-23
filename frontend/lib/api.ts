@@ -531,8 +531,9 @@ export const api = {
   },
 
   terms: {
-    list: () => apiFetch<ApiTerm[]>("terms/"),
-    create: (data: { name: string; display_order?: number }) =>
+    list: (params?: { session?: string }) =>
+      apiFetch<ApiTerm[]>(`terms/${buildQuery(params || {})}`),
+    create: (data: { name: string; display_order?: number; session?: string }) =>
       apiFetch<ApiTerm>("terms/", { method: "POST", body: JSON.stringify(data) }),
     delete: (id: string) => apiFetch<void>(`terms/${id}/`, { method: "DELETE" }),
   },
