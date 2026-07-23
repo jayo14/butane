@@ -369,3 +369,6 @@ LOGGING = {
 }
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# --- Feature flags ----------------------------------------------------------
+SCHOOL_ONBOARDING_ENABLED = env.bool("SCHOOL_ONBOARDING_ENABLED", default=False)

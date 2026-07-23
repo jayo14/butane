@@ -142,7 +142,14 @@ class SchoolViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=["get", "post"], url_path="onboarding-status", permission_classes=[permissions.IsAuthenticated])
     def onboarding_status(self, request):
-        """Check or mark onboarding as complete."""
+        """Check or mark onboarding as complete.
+
+        If ``SCHOOL_ONBOARDING_ENABLED`` is ``False`` (the default) the
+        endpoint always reports as completed so clients skip the wizard.
+        """
+        if not getattr(settings, "SCHOOL_ONBOARDING_ENABLED", False):
+            return Response({"onboarding_completed": True}, status=status.HTTP_200_OK)
+
         school = getattr(request, "school", None)
         if not school and request.user.is_authenticated:
             teacher = Teacher.objects.filter(user=request.user, is_deleted=False).first()
