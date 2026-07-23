@@ -69,6 +69,12 @@ class Term(TimestampedModel):
 
     name = models.CharField(max_length=40, unique=True, help_text="e.g. First Term")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
+    session = models.ForeignKey(
+        "academics.AcademicSession",
+        on_delete=models.PROTECT,
+        related_name="terms",
+        null=True,
+    )
 
     class Meta:
         db_table = "exams_term"
