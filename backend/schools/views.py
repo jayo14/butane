@@ -11,7 +11,10 @@ from rest_framework.response import Response
 
 from accounts.models import Invitation
 from accounts.permissions import IsAdmin
+from django.conf import settings
+
 from core.email import EmailService
+
 from .models import School
 from .serializers import SchoolSerializer
 
@@ -71,8 +74,9 @@ class SchoolViewSet(viewsets.ModelViewSet):
             invited_by=user,
         )
 
+        site_url = getattr(settings, "SITE_URL", "http://localhost:3000").rstrip("/")
         verification_url = (
-            f"{getattr(settings, 'SITE_URL', '').rstrip('/')}/api/schools/verify-email/"
+            f"{site_url}/verify-email"
             f"?school={school.slug}&token={token}"
         )
         EmailService.send(
