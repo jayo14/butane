@@ -5,22 +5,15 @@ import { useRouter } from "next/navigation"
 import {
   Save,
   FileText,
-  CheckCircle2,
-  XCircle,
   Loader2,
   Download,
-  Printer,
-  ChevronDown,
-  ChevronUp,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { Table } from "@/components/ui/table"
 import { Container } from "@/components/layout/container"
-import { EmptyState } from "@/components/ui/empty-state"
 import { api } from "@/lib/api"
 
 type ReportCardStatus = "draft" | "submitted" | "approved"
@@ -31,19 +24,11 @@ interface ScoreEntry {
   scores: Record<string, number>
 }
 
-function getScoreColor(score: number, max: number): string {
-  if (!max) return "text-content-secondary"
-  const pct = (score / max) * 100
-  if (pct >= 80) return "text-success"
-  if (pct >= 60) return "text-primary"
-  if (pct >= 40) return "text-warning"
-  return "text-danger"
-}
-
 export function ReportCardsPageClient() {
   const router = useRouter()
-  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
+  const [sessions, setSessions] = useState<{ id: string; name: string }[]>([])
   const [terms, setTerms] = useState<{ id: string; name: string }[]>([])
+  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
   const [components, setComponents] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
   const [scores, setScores] = useState<ScoreEntry[]>([])
@@ -51,8 +36,9 @@ export function ReportCardsPageClient() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [generating, setGenerating] = useState(false)
-  const [selectedClassroom, setSelectedClassroom] = useState("")
+  const [selectedSession, setSelectedSession] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
+  const [selectedClassroom, setSelectedClassroom] = useState("")
   const [selectedComponent, setSelectedComponent] = useState("")
   const [error, setError] = useState("")
   const [saveMessage, setSaveMessage] = useState("")
@@ -60,12 +46,12 @@ export function ReportCardsPageClient() {
   useEffect(() => {
     async function load() {
       try {
-        const [classroomsRes, termsRes] = await Promise.all([
+        const [classroomsRes, sessionsRes] = await Promise.all([
           api.academics.classrooms().catch(() => ({ results: [] })) as any,
           api.academics.sessions().catch(() => ({ results: [] })) as any,
         ])
         setClassrooms((classroomsRes.results || []).map((c: any) => ({ id: c.id, name: c.name })))
-        setTerms((termsRes.results || []).map((t: any) => ({ id: t.id, name: t.name })))
+        setSessions((sessionsRes.results || []).map((s: any) => ({ id: s.id, name: s.name })))
       } catch {
         // leave empty
       } finally {
@@ -76,21 +62,27 @@ export function ReportCardsPageClient() {
   }, [])
 
   useEffect(() => {
+    if (!selectedSession) {
+      setTerms([])
+      setSelectedTerm("")
+      return
+    }
+    api.terms.list({ session: selectedSession })
+      .then((termsList) => setTerms((termsList || []).map((t: any) => ({ id: t.id, name: t.name }))))
+      .catch(() => setTerms([]))
+  }, [selectedSession])
+
+  useEffect(() => {
     if (!selectedClassroom || !selectedTerm) return
     async function load() {
       try {
         const [componentsRes, studentsRes] = await Promise.all([
           api.academics.components({ classroom: selectedClassroom, term: selectedTerm }).catch(() => []),
-          api.academics.enrollments(params => ({ ...params, classroom: selectedClassroom, session__is_current: "true" })).catch(() => ({ results: [] })),
+          api.academics.enrollments({ classroom: selectedClassroom, session__is_current: "true" }).catch(() => ({ results: [] })),
         ])
         setComponents(componentsRes as any[])
         const studentsList = (studentsRes as any).results || studentsRes || []
         setStudents(studentsList)
-
-        const scoresRes = await api.academics.scoresBulk({
-          component_id: (componentsRes as any[])[0]?.id || "",
-          scores: (studentsList as any[]).map((s: any) => ({ student_id: s.student || s.id, score: 0 })),
-        }).catch(() => ({ created: 0, updated: 0 }))
 
         const scoreEntries: ScoreEntry[] = (studentsList as any[]).map((s: any) => ({
           studentId: s.student || s.id,
@@ -197,16 +189,6 @@ export function ReportCardsPageClient() {
     }
   }
 
-  const selectedClassroomName = useMemo(
-    () => classrooms.find((c) => c.id === selectedClassroom)?.name || "",
-    [classrooms, selectedClassroom],
-  )
-
-  const selectedTermName = useMemo(
-    () => terms.find((t) => t.id === selectedTerm)?.name || "",
-    [terms, selectedTerm],
-  )
-
   const statusBadge = (status: ReportCardStatus) => {
     const map: Record<ReportCardStatus, { variant: any; label: string }> = {
       draft: { variant: "warning", label: "Draft" },
@@ -248,13 +230,13 @@ export function ReportCardsPageClient() {
       )}
 
       <Card padding="lg" className="mb-6">
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Select
-            label="Classroom"
-            options={classrooms.map((c) => ({ label: c.name, value: c.id }))}
-            value={selectedClassroom}
-            onChange={setSelectedClassroom}
-            placeholder="Select classroom"
+            label="Session"
+            options={sessions.map((s) => ({ label: s.name, value: s.id }))}
+            value={selectedSession}
+            onChange={setSelectedSession}
+            placeholder="Select session"
           />
           <Select
             label="Term"
@@ -262,6 +244,13 @@ export function ReportCardsPageClient() {
             value={selectedTerm}
             onChange={setSelectedTerm}
             placeholder="Select term"
+          />
+          <Select
+            label="Classroom"
+            options={classrooms.map((c) => ({ label: c.name, value: c.id }))}
+            value={selectedClassroom}
+            onChange={setSelectedClassroom}
+            placeholder="Select classroom"
           />
           <div className="flex items-end">
             <Button
@@ -283,7 +272,7 @@ export function ReportCardsPageClient() {
             <h2 className="text-lg font-semibold text-content-primary">Score Entry</h2>
             <Select
               label=""
-              options={components.map((c) => ({ label: `${c.subject.name} - ${c.name}`, value: c.id }))}
+              options={components.map((c) => ({ label: `${c.subject?.name || ""} - ${c.name}`, value: c.id }))}
               value={selectedComponent}
               onChange={setSelectedComponent}
               placeholder="Select component"
