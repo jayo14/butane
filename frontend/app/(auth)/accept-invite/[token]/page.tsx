@@ -8,8 +8,8 @@ import { z } from "zod"
 import { Loader2, CheckCircle2, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
+import { api } from "@/lib/api"
 
 const acceptSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
@@ -34,8 +34,7 @@ export default function AcceptInvitePage({ params }: { params: { token: string }
   })
 
   useEffect(() => {
-    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-    fetch(`${base}/api/invitations/${params.token}/accept/`, { method: "GET" })
+    fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/accounts/invitations/accept/?token=${params.token}`, { method: "GET" })
       .then((res) => {
         if (!res.ok) throw new Error("Invalid invitation")
         return res.json()
@@ -51,13 +50,14 @@ export default function AcceptInvitePage({ params }: { params: { token: string }
   async function onSubmit(data: AcceptSchema) {
     setError("")
     try {
-      const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
-      const res = await fetch(`${base}/api/invitations/${params.token}/accept/`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/accounts/invitations/accept/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token: params.token,
-          ...data,
+          password: data.password,
+          first_name: data.firstName,
+          last_name: data.lastName,
         }),
       })
       if (!res.ok) {

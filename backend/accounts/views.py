@@ -77,7 +77,7 @@ class InvitationViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         send_invitation_email.delay(email, school.name, invite_url)
         return invitation
 
-    @action(detail=False, methods=["post"], url_path="accept", permission_classes=[permissions.AllowAny])
+    @action(detail=False, methods=["get", "post"], url_path="accept", permission_classes=[permissions.AllowAny])
     def accept(self, request):
         token = request.data.get("token") or request.query_params.get("token")
         if not token:
@@ -93,8 +93,8 @@ class InvitationViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             invitation.save(update_fields=["status"])
             return Response({"detail": "Invitation token has expired."}, status=status.HTTP_410_GONE)
 
-        if Invitation.objects.filter(token_hash=token_hash, status="accepted").exists():
-            return Response({"detail": "This invitation has already been accepted."}, status=status.HTTP_400_BAD_REQUEST)
+        if request.method == "GET":
+            return Response({"email": invitation.email, "role": invitation.role}, status=status.HTTP_200_OK)
 
         with transaction.atomic():
             user, _ = User.objects.get_or_create(
