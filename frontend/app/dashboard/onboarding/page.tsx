@@ -150,6 +150,11 @@ export default function OnboardingPage() {
       for (let i = 0; i < termNames.length; i++) {
         await api.terms.create({ name: termNames[i], display_order: i + 1, session: sessionId || undefined })
       }
+      const token = localStorage.getItem("access_token")
+      await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/api/schools/onboarding-status/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      })
       setStep("done")
     } catch (err: any) {
       setError(err.message || "Failed to create terms")

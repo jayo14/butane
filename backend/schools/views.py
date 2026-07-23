@@ -138,3 +138,15 @@ class SchoolViewSet(viewsets.ModelViewSet):
             [{"id": str(s.id), "name": s.name, "slug": s.slug} for s in schools],
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=False, methods=["get", "post"], url_path="onboarding-status", permission_classes=[permissions.IsAuthenticated])
+    def onboarding_status(self, request):
+        """Check or mark onboarding as complete."""
+        school = getattr(request, "school", None)
+        if not school:
+            return Response({"onboarding_completed": False}, status=status.HTTP_200_OK)
+        if request.method == "POST":
+            school.onboarding_completed = True
+            school.save(update_fields=["onboarding_completed"])
+            return Response({"onboarding_completed": True}, status=status.HTTP_200_OK)
+        return Response({"onboarding_completed": school.onboarding_completed}, status=status.HTTP_200_OK)

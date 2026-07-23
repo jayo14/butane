@@ -18,6 +18,7 @@ class School(TimestampedModel):
     name = models.CharField(max_length=160)
     slug = models.CharField(max_length=80, unique=True)
     status = models.CharField(max_length=32, choices=STATUS_CHOICES, default="active")
+    onboarding_completed = models.BooleanField(default=False, help_text="Whether the school has completed initial setup.")
 
     class Meta:
         db_table = "schools_school"
