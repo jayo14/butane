@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, School, Calendar, Layers, GraduationCap } from "lucide-react"
+import Link from "next/link"
+import { Loader2, CheckCircle2, ArrowRight, ArrowLeft, School, Calendar, Layers, GraduationCap, Users, UserPlus, BookOpen, ClipboardList } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -317,7 +318,25 @@ export default function OnboardingPage() {
           <div className="py-8 text-center">
             <CheckCircle2 className="mx-auto mb-4 text-success" size={64} />
             <h2 className="text-2xl font-bold">All Set!</h2>
-            <p className="mt-2 text-sm text-content-secondary">Your school is fully set up. Start creating exams and assessments.</p>
+            <p className="mt-2 text-sm text-content-secondary">Your school is fully set up. Here are some next steps:</p>
+            <div className="mx-auto mt-6 grid max-w-sm gap-3 text-left">
+              <Link href="/dashboard/students" className="flex items-center gap-3 rounded-lg border border-border-primary p-3 text-sm transition-colors hover:bg-surface-secondary">
+                <Users size={18} className="text-primary" />
+                <span>Add students</span>
+              </Link>
+              <Link href="/dashboard/settings" className="flex items-center gap-3 rounded-lg border border-border-primary p-3 text-sm transition-colors hover:bg-surface-secondary">
+                <UserPlus size={18} className="text-primary" />
+                <span>Invite teachers</span>
+              </Link>
+              <Link href="/dashboard/courses" className="flex items-center gap-3 rounded-lg border border-border-primary p-3 text-sm transition-colors hover:bg-surface-secondary">
+                <BookOpen size={18} className="text-primary" />
+                <span>Create subjects</span>
+              </Link>
+              <Link href="/dashboard/exams" className="flex items-center gap-3 rounded-lg border border-border-primary p-3 text-sm transition-colors hover:bg-surface-secondary">
+                <ClipboardList size={18} className="text-primary" />
+                <span>Create exams</span>
+              </Link>
+            </div>
             <Button variant="primary" className="mt-6" onClick={() => router.push("/dashboard")}>
               Go to Dashboard
             </Button>

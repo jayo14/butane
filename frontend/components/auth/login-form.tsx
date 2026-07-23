@@ -200,9 +200,9 @@ export function LoginForm() {
 
       <p className="mt-6 text-center text-sm text-content-secondary">
         Don&apos;t have an account?{" "}
-        <button type="button" className="font-medium text-primary transition-colors hover:text-primary-hover">
-          Contact administrator
-        </button>
+        <Link href="/register-school" className="font-medium text-primary transition-colors hover:text-primary-hover">
+          Register your school
+        </Link>
       </p>
     </div>
   )
