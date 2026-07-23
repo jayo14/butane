@@ -15,6 +15,7 @@ from drf_spectacular.utils import extend_schema, inline_serializer
 from accounts.permissions import IsStudent, IsTeacher
 from accounts.models import Student, Teacher
 
+from core.pagination import PassthroughPagination
 from core.views import SchoolScopedViewSetMixin
 from .filters import AttemptFilter, ExamFilter, ResultFilter
 from .grading import submit_and_grade
@@ -332,6 +333,7 @@ class ResultViewSet(viewsets.ModelViewSet):
     """
 
     serializer_class = ResultSerializer
+    pagination_class = PassthroughPagination
     filterset_class = ResultFilter
     search_fields = ["student__user__first_name", "student__user__last_name", "exam__title", "attempt__student_name"]
     ordering_fields = ["percentage", "score", "correct_count", "graded_at", "created_at"]

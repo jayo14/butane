@@ -26,3 +26,19 @@ class StandardPagination(PageNumberPagination):
         response = super().get_paginated_response(data)
         response.data["page_size"] = self.get_page_size(self.request)
         return response
+
+
+class PassthroughPagination(PageNumberPagination):
+    """Paginator that returns all results on page 1 by using a very high
+    page size. Keeps the standard envelope shape (count, next, previous,
+    results) for frontends that expect it.
+    """
+
+    page_size = 10000
+    page_size_query_param = "page_size"
+    max_page_size = 10000
+
+    def get_paginated_response(self, data):
+        response = super().get_paginated_response(data)
+        response.data["page_size"] = self.get_page_size(self.request)
+        return response
