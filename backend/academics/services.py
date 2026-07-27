@@ -154,3 +154,49 @@ def generate_class_report_cards(classroom: ClassRoom, term) -> list[ReportCard]:
         _compute_positions(classroom, term)
 
     return reports
+
+
+def promote_students(
+    source_classroom: ClassRoom,
+    target_classroom: ClassRoom,
+    target_session: AcademicSession,
+    student_ids: list[str],
+) -> dict:
+    """Create Enrollment rows for target_classroom/target_session.
+
+    Skips students already enrolled in target_session or not enrolled
+    in source_classroom. Returns {"promoted": [...], "skipped": [...]}.
+    """
+    promoted = []
+    skipped = []
+
+    with transaction.atomic():
+        for student_id in student_ids:
+            existing = Enrollment.objects.filter(
+                student_id=student_id,
+                classroom=source_classroom,
+            ).exists()
+            if not existing:
+                skipped.append(
+                    {"student_id": student_id, "reason": "not enrolled in source classroom"}
+                )
+                continue
+
+            already_enrolled = Enrollment.objects.filter(
+                student_id=student_id,
+                session=target_session,
+            ).exists()
+            if already_enrolled:
+                skipped.append(
+                    {"student_id": student_id, "reason": "already enrolled in target session"}
+                )
+                continue
+
+            Enrollment.objects.create(
+                student_id=student_id,
+                classroom=target_classroom,
+                session=target_session,
+            )
+            promoted.append(student_id)
+
+    return {"promoted": promoted, "skipped": skipped}
