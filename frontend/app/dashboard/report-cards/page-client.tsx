@@ -22,6 +22,7 @@ interface ScoreEntry {
   studentId: string
   studentName: string
   scores: Record<string, number>
+  [key: string]: unknown
 }
 
 export function ReportCardsPageClient() {

@@ -113,7 +113,7 @@ async function attemptTokenRefresh(): Promise<string | null> {
 
 async function doFetch(
   endpoint: string,
-  options: RequestInit,
+  options: RequestInit & { responseType?: "blob" },
   token: string | null,
 ): Promise<Response> {
   const headers: Record<string, string> = {
@@ -126,7 +126,7 @@ async function doFetch(
 
 export async function apiFetch<T>(
   endpoint: string,
-  options: RequestInit = {},
+  options: RequestInit & { responseType?: "blob" } = {},
 ): Promise<T> {
   const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
 
@@ -146,6 +146,10 @@ export async function apiFetch<T>(
   }
 
   if (res.status === 204) return undefined as T
+
+  if (options.responseType === "blob") {
+    return (await res.blob()) as T
+  }
 
   return res.json()
 }

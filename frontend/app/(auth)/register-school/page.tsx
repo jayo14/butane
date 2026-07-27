@@ -38,7 +38,7 @@ export default function RegisterSchoolPage() {
   const [suggestions, setSuggestions] = useState<SchoolMatch[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [searching, setSearching] = useState(false)
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   const wrapperRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 

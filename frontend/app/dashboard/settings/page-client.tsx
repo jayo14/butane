@@ -22,6 +22,7 @@ import {
   UserPlus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { api } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
