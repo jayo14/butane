@@ -321,6 +321,12 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             student=report.student,
         ).select_related("component__subject")
 
+        behavioural_ratings = BehaviouralRating.objects.filter(
+            student=report.student,
+            classroom=report.classroom,
+            term=report.term,
+        ).select_related("trait").order_by("trait__domain", "trait__display_order")
+
         from django.conf import settings
 
         profile = SchoolProfile.load(school=getattr(request, "school", None))
@@ -336,6 +342,10 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
                 "report": report,
                 "components": components,
                 "scores": scores,
+                "behavioural_ratings": behavioural_ratings,
+                "times_present": report.times_present,
+                "times_absent": report.times_absent,
+                "school_days_open": report.school_days_open,
                 "school_name": school_name,
                 "school_logo_url": school_logo_url,
                 "site_url": site_url,
@@ -354,6 +364,33 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         filename = f"report-card-{report.student.user.full_name}-{report.term.name}.pdf"
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+
+    @action(detail=True, methods=["get"], url_path="full")
+    def full(self, request, pk=None):
+        report = self.get_object()
+        serializer = self.get_serializer(report)
+
+        scores = AssessmentScore.objects.filter(
+            component__classroom=report.classroom,
+            component__term=report.term,
+            student=report.student,
+        ).select_related("component__subject")
+        scores_data = AssessmentScoreSerializer(scores, many=True).data
+
+        behavioural_ratings = BehaviouralRating.objects.filter(
+            student=report.student,
+            classroom=report.classroom,
+            term=report.term,
+        ).select_related("trait").order_by("trait__domain", "trait__display_order")
+        behavioural_data = BehaviouralRatingSerializer(behavioural_ratings, many=True).data
+
+        return Response(
+            {
+                **serializer.data,
+                "scores": scores_data,
+                "behavioural_ratings": behavioural_data,
+            }
+        )
 
 
 class SchoolProfileViewSet(viewsets.ViewSet):
