@@ -95,7 +95,9 @@ class ReportCardSerializer(serializers.ModelSerializer):
         model = ReportCard
         fields = [
             "id", "student", "classroom", "term", "total_score", "average_score",
-            "position", "class_size", "grade", "remark_suggestion", "teacher_remark", "principal_remark",
+            "position", "class_size", "grade", "remark_suggestion",
+            "times_present", "times_absent", "school_days_open",
+            "teacher_remark", "principal_remark",
             "status", "approved_by", "approved_at", "created_at", "updated_at",
         ]
         read_only_fields = [
