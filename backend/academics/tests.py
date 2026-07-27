@@ -592,9 +592,9 @@ class SubjectGradeFunctionTests(TestCase):
 
 
 class ReportCardGradeAndRemarkTests(TestCase):
-    def test_generate_report_card_sets_grade_from_grade_scale(self):
+    def _setup_data(self):
         subject = _create_subject()
-        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
+        grade, _ = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})
         school = _create_school()
         classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
         term = Term.objects.create(name="First Term", display_order=1)
@@ -615,31 +615,15 @@ class ReportCardGradeAndRemarkTests(TestCase):
             name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
         ))
         AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        return student, classroom, term
 
+    def test_generate_report_card_sets_grade_from_grade_scale(self):
+        student, classroom, term = self._setup_data()
         report = generate_report_card(student, classroom, term)
         self.assertEqual(report.grade, "A")
 
     def test_regenerate_preserves_teacher_remark_but_refreshes_remark_suggestion(self):
-        subject = _create_subject()
-        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
-        school = _create_school()
-        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
-        term = Term.objects.create(name="First Term", display_order=1)
-        GradeScale.objects.create(school=school, min_score=70, max_score=100, grade="A", remark="Excellent")
-        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
-        teacher = Teacher.objects.create(user=user, department="Math")
-        component = AssessmentComponent.objects.create(
-            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
-        )
-        student = Student.objects.create(
-            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
-            grade="JSS1",
-        )
-        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
-            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
-        ))
-        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
-
+        student, classroom, term = self._setup_data()
         report = generate_report_card(student, classroom, term)
         self.assertEqual(report.teacher_remark, "An excellent performance. Keep it up.")
 
@@ -648,26 +632,7 @@ class ReportCardGradeAndRemarkTests(TestCase):
         self.assertEqual(report2.remark_suggestion, "An excellent performance. Keep it up.")
 
     def test_regenerate_overwrites_remark_suggestion_when_teacher_remark_exists(self):
-        subject = _create_subject()
-        grade = GradeLevel.objects.create(name="JSS1", display_order=1)
-        school = _create_school()
-        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
-        term = Term.objects.create(name="First Term", display_order=1)
-        GradeScale.objects.create(school=school, min_score=70, max_score=100, grade="A", remark="Excellent")
-        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
-        teacher = Teacher.objects.create(user=user, department="Math")
-        component = AssessmentComponent.objects.create(
-            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
-        )
-        student = Student.objects.create(
-            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
-            grade="JSS1",
-        )
-        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
-            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
-        ))
-        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
-
+        student, classroom, term = self._setup_data()
         report = generate_report_card(student, classroom, term)
         self.assertEqual(report.remark_suggestion, "An excellent performance. Keep it up.")
 
@@ -681,5 +646,6 @@ class ReportCardGradeAndRemarkTests(TestCase):
 
 def _create_school():
     from schools.models import School
-    return School.objects.create(name="Test School", email="test@example.com")
+    school, _ = School.objects.get_or_create(name="Test School", defaults={"email": "test@example.com"})
+    return school
 
