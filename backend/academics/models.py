@@ -241,6 +241,8 @@ class ReportCard(SoftDeleteModel):
     average_score = models.FloatField(default=0.0, help_text="Average across subjects.")
     position = models.PositiveIntegerField(null=True, blank=True, help_text="Computed rank in class.")
     class_size = models.PositiveIntegerField(default=0, help_text="Snapshot of class size at generation time.")
+    grade = models.CharField(max_length=8, blank=True)
+    remark_suggestion = models.TextField(blank=True)
     teacher_remark = models.TextField(blank=True)
     principal_remark = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
