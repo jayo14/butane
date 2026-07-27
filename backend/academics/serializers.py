@@ -43,10 +43,19 @@ class AssessmentComponentSerializer(serializers.ModelSerializer):
 
 
 class AssessmentScoreSerializer(serializers.ModelSerializer):
+    subject_grade = serializers.SerializerMethodField()
+    subject_remark = serializers.SerializerMethodField()
+
     class Meta:
         model = AssessmentScore
-        fields = ["id", "component", "student", "score", "entered_by", "created_at", "updated_at"]
+        fields = ["id", "component", "student", "score", "entered_by", "subject_grade", "subject_remark", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def get_subject_grade(self, instance: AssessmentScore) -> str:
+        return instance.grade_and_remark[0]
+
+    def get_subject_remark(self, instance: AssessmentScore) -> str:
+        return instance.grade_and_remark[1]
 
 
 class GradeScaleSerializer(serializers.ModelSerializer):
@@ -61,12 +70,12 @@ class ReportCardSerializer(serializers.ModelSerializer):
         model = ReportCard
         fields = [
             "id", "student", "classroom", "term", "total_score", "average_score",
-            "position", "class_size", "teacher_remark", "principal_remark",
+            "position", "class_size", "grade", "remark_suggestion", "teacher_remark", "principal_remark",
             "status", "approved_by", "approved_at", "created_at", "updated_at",
         ]
         read_only_fields = [
             "id", "created_at", "updated_at", "total_score", "average_score",
-            "position", "class_size", "status", "approved_by", "approved_at",
+            "position", "class_size", "grade", "remark_suggestion", "status", "approved_by", "approved_at",
         ]
 
 
