@@ -3,7 +3,18 @@ from __future__ import annotations
 
 from rest_framework import serializers
 
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
+from .models import (
+    AcademicSession,
+    AssessmentComponent,
+    AssessmentScore,
+    BehaviouralRating,
+    BehaviouralTrait,
+    ClassRoom,
+    Enrollment,
+    GradeScale,
+    ReportCard,
+    SchoolProfile,
+)
 
 
 class AcademicSessionSerializer(serializers.ModelSerializer):
@@ -63,6 +74,20 @@ class GradeScaleSerializer(serializers.ModelSerializer):
         model = GradeScale
         fields = ["id", "school", "min_score", "max_score", "grade", "remark", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class BehaviouralTraitSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BehaviouralTrait
+        fields = ["id", "name", "domain", "display_order", "school", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class BehaviouralRatingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BehaviouralRating
+        fields = ["id", "trait", "student", "classroom", "term", "rating", "rated_by", "school", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "rated_by"]
 
 
 class ReportCardSerializer(serializers.ModelSerializer):
