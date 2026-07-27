@@ -57,6 +57,38 @@ class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return [permissions.IsAuthenticated()]
         return [IsTeacher()]
 
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="promote")
+    def promote(self, request, pk=None):
+        source_classroom = self.get_object()
+        target_classroom_id = request.data.get("target_classroom_id")
+        target_session_id = request.data.get("target_session_id")
+        student_ids = request.data.get("student_ids", [])
+        if not target_classroom_id or not target_session_id or not student_ids:
+            return Response(
+                {"detail": "target_classroom_id, target_session_id, and student_ids are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(student_ids, list) or not student_ids:
+            return Response(
+                {"detail": "student_ids must be a non-empty list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        from django.shortcuts import get_object_or_404
+
+        target_classroom = get_object_or_404(
+            ClassRoom, pk=target_classroom_id, school=source_classroom.school
+        )
+        target_session = get_object_or_404(
+            AcademicSession, pk=target_session_id, school=source_classroom.school
+        )
+
+        from .services import promote_students
+
+        result = promote_students(source_classroom, target_classroom, target_session, student_ids)
+        return Response(result, status=status.HTTP_200_OK)
+
 
 class EnrollmentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
@@ -391,6 +423,36 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
                 "behavioural_ratings": behavioural_data,
             }
         )
+
+    @action(detail=False, methods=["get"], url_path="student-history")
+    def student_history(self, request):
+        student_id = request.query_params.get("student_id")
+        if not student_id:
+            return Response(
+                {"detail": "student_id query parameter is required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        reports = ReportCard.objects.filter(
+            student_id=student_id, is_deleted=False
+        ).select_related("classroom", "term", "term__session").order_by(
+            "term__session__start_date", "term__display_order"
+        )
+
+        grouped = {}
+        for report in reports:
+            session_key = report.term.session.name if report.term.session else "Unknown"
+            if session_key not in grouped:
+                grouped[session_key] = {
+                    "session": session_key,
+                    "classroom": report.classroom.name,
+                    "terms": [],
+                }
+            grouped[session_key]["terms"].append(
+                ReportCardSerializer(report).data
+            )
+
+        return Response(list(grouped.values()))
 
 
 class SchoolProfileViewSet(viewsets.ViewSet):
