@@ -661,6 +661,146 @@ def _create_school():
     return school
 
 
+class ReportCardFullActionTests(APITestCase):
+    def test_full_returns_scores_and_behavioural_ratings_scoped_to_student(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        student2 = Student.objects.create(
+            user=User.objects.create_user(email="s2@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        Enrollment.objects.create(student=student2, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component, student=student2, score=70.0, entered_by=teacher)
+        BehaviouralRating.objects.create(
+            trait=trait, student=student, classroom=classroom, term=term, rating=4,
+            rated_by=teacher, school=school,
+        )
+        BehaviouralRating.objects.create(
+            trait=trait, student=student2, classroom=classroom, term=term, rating=3,
+            rated_by=teacher, school=school,
+        )
+        report = ReportCard.objects.create(
+            student=student, classroom=classroom, term=term, status="approved",
+        )
+
+        resp = self.client.get(f"/api/academics/report-cards/{report.id}/full/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["scores"]), 1)
+        self.assertEqual(resp.data["scores"][0]["student"], str(student.id))
+        self.assertEqual(len(resp.data["behavioural_ratings"]), 1)
+        self.assertEqual(resp.data["behavioural_ratings"][0]["student"], str(student.id))
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class ReportCardPDFWithBehaviouralTests(APITestCase):
+    def test_pdf_generation_succeeds_with_behavioural_ratings(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentScore.objects.create(component=component, student=student, score=85.0, entered_by=teacher)
+        BehaviouralRating.objects.create(
+            trait=trait, student=student, classroom=classroom, term=term, rating=4,
+            rated_by=teacher, school=school,
+        )
+        report = ReportCard.objects.create(
+            student=student, classroom=classroom, term=term, status="approved",
+        )
+
+        resp = self.client.get(f"/api/academics/report-cards/{report.id}/pdf/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/pdf")
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class ReportCardPatchReadonlyTests(APITestCase):
+    def test_patch_cannot_change_status_or_average_score(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        report = ReportCard.objects.create(
+            student=student, classroom=classroom, term=term, status="draft", average_score=80.0,
+        )
+
+        resp = self.client.patch(
+            f"/api/academics/report-cards/{report.id}/",
+            {"status": "approved", "average_score": 99.9, "teacher_remark": "Updated remark"},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 200)
+        report.refresh_from_db()
+        self.assertEqual(report.status, "draft")
+        self.assertEqual(report.average_score, 80.0)
+        self.assertEqual(report.teacher_remark, "Updated remark")
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
 class BehaviouralTraitModelTests(TestCase):
     def test_string_representation(self):
         trait = BehaviouralTrait(name="Punctuality", domain="affective")
