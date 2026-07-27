@@ -1,6 +1,15 @@
-from django.contrib import admin
-
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
+from .models import (
+    AcademicSession,
+    AssessmentComponent,
+    AssessmentScore,
+    BehaviouralRating,
+    BehaviouralTrait,
+    ClassRoom,
+    Enrollment,
+    GradeScale,
+    ReportCard,
+    SchoolProfile,
+)
 
 
 @admin.register(AcademicSession)
@@ -42,6 +51,20 @@ class AssessmentScoreAdmin(admin.ModelAdmin):
 class GradeScaleAdmin(admin.ModelAdmin):
     list_display = ("grade", "min_score", "max_score", "remark")
     ordering = ["-min_score"]
+
+
+@admin.register(BehaviouralTrait)
+class BehaviouralTraitAdmin(admin.ModelAdmin):
+    list_display = ("name", "domain", "display_order", "school")
+    list_filter = ("domain", "school")
+    search_fields = ("name",)
+
+
+@admin.register(BehaviouralRating)
+class BehaviouralRatingAdmin(admin.ModelAdmin):
+    list_display = ("trait", "student", "rating", "term", "classroom")
+    list_filter = ("term", "trait__domain", "classroom")
+    search_fields = ("student__user__email",)
 
 
 @admin.register(ReportCard)
