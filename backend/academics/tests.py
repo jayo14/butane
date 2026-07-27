@@ -995,3 +995,199 @@ class SeededTraitsTests(TestCase):
         count = BehaviouralTrait.objects.filter(domain="psychomotor", school=None).count()
         self.assertEqual(count, 5)
 
+
+class PromoteStudentsTests(TestCase):
+    def setUp(self):
+        self.subject = _create_subject()
+        self.grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        self.school = _create_school()
+        self.source_classroom = ClassRoom.objects.create(name="JSS1A", grade_level=self.grade, school=self.school)
+        self.target_classroom = ClassRoom.objects.create(name="JSS2A", grade_level=self.grade, school=self.school)
+        self.session_current = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=self.school
+        )
+        self.session_target = AcademicSession.objects.create(
+            name="2026/2027", start_date="2026-09-01", end_date="2027-07-31", school=self.school
+        )
+        self.term = Term.objects.create(name="First Term", display_order=1)
+        self.user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
+        self.teacher = Teacher.objects.create(user=self.user, department="Math")
+        self.student1 = Student.objects.create(
+            user=User.objects.create_user(email="s1@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        self.student2 = Student.objects.create(
+            user=User.objects.create_user(email="s2@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        self.student3 = Student.objects.create(
+            user=User.objects.create_user(email="s3@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=self.student1, classroom=self.source_classroom, session=self.session_current)
+        Enrollment.objects.create(student=self.student2, classroom=self.source_classroom, session=self.session_current)
+        Enrollment.objects.create(student=self.student3, classroom=self.source_classroom, session=self.session_current)
+
+    def test_promote_creates_enrollments(self):
+        from academics.services import promote_students
+        result = promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id), str(self.student2.id)],
+        )
+        self.assertEqual(result["promoted"], [str(self.student1.id), str(self.student2.id)])
+        self.assertEqual(result["skipped"], [])
+        self.assertEqual(Enrollment.objects.filter(classroom=self.target_classroom, session=self.session_target).count(), 2)
+
+    def test_promote_skips_already_enrolled(self):
+        from academics.services import promote_students
+        Enrollment.objects.create(student=self.student1, classroom=self.target_classroom, session=self.session_target)
+        result = promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id), str(self.student2.id)],
+        )
+        self.assertEqual(result["promoted"], [str(self.student2.id)])
+        self.assertEqual(len(result["skipped"]), 1)
+        self.assertEqual(result["skipped"][0]["student_id"], str(self.student1.id))
+        self.assertEqual(result["skipped"][0]["reason"], "already enrolled in target session")
+
+    def test_promote_skips_not_in_source(self):
+        from academics.services import promote_students
+        result = promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id), "nonexistent-id"],
+        )
+        self.assertEqual(result["promoted"], [str(self.student1.id)])
+        self.assertEqual(len(result["skipped"]), 1)
+        self.assertEqual(result["skipped"][0]["reason"], "not enrolled in source classroom")
+
+    def test_promote_is_idempotent(self):
+        from academics.services import promote_students
+        promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id)],
+        )
+        before_count = Enrollment.objects.filter(classroom=self.target_classroom, session=self.session_target).count()
+        promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id)],
+        )
+        after_count = Enrollment.objects.filter(classroom=self.target_classroom, session=self.session_target).count()
+        self.assertEqual(before_count, after_count)
+
+    def test_promote_does_not_touch_existing_enrollments(self):
+        from academics.services import promote_students
+        before_count = Enrollment.objects.count()
+        promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id)],
+        )
+        after_count = Enrollment.objects.count()
+        self.assertEqual(after_count, before_count + 1)
+
+    def test_promote_does_not_touch_existing_report_cards(self):
+        from academics.services import promote_students
+        ReportCard.objects.create(
+            student=self.student1, classroom=self.source_classroom, term=self.term, status="draft",
+        )
+        before_rc = ReportCard.objects.count()
+        promote_students(
+            self.source_classroom,
+            self.target_classroom,
+            self.session_target,
+            [str(self.student1.id)],
+        )
+        after_rc = ReportCard.objects.count()
+        self.assertEqual(after_rc, before_rc)
+
+
+class PromoteActionTests(APITestCase):
+    def test_promote_returns_403_for_teacher(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        resp = self.client.post(
+            f"/api/academics/classrooms/{classroom.id}/promote/",
+            {"target_classroom_id": "00000000-0000-0000-0000-000000000000", "target_session_id": "00000000-0000-0000-0000-000000000000", "student_ids": []},
+            format="json",
+        )
+        self.assertIn(resp.status_code, (401, 403))
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class StudentHistoryTests(APITestCase):
+    def test_student_history_groups_by_session(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom1 = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        classroom2 = ClassRoom.objects.create(name="JSS2A", grade_level=grade, school=school)
+        session1 = AcademicSession.objects.create(
+            name="2024/2025", start_date="2024-09-01", end_date="2025-07-31", is_current=True, school=school
+        )
+        session2 = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", school=school
+        )
+        term1 = Term.objects.create(name="First Term", display_order=1)
+        term2 = Term.objects.create(name="First Term", display_order=1)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom1, session=session1)
+        Enrollment.objects.create(student=student, classroom=classroom2, session=session2)
+        ReportCard.objects.create(student=student, classroom=classroom1, term=term1, status="approved")
+        ReportCard.objects.create(student=student, classroom=classroom2, term=term2, status="approved")
+
+        resp = self.client.get(f"/api/academics/report-cards/student-history/?student_id={student.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data), 2)
+        sessions = [g["session"] for g in resp.data]
+        self.assertIn("2024/2025", sessions)
+        self.assertIn("2025/2026", sessions)
+
+    def test_student_history_returns_empty_list_for_no_reports(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.get(f"/api/academics/report-cards/student-history/?student_id={student.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data, [])
+
+    def test_student_history_returns_400_without_student_id(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.get("/api/academics/report-cards/student-history/")
+        self.assertEqual(resp.status_code, 400)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
