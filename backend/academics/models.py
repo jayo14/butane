@@ -182,6 +182,12 @@ class AssessmentScore(TimestampedModel):
     def __str__(self) -> str:
         return f"{self.student} — {self.component}: {self.score}"
 
+    @property
+    def grade_and_remark(self) -> tuple[str, str]:
+        from .services import subject_grade
+
+        return subject_grade(self.score)
+
 
 class GradeScale(TimestampedModel):
     """Global grading scale (e.g. A, B, C)."""
