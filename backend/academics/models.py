@@ -212,6 +212,81 @@ class GradeScale(TimestampedModel):
         return f"{self.grade} ({self.min_score}-{self.max_score})"
 
 
+class BehaviouralTrait(TimestampedModel):
+    """A behavioural/psychomotor trait that can be rated."""
+
+    DOMAIN_CHOICES = [("affective", "Affective"), ("psychomotor", "Psychomotor")]
+
+    name = models.CharField(max_length=80)
+    domain = models.CharField(max_length=20, choices=DOMAIN_CHOICES)
+    display_order = models.PositiveSmallIntegerField(default=0)
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="behavioural_traits",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "academics_behavioural_trait"
+        ordering = ["domain", "display_order", "name"]
+        unique_together = [("name", "domain", "school")]
+
+    def __str__(self) -> str:
+        return f"{self.name} ({self.domain})"
+
+
+class BehaviouralRating(TimestampedModel):
+    """A student's rating for a behavioural/psychomotor trait."""
+
+    trait = models.ForeignKey(
+        BehaviouralTrait,
+        on_delete=models.PROTECT,
+        related_name="ratings",
+    )
+    student = models.ForeignKey(
+        "accounts.Student",
+        on_delete=models.PROTECT,
+        related_name="behavioural_ratings",
+    )
+    classroom = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.PROTECT,
+        related_name="behavioural_ratings",
+    )
+    term = models.ForeignKey(
+        "exams.Term",
+        on_delete=models.PROTECT,
+        related_name="behavioural_ratings",
+    )
+    rating = models.PositiveSmallIntegerField()
+    rated_by = models.ForeignKey(
+        "accounts.Teacher",
+        on_delete=models.PROTECT,
+        related_name="entered_behavioural_ratings",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="behavioural_ratings",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "academics_behavioural_rating"
+        ordering = ["term__display_order", "trait__domain", "trait__display_order"]
+        unique_together = [("trait", "student", "term")]
+
+    def __str__(self) -> str:
+        return f"{self.student} — {self.trait}: {self.rating}"
+
+    def clean(self):
+        if not (1 <= self.rating <= 5):
+            raise ValidationError({"rating": "Rating must be between 1 and 5."})
+
+
 class ReportCard(SoftDeleteModel):
     """Generated report card for a student in a classroom/term."""
 
