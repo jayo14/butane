@@ -8,7 +8,43 @@ from django.db import transaction
 
 from accounts.models import Student
 from exams.models import Result
-from .models import AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, ReportCard
+from .models import AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+
+SUBJECT_GRADE_BANDS = (
+    (70, 100, "A", "EXCELLENT"),
+    (50, 69.99, "C", "CREDIT"),
+    (40, 49.99, "P", "PASS"),
+    (0, 39.99, "F", "FAIL"),
+)
+
+
+def subject_grade(score: float) -> tuple[str, str]:
+    if score is None:
+        return ("", "")
+    for min_score, max_score, grade, remark in SUBJECT_GRADE_BANDS:
+        if min_score <= score <= max_score:
+            return (grade, remark)
+    return ("", "")
+
+
+def average_remark(average_score: float) -> str:
+    if average_score >= 70:
+        return "An excellent performance. Keep it up."
+    if average_score >= 60:
+        return "A good result, work more on your weak subjects."
+    if average_score >= 50:
+        return "An average result, you can still do better next term."
+    if average_score >= 40:
+        return "The result is below average, you need to buckle up academically."
+    return "The result is far below average, you need to be serious with your studies."
+
+
+def _grade_for_average(average_score: float, classroom: ClassRoom) -> GradeScale | None:
+    return GradeScale.objects.filter(
+        min_score__lte=average_score,
+        max_score__gte=average_score,
+        school=classroom.school,
+    ).first()
 
 
 def link_exam_result(result: Result, component: AssessmentComponent) -> AssessmentScore:
@@ -37,7 +73,8 @@ def link_exam_result(result: Result, component: AssessmentComponent) -> Assessme
 def generate_report_card(student: Student, classroom: ClassRoom, term) -> ReportCard:
     """Generate or regenerate a report card for a single student.
 
-    Computes total_score, average_score, and position within the class.
+    Computes total_score, average_score, position within the class,
+    grade from the school's GradeScale, and a remark suggestion.
     """
     components = list(
         AssessmentComponent.objects.filter(classroom=classroom, term=term).select_related("subject")
@@ -51,8 +88,12 @@ def generate_report_card(student: Student, classroom: ClassRoom, term) -> Report
     subject_count = len({s.component.subject_id for s in scores_qs})
     average_score = round(total_score / subject_count, 2) if subject_count else 0.0
 
+    grade_scale = _grade_for_average(average_score, classroom)
+    grade = grade_scale.grade if grade_scale else ""
+    remark_suggestion = average_remark(average_score)
+
     with transaction.atomic():
-        report, _ = ReportCard.objects.update_or_create(
+        report, created = ReportCard.objects.update_or_create(
             student=student,
             classroom=classroom,
             term=term,
@@ -61,8 +102,13 @@ def generate_report_card(student: Student, classroom: ClassRoom, term) -> Report
                 "average_score": average_score,
                 "class_size": Enrollment.objects.filter(classroom=classroom, session__is_current=True).count(),
                 "school": classroom.school,
+                "grade": grade,
+                "remark_suggestion": remark_suggestion,
             },
         )
+        if created and not report.teacher_remark:
+            report.teacher_remark = remark_suggestion
+            report.save(update_fields=["teacher_remark", "updated_at"])
     return report
 
 
