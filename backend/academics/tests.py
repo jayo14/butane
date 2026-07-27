@@ -646,6 +646,6 @@ class ReportCardGradeAndRemarkTests(TestCase):
 
 def _create_school():
     from schools.models import School
-    school, _ = School.objects.get_or_create(name="Test School", defaults={"email": "test@example.com"})
+    school, _ = School.objects.get_or_create(name="Test School", defaults={"slug": "test-school"})
     return school
 
