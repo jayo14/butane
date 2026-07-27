@@ -9,7 +9,18 @@ from django.test import TestCase
 from rest_framework.test import APITestCase
 
 from accounts.models import Student, Teacher, User
-from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
+from academics.models import (
+    AcademicSession,
+    AssessmentComponent,
+    AssessmentScore,
+    BehaviouralRating,
+    BehaviouralTrait,
+    ClassRoom,
+    Enrollment,
+    GradeScale,
+    ReportCard,
+    SchoolProfile,
+)
 from academics.signals import result_post_save
 from academics.services import generate_class_report_cards, generate_report_card, average_remark, subject_grade
 from exams.models import Exam, GradeLevel, Question, Choice, Term, Attempt
@@ -648,4 +659,199 @@ def _create_school():
     from schools.models import School
     school, _ = School.objects.get_or_create(name="Test School", defaults={"slug": "test-school"})
     return school
+
+
+class BehaviouralTraitModelTests(TestCase):
+    def test_string_representation(self):
+        trait = BehaviouralTrait(name="Punctuality", domain="affective")
+        self.assertEqual(str(trait), "Punctuality (affective)")
+
+    def test_rating_validation_rejects_out_of_range(self):
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        school = _create_school()
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
+        teacher = Teacher.objects.create(user=user, department="Math")
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        rating = BehaviouralRating(
+            trait=trait,
+            student=student,
+            classroom=classroom,
+            term=term,
+            rating=6,
+            rated_by=teacher,
+            school=school,
+        )
+        with self.assertRaises(ValidationError) as ctx:
+            rating.full_clean()
+        self.assertIn("rating", ctx.exception.message_dict)
+
+    def test_unique_together_prevents_duplicate_rating(self):
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        school = _create_school()
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        user = User.objects.create_user(email="t@example.com", password="pwd", role="teacher")
+        teacher = Teacher.objects.create(user=user, department="Math")
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        BehaviouralRating.objects.create(
+            trait=trait,
+            student=student,
+            classroom=classroom,
+            term=term,
+            rating=3,
+            rated_by=teacher,
+            school=school,
+        )
+        with self.assertRaises(Exception):
+            BehaviouralRating.objects.create(
+                trait=trait,
+                student=student,
+                classroom=classroom,
+                term=term,
+                rating=4,
+                rated_by=teacher,
+                school=school,
+            )
+
+
+class BehaviouralRatingBulkTests(APITestCase):
+    def test_bulk_creates_and_updates_ratings(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+
+        payload = {
+            "trait_id": str(trait.id),
+            "term_id": str(term.id),
+            "classroom_id": str(classroom.id),
+            "ratings": [
+                {"student_id": str(student.id), "rating": 4},
+            ],
+        }
+        resp = self.client.post("/api/academics/behavioural-ratings/bulk/", payload, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["created"], 1)
+        self.assertEqual(resp.data["updated"], 0)
+        self.assertEqual(BehaviouralRating.objects.count(), 1)
+        self.assertEqual(BehaviouralRating.objects.first().rating, 4)
+
+    def test_bulk_updates_existing_rating(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        BehaviouralRating.objects.create(
+            trait=trait,
+            student=student,
+            classroom=classroom,
+            term=term,
+            rating=2,
+            rated_by=teacher,
+            school=school,
+        )
+
+        payload = {
+            "trait_id": str(trait.id),
+            "term_id": str(term.id),
+            "classroom_id": str(classroom.id),
+            "ratings": [
+                {"student_id": str(student.id), "rating": 5},
+            ],
+        }
+        resp = self.client.post("/api/academics/behavioural-ratings/bulk/", payload, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["created"], 0)
+        self.assertEqual(resp.data["updated"], 1)
+        self.assertEqual(BehaviouralRating.objects.first().rating, 5)
+
+    def test_bulk_rejects_invalid_rating(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(
+            name="Punctuality", domain="affective", school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+
+        payload = {
+            "trait_id": str(trait.id),
+            "term_id": str(term.id),
+            "classroom_id": str(classroom.id),
+            "ratings": [
+                {"student_id": str(student.id), "rating": 7},
+            ],
+        }
+        resp = self.client.post("/api/academics/behavioural-ratings/bulk/", payload, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["errors"]), 1)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class SeededTraitsTests(TestCase):
+    def test_seed_creates_11_affective_traits(self):
+        count = BehaviouralTrait.objects.filter(domain="affective", school=None).count()
+        self.assertEqual(count, 11)
+
+    def test_seed_creates_5_psychomotor_traits(self):
+        count = BehaviouralTrait.objects.filter(domain="psychomotor", school=None).count()
+        self.assertEqual(count, 5)
 
