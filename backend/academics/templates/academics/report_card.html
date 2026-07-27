@@ -44,6 +44,10 @@
     <div><strong>Term:</strong> {{ report.term.name }}</div>
   </div>
 
+  <div class="meta">
+    <div><strong>Attendance:</strong> {{ report.times_present }} / {{ report.school_days_open }} present &nbsp; Times Absent: {{ report.times_absent }}</div>
+  </div>
+
   <table>
     <thead>
       <tr>
@@ -51,6 +55,7 @@
         <th>Component</th>
         <th>Max</th>
         <th>Score</th>
+        <th>Grade</th>
       </tr>
     </thead>
     <tbody>
@@ -60,9 +65,10 @@
         <td>{{ score.component.name }}</td>
         <td>{{ score.component.max_score }}</td>
         <td>{{ score.score }}</td>
+        <td>{{ score.subject_grade|default:"—" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="4" style="text-align:center;color:#6c7a71;">No scores recorded</td></tr>
+      <tr><td colspan="5" style="text-align:center;color:#6c7a71;">No scores recorded</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -77,6 +83,44 @@
       <span>{{ report.average_score }}</span>
     </div>
   </div>
+
+  {% if behavioural_ratings %}
+  <div class="remarks">
+    <h3>Behavioural Ratings</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;color:{{ primary_color }};">Affective Domain</h4>
+        <table>
+          <tbody>
+            {% for br in behavioural_ratings %}
+            {% if br.trait.domain == "affective" %}
+            <tr>
+              <td>{{ br.trait.name }}</td>
+              <td style="text-align:center;">{{ br.rating }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h4 style="margin:0 0 8px;font-size:13px;color:{{ primary_color }};">Psychomotor Skills</h4>
+        <table>
+          <tbody>
+            {% for br in behavioural_ratings %}
+            {% if br.trait.domain == "psychomotor" %}
+            <tr>
+              <td>{{ br.trait.name }}</td>
+              <td style="text-align:center;">{{ br.rating }}</td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <div class="remarks">
     <h3>Teacher's Remark</h3>
