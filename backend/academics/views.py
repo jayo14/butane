@@ -12,8 +12,29 @@ from rest_framework.response import Response
 
 from core.views import SchoolScopedViewSetMixin
 from accounts.permissions import IsAdmin, IsTeacher
-from .models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard, SchoolProfile
-from .serializers import AcademicSessionSerializer, AssessmentComponentSerializer, AssessmentScoreSerializer, ClassRoomSerializer, EnrollmentSerializer, GradeScaleSerializer, ReportCardSerializer
+from .models import (
+    AcademicSession,
+    AssessmentComponent,
+    AssessmentScore,
+    BehaviouralRating,
+    BehaviouralTrait,
+    ClassRoom,
+    Enrollment,
+    GradeScale,
+    ReportCard,
+    SchoolProfile,
+)
+from .serializers import (
+    AcademicSessionSerializer,
+    AssessmentComponentSerializer,
+    AssessmentScoreSerializer,
+    BehaviouralRatingSerializer,
+    BehaviouralTraitSerializer,
+    ClassRoomSerializer,
+    EnrollmentSerializer,
+    GradeScaleSerializer,
+    ReportCardSerializer,
+)
 from .services import generate_class_report_cards
 
 
@@ -125,6 +146,102 @@ class GradeScaleViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         if self.action in {"list", "retrieve"}:
             return [permissions.IsAuthenticated()]
         return [IsTeacher()]
+
+
+class BehaviouralTraitViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = BehaviouralTrait.objects.all()
+    serializer_class = BehaviouralTraitSerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        return [IsTeacher()]
+
+
+class BehaviouralRatingViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = BehaviouralRating.objects.select_related(
+        "trait", "student", "classroom", "term", "rated_by"
+    )
+    serializer_class = BehaviouralRatingSerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        return [IsTeacher()]
+
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="bulk")
+    def bulk(self, request):
+        trait_id = request.data.get("trait_id")
+        term_id = request.data.get("term_id")
+        classroom_id = request.data.get("classroom_id")
+        ratings = request.data.get("ratings", [])
+        if not trait_id or not term_id or not classroom_id:
+            return Response(
+                {"detail": "trait_id, term_id, and classroom_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not isinstance(ratings, list):
+            return Response(
+                {"detail": "ratings must be a list."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            trait = BehaviouralTrait.objects.get(pk=trait_id)
+        except BehaviouralTrait.DoesNotExist:
+            return Response({"detail": "BehaviouralTrait not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            from exams.models import Term as TermModel
+
+            term = TermModel.objects.get(pk=term_id)
+        except TermModel.DoesNotExist:
+            return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            classroom = ClassRoom.objects.get(pk=classroom_id)
+        except ClassRoom.DoesNotExist:
+            return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        teacher = request.user.teacher_profile
+        created = 0
+        updated = 0
+        errors = []
+
+        for idx, item in enumerate(ratings):
+            student_id = item.get("student_id")
+            rating = item.get("rating")
+            if student_id is None or rating is None:
+                errors.append({"index": idx, "detail": "student_id and rating are required."})
+                continue
+            try:
+                obj, was_created = BehaviouralRating.objects.update_or_create(
+                    trait=trait,
+                    student_id=student_id,
+                    term=term,
+                    classroom=classroom,
+                    defaults={
+                        "rating": rating,
+                        "rated_by": teacher,
+                        "school": classroom.school,
+                    },
+                )
+                if was_created:
+                    created += 1
+                else:
+                    updated += 1
+            except Exception as exc:  # pragma: no cover
+                errors.append({"index": idx, "detail": str(exc)})
+
+        return Response(
+            {
+                "created": created,
+                "updated": updated,
+                "errors": errors,
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
