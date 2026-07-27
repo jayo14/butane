@@ -186,6 +186,13 @@ class AssessmentScore(TimestampedModel):
 class GradeScale(TimestampedModel):
     """Global grading scale (e.g. A, B, C)."""
 
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="grade_scales",
+        null=True,
+        blank=True,
+    )
     min_score = models.FloatField(help_text="Minimum score for this grade (inclusive).")
     max_score = models.FloatField(help_text="Maximum score for this grade (inclusive).")
     grade = models.CharField(max_length=8, help_text='e.g. "A", "B2"')

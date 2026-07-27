@@ -52,7 +52,7 @@ class AssessmentScoreSerializer(serializers.ModelSerializer):
 class GradeScaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = GradeScale
-        fields = ["id", "min_score", "max_score", "grade", "remark", "created_at", "updated_at"]
+        fields = ["id", "school", "min_score", "max_score", "grade", "remark", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
