@@ -8,15 +8,20 @@ import {
   Loader2,
   Download,
   Star,
+  Lock,
+  Shield,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { Table } from "@/components/ui/table"
+import { Tabs } from "@/components/ui/tabs"
+import { Modal } from "@/components/ui/modal"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
+import { useAuth } from "@/lib/auth-context"
 
 type ReportCardStatus = "draft" | "submitted" | "approved"
 
@@ -27,9 +32,31 @@ interface ScoreEntry {
   [key: string]: unknown
 }
 
+const SUBJECT_GRADE_BANDS = [
+  [70, 100, "A", "EXCELLENT"],
+  [50, 69.99, "C", "CREDIT"],
+  [40, 49.99, "P", "PASS"],
+  [0, 39.99, "F", "FAIL"],
+] as const
+
+function subjectGrade(score: number): { grade: string; variant: "success" | "warning" | "danger" } {
+  if (score == null || isNaN(score)) return { grade: "-", variant: "warning" }
+  for (const [minScore, maxScore, grade, _] of SUBJECT_GRADE_BANDS) {
+    if (score >= minScore && score <= maxScore) {
+      if (grade === "A" || grade === "C") return { grade, variant: "success" }
+      if (grade === "P") return { grade, variant: "warning" }
+      return { grade, variant: "danger" }
+    }
+  }
+  return { grade: "-", variant: "warning" }
+}
+
 export function ReportCardsPageClient() {
   const router = useRouter()
   const toast = useToast()
+  const { hasRole } = useAuth()
+  const isAdmin = hasRole("admin")
+
   const [sessions, setSessions] = useState<{ id: string; name: string }[]>([])
   const [terms, setTerms] = useState<{ id: string; name: string }[]>([])
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
@@ -40,11 +67,16 @@ export function ReportCardsPageClient() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
+  const [bulkSubmitting, setBulkSubmitting] = useState(false)
+  const [bulkApproving, setBulkApproving] = useState(false)
+  const [bulkPdfLoading, setBulkPdfLoading] = useState(false)
   const [selectedSession, setSelectedSession] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
   const [selectedClassroom, setSelectedClassroom] = useState("")
   const [error, setError] = useState("")
   const [studentSummary, setStudentSummary] = useState<any>({})
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false)
+  const [showDownloadConfirm, setShowDownloadConfirm] = useState(false)
 
   const inputRefs = useRef<Array<Array<HTMLInputElement | null>>>([])
 
@@ -257,6 +289,97 @@ export function ReportCardsPageClient() {
     }
   }, [])
 
+  const handleBulkSubmit = useCallback(async () => {
+    if (!selectedClassroom || !selectedTerm) return
+    setBulkSubmitting(true)
+    setError("")
+    try {
+      const res = await api.academics.reportCardsBulkSubmit({
+        classroom_id: selectedClassroom,
+        term_id: selectedTerm,
+      })
+      toast.addToast({
+        message: "Bulk submit complete",
+        description: `Submitted: ${res.submitted}`,
+        variant: "success",
+      })
+      const reportRes = await api.academics.reportCardsGenerate({
+        classroom_id: selectedClassroom,
+        term_id: selectedTerm,
+      })
+      setReportCards(reportRes as any[])
+      buildStudentSummary(reportRes as any[])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to bulk submit"
+      setError(msg)
+      toast.addToast({
+        message: "Bulk submit failed",
+        description: msg,
+        variant: "error",
+      })
+    } finally {
+      setBulkSubmitting(false)
+      setShowApproveConfirm(false)
+    }
+  }, [selectedClassroom, selectedTerm, toast, buildStudentSummary])
+
+  const handleBulkApprove = useCallback(async () => {
+    if (!selectedClassroom || !selectedTerm) return
+    setBulkApproving(true)
+    setError("")
+    try {
+      const res = await api.academics.reportCardsBulkApprove({
+        classroom_id: selectedClassroom,
+        term_id: selectedTerm,
+      })
+      toast.addToast({
+        message: "Bulk approve complete",
+        description: `Approved: ${res.approved}`,
+        variant: "success",
+      })
+      const reportRes = await api.academics.reportCardsGenerate({
+        classroom_id: selectedClassroom,
+        term_id: selectedTerm,
+      })
+      setReportCards(reportRes as any[])
+      buildStudentSummary(reportRes as any[])
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to bulk approve"
+      setError(msg)
+      toast.addToast({
+        message: "Bulk approve failed",
+        description: msg,
+        variant: "error",
+      })
+    } finally {
+      setBulkApproving(false)
+      setShowApproveConfirm(false)
+    }
+  }, [selectedClassroom, selectedTerm, toast, buildStudentSummary])
+
+  const handleBulkDownloadPdf = useCallback(async () => {
+    if (!selectedClassroom || !selectedTerm) return
+    setBulkPdfLoading(true)
+    setError("")
+    try {
+      const blob = await api.academics.reportCardsBulkPdf(selectedClassroom, selectedTerm)
+      const classroomName = classrooms.find((c) => c.id === selectedClassroom)?.name || "classroom"
+      const termName = terms.find((t) => t.id === selectedTerm)?.name || "term"
+      const url = URL.createObjectURL(blob as Blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `report-cards-${classroomName}-${termName}.zip`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to download ZIP"
+      setError(msg)
+    } finally {
+      setBulkPdfLoading(false)
+      setShowDownloadConfirm(false)
+    }
+  }, [selectedClassroom, selectedTerm, classrooms, terms])
+
   const statusBadge = (status: ReportCardStatus) => {
     const map: Record<ReportCardStatus, { variant: any; label: string }> = {
       draft: { variant: "warning", label: "Draft" },
@@ -276,6 +399,8 @@ export function ReportCardsPageClient() {
     }
     return groups
   }, [components])
+
+  const termTabs = useMemo(() => terms.map((t) => ({ label: t.name, value: t.id })), [terms])
 
   if (loading) {
     return (
@@ -311,13 +436,19 @@ export function ReportCardsPageClient() {
             onChange={setSelectedSession}
             placeholder="Select session"
           />
-          <Select
-            label="Term"
-            options={terms.map((t) => ({ label: t.name, value: t.id }))}
-            value={selectedTerm}
-            onChange={setSelectedTerm}
-            placeholder="Select term"
-          />
+          {selectedSession ? (
+            <div className="flex items-end">
+              <Tabs tabs={termTabs} value={selectedTerm} onChange={setSelectedTerm} />
+            </div>
+          ) : (
+            <Select
+              label="Term"
+              options={terms.map((t) => ({ label: t.name, value: t.id }))}
+              value={selectedTerm}
+              onChange={setSelectedTerm}
+              placeholder="Select term"
+            />
+          )}
           <Select
             label="Classroom"
             options={classrooms.map((c) => ({ label: c.name, value: c.id }))}
@@ -325,16 +456,24 @@ export function ReportCardsPageClient() {
             onChange={setSelectedClassroom}
             placeholder="Select classroom"
           />
-          <div className="flex items-end">
+          <div className="flex items-end gap-2">
             <Button
               variant="primary"
               onClick={handleGenerate}
               disabled={!selectedClassroom || !selectedTerm || generating}
-              className="w-full"
+              className="flex-1"
             >
               {generating ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
               Generate
             </Button>
+            {selectedClassroom && selectedTerm && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/report-cards/broadsheet?classroom=${selectedClassroom}&term=${selectedTerm}`)}
+              >
+                View Broadsheet
+              </Button>
+            )}
           </div>
         </div>
       </Card>
@@ -356,17 +495,27 @@ export function ReportCardsPageClient() {
                     render: (row: any) => {
                       const rowIndex = students.findIndex((s: any) => (s.student || s.id) === row.studentId)
                       const colIndex = components.findIndex((comp) => comp.id === c.id)
+                      const rawScore = row.scores[c.id]
+                      const numericScore = rawScore == null || rawScore === "" ? null : Number(rawScore)
+                      const gradeInfo = numericScore != null && !isNaN(numericScore) ? subjectGrade(numericScore) : null
                       return (
-                        <input
-                          ref={setRef(rowIndex, colIndex)}
-                          type="number"
-                          min="0"
-                          max={c.max_score}
-                          value={row.scores[c.id] ?? ""}
-                          onChange={(e) => handleScoreChange(row.studentId, c.id, e.target.value)}
-                          onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
-                          className="mx-auto w-20 rounded-lg border border-border-primary px-2 py-1.5 text-center text-sm text-content-primary"
-                        />
+                        <div className="flex flex-col items-center gap-1">
+                          <input
+                            ref={setRef(rowIndex, colIndex)}
+                            type="number"
+                            min="0"
+                            max={c.max_score}
+                            value={rawScore ?? ""}
+                            onChange={(e) => handleScoreChange(row.studentId, c.id, e.target.value)}
+                            onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
+                            className="w-20 rounded-lg border border-border-primary px-2 py-1.5 text-center text-sm text-content-primary"
+                          />
+                          {gradeInfo && (
+                            <Badge variant={gradeInfo.variant} size="sm">
+                              {gradeInfo.grade}
+                            </Badge>
+                          )}
+                        </div>
                       )
                     },
                   })),
@@ -418,7 +567,40 @@ export function ReportCardsPageClient() {
 
       {reportCards.length > 0 && (
         <Card padding="lg">
-          <h2 className="mb-4 text-lg font-semibold text-content-primary">Generated Report Cards</h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold text-content-primary">Generated Report Cards</h2>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleGenerate}
+                disabled={bulkSubmitting || bulkApproving || bulkPdfLoading}
+              >
+                {bulkSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                Submit All
+              </Button>
+              {isAdmin && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowApproveConfirm(true)}
+                  disabled={bulkSubmitting || bulkApproving || bulkPdfLoading}
+                >
+                  {bulkApproving ? <Loader2 size={14} className="animate-spin" /> : <Shield size={14} />}
+                  Approve All
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowDownloadConfirm(true)}
+                disabled={bulkSubmitting || bulkApproving || bulkPdfLoading}
+              >
+                {bulkPdfLoading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                Download All (ZIP)
+              </Button>
+            </div>
+          </div>
           <Table
             columns={([
               { key: "student_name", header: "Student", sortable: true, render: (r: any) => r.student?.user?.full_name || r.student_name || "-" },
@@ -457,6 +639,46 @@ export function ReportCardsPageClient() {
           />
         </Card>
       )}
+
+      <Modal
+        isOpen={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        title="Confirm Bulk Approve"
+        description="This will approve all submitted report cards for the selected class and term. This action cannot be undone."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowApproveConfirm(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleBulkApprove} disabled={bulkApproving}>
+              {bulkApproving ? <Loader2 size={16} className="animate-spin" /> : <Shield size={16} />}
+              Approve All
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-content-secondary">
+          You are about to approve all submitted report cards for <span className="font-semibold">{classrooms.find((c) => c.id === selectedClassroom)?.name || "this class"}</span> in <span className="font-semibold">{terms.find((t) => t.id === selectedTerm)?.name || "this term"}</span>.
+        </p>
+      </Modal>
+
+      <Modal
+        isOpen={showDownloadConfirm}
+        onClose={() => setShowDownloadConfirm(false)}
+        title="Confirm Bulk Download"
+        description="Download all approved report cards for the selected class and term as a ZIP archive."
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowDownloadConfirm(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleBulkDownloadPdf} disabled={bulkPdfLoading}>
+              {bulkPdfLoading ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+              Download ZIP
+            </Button>
+          </>
+        }
+      >
+        <p className="text-sm text-content-secondary">
+          This will download a ZIP file containing all approved report cards for <span className="font-semibold">{classrooms.find((c) => c.id === selectedClassroom)?.name || "this class"}</span> in <span className="font-semibold">{terms.find((t) => t.id === selectedTerm)?.name || "this term"}</span>.
+        </p>
+      </Modal>
     </div>
   )
 }
