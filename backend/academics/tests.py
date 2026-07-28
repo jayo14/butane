@@ -1074,15 +1074,25 @@ class PromoteStudentsTests(TestCase):
             self.session_target,
             [str(self.student1.id)],
         )
-        before_count = Enrollment.objects.filter(classroom=self.target_classroom, session=self.session_target).count()
-        promote_students(
+        first_state = list(
+            Enrollment.objects.filter(
+                classroom=self.target_classroom, session=self.session_target
+            ).values_list("student_id", "classroom_id", "session_id")
+        )
+        result = promote_students(
             self.source_classroom,
             self.target_classroom,
             self.session_target,
             [str(self.student1.id)],
         )
-        after_count = Enrollment.objects.filter(classroom=self.target_classroom, session=self.session_target).count()
-        self.assertEqual(before_count, after_count)
+        second_state = list(
+            Enrollment.objects.filter(
+                classroom=self.target_classroom, session=self.session_target
+            ).values_list("student_id", "classroom_id", "session_id")
+        )
+        self.assertEqual(first_state, second_state)
+        self.assertEqual(result["promoted"], [])
+        self.assertEqual(len(result["skipped"]), 1)
 
     def test_promote_does_not_touch_existing_enrollments(self):
         from academics.services import promote_students
