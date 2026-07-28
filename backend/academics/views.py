@@ -1,7 +1,9 @@
 """ViewSets for the academics domain."""
 from __future__ import annotations
 
+import io
 import os
+import zipfile
 from pathlib import Path
 
 from django.db import transaction
@@ -285,7 +287,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     def get_permissions(self):
         if self.action in {"list", "retrieve"}:
             return [permissions.IsAuthenticated()]
-        if self.action == "approve":
+        if self.action in {"approve", "bulk_approve"}:
             return [IsAdmin()]
         return [IsTeacher()]
 
@@ -323,6 +325,18 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(report)
         return Response(serializer.data)
 
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="bulk-submit")
+    def bulk_submit(self, request):
+        classroom_id = request.data.get("classroom_id")
+        term_id = request.data.get("term_id")
+        if not classroom_id or not term_id:
+            return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = self.get_queryset().filter(classroom_id=classroom_id, term_id=term_id, status="draft")
+        count = qs.update(status="submitted")
+        return Response({"submitted": count})
+
     @action(detail=True, methods=["post"], url_path="approve")
     def approve(self, request, pk=None):
         report = self.get_object()
@@ -338,6 +352,24 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
 
         serializer = self.get_serializer(report)
         return Response(serializer.data)
+
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="bulk-approve")
+    def bulk_approve(self, request):
+        classroom_id = request.data.get("classroom_id")
+        term_id = request.data.get("term_id")
+        if not classroom_id or not term_id:
+            return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        qs = self.get_queryset().filter(classroom_id=classroom_id, term_id=term_id, status="submitted")
+        from django.utils import timezone
+        count = qs.update(status="approved", approved_by=request.user.teacher_profile, approved_at=timezone.now())
+
+        from notifications.tasks import notify_report_card_approved
+        for report_id in qs.values_list("id", flat=True):
+            notify_report_card_approved.delay(str(report_id))
+
+        return Response({"approved": count})
 
     def _report_pdf_context(self, report: ReportCard) -> dict:
         from django.conf import settings
@@ -401,6 +433,58 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
 
+    @action(detail=False, methods=["get"], url_path="bulk-pdf")
+    def bulk_pdf(self, request):
+        classroom_id = request.query_params.get("classroom_id")
+        term_id = request.query_params.get("term_id")
+        if not classroom_id or not term_id:
+            return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reports = self.get_queryset().filter(
+            classroom_id=classroom_id, term_id=term_id, status="approved"
+        ).select_related("student__user", "classroom", "term")
+
+        if not reports.exists():
+            return Response(
+                {"detail": "No approved report cards found for this classroom/term."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        buffer = io.BytesIO()
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+            for report in reports:
+                components = list(
+                    AssessmentComponent.objects.filter(classroom=report.classroom, term=report.term)
+                    .select_related("subject")
+                    .prefetch_related("scores__student")
+                )
+                scores = AssessmentScore.objects.filter(
+                    component__in=components,
+                    student=report.student,
+                ).select_related("component__subject")
+                behavioural_ratings = BehaviouralRating.objects.filter(
+                    student=report.student,
+                    classroom=report.classroom,
+                    term=report.term,
+                ).select_related("trait").order_by("trait__domain", "trait__display_order")
+
+                context = self._report_pdf_context(report)
+                context.update({
+                    "components": components,
+                    "scores": scores,
+                    "behavioural_ratings": behavioural_ratings,
+                })
+                html = render_to_string("academics/report_card.html", context)
+                pdf_bytes = HTML(string=html, base_url=context.get("site_url", "")).write_pdf()
+                safe_name = report.student.user.full_name.replace(" ", "_")
+                zf.writestr(f"{safe_name}-{report.term.name}.pdf", pdf_bytes)
+
+        buffer.seek(0)
+        response = Response(buffer.getvalue(), content_type="application/zip")
+        classroom_name = reports.first().classroom.name.replace(" ", "_")
+        response["Content-Disposition"] = f"attachment; filename=report-cards-{classroom_name}.zip"
+        return response
+
     @action(detail=True, methods=["get"], url_path="full")
     def full(self, request, pk=None):
         report = self.get_object()
@@ -437,7 +521,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        reports = ReportCard.objects.filter(
+        reports = self.get_queryset().filter(
             student_id=student_id, is_deleted=False
         ).select_related("classroom", "term", "term__session").order_by(
             "term__session__start_date", "term__display_order"
@@ -456,6 +540,76 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             grouped[group_key]["terms"].append(ReportCardSerializer(report).data)
 
         return Response(list(grouped.values()))
+
+    @action(detail=False, methods=["get"], url_path="broadsheet")
+    def broadsheet(self, request):
+        classroom_id = request.query_params.get("classroom_id")
+        term_id = request.query_params.get("term_id")
+        if not classroom_id or not term_id:
+            return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        components = AssessmentComponent.objects.filter(
+            classroom_id=classroom_id, term_id=term_id
+        ).select_related("subject")
+        subjects = sorted({c.subject for c in components}, key=lambda s: s.name)
+        reports = self.get_queryset().filter(
+            classroom_id=classroom_id, term_id=term_id
+        ).select_related("student__user").order_by("position")
+
+        rows = []
+        subject_totals = {s.id: [] for s in subjects}
+        for report in reports:
+            subject_scores = {}
+            for subject in subjects:
+                subj_components = [c for c in components if c.subject_id == subject.id]
+                total = AssessmentScore.objects.filter(
+                    component__in=subj_components,
+                    student=report.student,
+                ).aggregate(total=Sum("score"))["total"] or 0
+                grade, _ = subject_grade(total)
+                subject_scores[str(subject.id)] = {"score": total, "grade": grade}
+                subject_totals[subject.id].append(total)
+            rows.append({
+                "student_id": str(report.student_id),
+                "student_name": report.student.user.full_name,
+                "subjects": subject_scores,
+                "total_score": report.total_score,
+                "average_score": report.average_score,
+                "position": report.position,
+                "grade": report.grade,
+            })
+
+        class_averages = {
+            str(sid): round(sum(vals) / len(vals), 2) if vals else 0
+            for sid, vals in subject_totals.items()
+        }
+        return Response({
+            "subjects": [{"id": str(s.id), "name": s.name} for s in subjects],
+            "rows": rows,
+            "class_averages": class_averages,
+            "class_size": len(rows),
+        })
+
+    @action(detail=False, methods=["get"], url_path="annual-summary")
+    def annual_summary(self, request):
+        student_id = request.query_params.get("student_id")
+        session_id = request.query_params.get("session_id")
+        if not student_id or not session_id:
+            return Response({"detail": "student_id and session_id are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        reports = self.get_queryset().filter(
+            student_id=student_id, term__session_id=session_id
+        ).select_related("term", "classroom").order_by("term__display_order")
+        term_data = [ReportCardSerializer(r).data for r in reports]
+        averages = [r.average_score for r in reports if r.average_score is not None]
+        annual_average = round(sum(averages) / len(averages), 2) if averages else None
+        return Response({
+            "student_id": student_id,
+            "session_id": session_id,
+            "terms": term_data,
+            "annual_average": annual_average,
+            "terms_recorded": len(term_data),
+        })
 
 
 class SchoolProfileViewSet(viewsets.ViewSet):
