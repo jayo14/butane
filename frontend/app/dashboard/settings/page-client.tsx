@@ -96,7 +96,6 @@ export function SettingsClient() {
   const [saved, setSaved] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [passwordStrength, setPasswordStrength] = useState(0)
-  const [deleteConfirm, setDeleteConfirm] = useState("")
   const [logoPreview, setLogoPreview] = useState<string | null>(null)
 
   // Form state
@@ -1063,39 +1062,6 @@ export function SettingsClient() {
           {activeTab === "danger" && (
             <SectionCard title="Danger Zone" description="Irreversible and destructive actions">
               <div className="space-y-4">
-                <div className="rounded-xl border border-danger/20 bg-danger-light/20 p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-danger text-white">
-                      <Trash2 size={20} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-sm font-semibold text-content-primary">Delete Account</h3>
-                      <p className="mt-0.5 text-sm text-content-muted">
-                        Permanently delete your account and all associated data. This action cannot be undone.
-                      </p>
-                      <div className="mt-4 space-y-3">
-                        <input
-                          type="text"
-                          value={deleteConfirm}
-                          onChange={(e) => setDeleteConfirm(e.target.value)}
-                          placeholder='Type "DELETE" to confirm'
-                          className={cn(inputClass, "max-w-xs border-danger/50 focus:border-danger focus:ring-danger/20")}
-                        />
-                        <div>
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            disabled={deleteConfirm !== "DELETE"}
-                            leftIcon={<Trash2 size={16} />}
-                          >
-                            Delete Account
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
                 <div className="rounded-xl border border-border-primary p-5">
                   <div className="flex items-start gap-4">
                     <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-secondary text-content-muted">
