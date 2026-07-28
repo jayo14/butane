@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { Table } from "@/components/ui/table"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
@@ -180,12 +182,26 @@ export function BehaviouralRatingsPageClient() {
   if (loading) {
     return (
       <Container>
-        <div className="flex items-center justify-center py-20">
-          <div className="flex items-center gap-2 text-content-muted">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-            Loading...
-          </div>
+        <div className="mb-6">
+          <Skeleton variant="text" width={200} height={32} className="mb-2" />
+          <Skeleton variant="text" width={300} height={16} />
         </div>
+        <Card padding="lg" className="mb-6">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Skeleton variant="rectangular" height={40} />
+            <Skeleton variant="rectangular" height={40} />
+            <Skeleton variant="rectangular" height={40} />
+            <Skeleton variant="rectangular" height={40} />
+          </div>
+        </Card>
+        <Card padding="lg">
+          <Skeleton variant="text" width={150} height={24} className="mb-4" />
+          <div className="space-y-3">
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="text" height={40} />
+          </div>
+        </Card>
       </Container>
     )
   }
@@ -241,7 +257,7 @@ export function BehaviouralRatingsPageClient() {
         </div>
       </Card>
 
-      {traits.length > 0 && students.length > 0 && (
+      {traits.length > 0 && students.length > 0 ? (
         <Card padding="lg">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-content-primary">
@@ -291,9 +307,28 @@ export function BehaviouralRatingsPageClient() {
                 }
               })}
               keyExtractor={(row: any) => row.studentId}
-              emptyState={<p className="py-6 text-center text-sm text-content-secondary">No students enrolled.</p>}
+              emptyState={
+                <EmptyState
+                  title="No students enrolled"
+                  description="Add students to this classroom to enter behavioural ratings."
+                />
+              }
             />
           </div>
+        </Card>
+      ) : selectedClassroom && selectedTerm ? (
+        <Card padding="lg">
+          <EmptyState
+            title="No traits found"
+            description="No behavioural traits are configured for the selected domain. Contact an administrator to set up traits."
+          />
+        </Card>
+      ) : (
+        <Card padding="lg">
+          <EmptyState
+            title="Select a classroom and term"
+            description="Choose a session, term, classroom, and domain to begin entering ratings."
+          />
         </Card>
       )}
     </div>
