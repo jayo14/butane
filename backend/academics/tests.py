@@ -1242,3 +1242,340 @@ class StudentHistoryTests(APITestCase):
         teacher = Teacher.objects.create(user=user, department="Math")
         return teacher, user
 
+
+class BulkSubmitTests(APITestCase):
+    def test_bulk_submit_returns_count(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+
+        resp = self.client.post("/api/academics/report-cards/bulk-submit/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["submitted"], 1)
+        self.assertTrue(ReportCard.objects.filter(classroom=classroom, term=term, status="submitted").exists())
+
+    def test_bulk_submit_requires_classroom_and_term(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.post("/api/academics/report-cards/bulk-submit/", {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class BulkApproveTests(APITestCase):
+    def test_bulk_approve_returns_count_and_fires_notification(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=admin)
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+        report_id = generate_resp.data[0]["id"]
+        self.client.post(f"/api/academics/report-cards/{report_id}/submit/")
+
+        resp = self.client.post("/api/academics/report-cards/bulk-approve/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["approved"], 1)
+        self.assertTrue(ReportCard.objects.filter(id=report_id, status="approved").exists())
+
+    def test_bulk_approve_requires_admin(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.post("/api/academics/report-cards/bulk-approve/", {}, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_bulk_approve_requires_classroom_and_term(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        resp = self.client.post("/api/academics/report-cards/bulk-approve/", {}, format="json")
+        self.assertEqual(resp.status_code, 400)
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(email=email, password=password, first_name="A", last_name="Dmin", role="admin")
+        return user, user
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class BulkPdfTests(APITestCase):
+    def test_bulk_pdf_returns_404_when_no_approved(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+
+        resp = self.client.get(f"/api/academics/report-cards/bulk-pdf/?classroom_id={classroom.id}&term_id={term.id}")
+        self.assertEqual(resp.status_code, 404)
+
+    def test_bulk_pdf_only_includes_approved(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student1 = Student.objects.create(
+            user=User.objects.create_user(email="s1@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        student2 = Student.objects.create(
+            user=User.objects.create_user(email="s2@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student1, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        Enrollment.objects.create(student=student2, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentScore.objects.create(component=component, student=student1, score=80.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component, student=student2, score=70.0, entered_by=teacher)
+        reports = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json").data
+        approved_id = reports[0]["id"]
+        draft_id = reports[1]["id"]
+        self.client.post(f"/api/academics/report-cards/{approved_id}/submit/")
+        self.client.post(f"/api/academics/report-cards/{approved_id}/approve/")
+
+        resp = self.client.get(f"/api/academics/report-cards/bulk-pdf/?classroom_id={classroom.id}&term_id={term.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp["Content-Type"], "application/zip")
+        self.assertIn("report-cards-", resp["Content-Disposition"])
+        self.assertIn(".zip", resp["Content-Disposition"])
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class BroadsheetTests(APITestCase):
+    def test_broadsheet_matches_excel_summary(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject1 = _create_subject(name="Math")
+        subject2 = _create_subject(name="English")
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        component_math = AssessmentComponent.objects.create(
+            subject=subject1, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        component_english = AssessmentComponent.objects.create(
+            subject=subject2, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        students = []
+        for i in range(3):
+            u = User.objects.create_user(email=f"s{i}@example.com", password="pwd", role="student")
+            s = Student.objects.create(user=u, grade="JSS1")
+            Enrollment.objects.create(student=s, classroom=classroom, session=AcademicSession.objects.create(
+                name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+            ))
+            students.append(s)
+        AssessmentScore.objects.create(component=component_math, student=students[0], score=90.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component_math, student=students[1], score=80.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component_math, student=students[2], score=70.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component_english, student=students[0], score=85.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component_english, student=students[1], score=75.0, entered_by=teacher)
+        AssessmentScore.objects.create(component=component_english, student=students[2], score=65.0, entered_by=teacher)
+
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+
+        resp = self.client.get(f"/api/academics/report-cards/broadsheet/?classroom_id={classroom.id}&term_id={term.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["class_size"], 3)
+        self.assertEqual(len(resp.data["subjects"]), 2)
+        self.assertEqual(resp.data["rows"][0]["position"], 1)
+        self.assertEqual(resp.data["rows"][1]["position"], 2)
+        self.assertEqual(resp.data["rows"][2]["position"], 3)
+        math_avg = round((90 + 80 + 70) / 3, 2)
+        english_avg = round((85 + 75 + 65) / 3, 2)
+        self.assertEqual(resp.data["class_averages"][str(subject1.id)], math_avg)
+        self.assertEqual(resp.data["class_averages"][str(subject2.id)], english_avg)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
+
+class AnnualSummaryTests(APITestCase):
+    def test_annual_summary_computes_average_across_terms(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        term1 = Term.objects.create(name="First Term", display_order=1, session=session)
+        term2 = Term.objects.create(name="Second Term", display_order=2, session=session)
+        term3 = Term.objects.create(name="Third Term", display_order=3, session=session)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term1, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term2, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term3, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        component2 = AssessmentComponent.objects.get(classroom=classroom, term=term2)
+        AssessmentScore.objects.create(component=component2, student=student, score=90.0, entered_by=teacher)
+
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term1.id),
+        }, format="json")
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term2.id),
+        }, format="json")
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term3.id),
+        }, format="json")
+
+        resp = self.client.get(f"/api/academics/report-cards/annual-summary/?student_id={student.id}&session_id={session.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["terms_recorded"], 3)
+        self.assertEqual(len(resp.data["terms"]), 3)
+        self.assertEqual(resp.data["annual_average"], round((80 + 90 + 0) / 3, 2))
+
+    def test_annual_summary_partial_terms(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        term1 = Term.objects.create(name="First Term", display_order=1, session=session)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term1, name="Exam", component_type="exam", max_score=100
+        )
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=teacher)
+        self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term1.id),
+        }, format="json")
+
+        resp = self.client.get(f"/api/academics/report-cards/annual-summary/?student_id={student.id}&session_id={session.id}")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["terms_recorded"], 1)
+        self.assertEqual(resp.data["annual_average"], 80.0)
+
+    def test_annual_summary_requires_student_and_session(self):
+        teacher, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.get("/api/academics/report-cards/annual-summary/")
+        self.assertEqual(resp.status_code, 400)
+
+    def _create_teacher(self, email="teacher@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math")
+        return teacher, user
+
