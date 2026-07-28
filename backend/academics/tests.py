@@ -1096,6 +1096,12 @@ class PromoteStudentsTests(TestCase):
 
     def test_promote_does_not_touch_existing_enrollments(self):
         from academics.services import promote_students
+        existing = Enrollment.objects.create(
+            student=self.student2, classroom=self.source_classroom, session=self.session_current
+        )
+        snapshot = list(
+            Enrollment.objects.values_list("id", "updated_at")
+        )
         before_count = Enrollment.objects.count()
         promote_students(
             self.source_classroom,
@@ -1105,6 +1111,13 @@ class PromoteStudentsTests(TestCase):
         )
         after_count = Enrollment.objects.count()
         self.assertEqual(after_count, before_count + 1)
+        existing.refresh_from_db()
+        self.assertEqual(existing.classroom_id, self.source_classroom.id)
+        self.assertEqual(existing.session_id, self.session_current.id)
+        for row_id, row_updated in snapshot:
+            self.assertEqual(
+                Enrollment.objects.get(id=row_id).updated_at, row_updated
+            )
 
     def test_promote_does_not_touch_existing_report_cards(self):
         from academics.services import promote_students
