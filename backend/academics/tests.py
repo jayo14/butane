@@ -1121,8 +1121,9 @@ class PromoteStudentsTests(TestCase):
 
     def test_promote_does_not_touch_existing_report_cards(self):
         from academics.services import promote_students
-        ReportCard.objects.create(
+        report = ReportCard.objects.create(
             student=self.student1, classroom=self.source_classroom, term=self.term, status="draft",
+            average_score=42.0,
         )
         before_rc = ReportCard.objects.count()
         promote_students(
@@ -1133,6 +1134,10 @@ class PromoteStudentsTests(TestCase):
         )
         after_rc = ReportCard.objects.count()
         self.assertEqual(after_rc, before_rc)
+        report.refresh_from_db()
+        self.assertEqual(report.status, "draft")
+        self.assertEqual(report.average_score, 42.0)
+        self.assertEqual(report.classroom_id, self.source_classroom.id)
 
 
 class PromoteActionTests(APITestCase):
