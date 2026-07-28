@@ -8,12 +8,14 @@ import {
   Download,
   Send,
   CheckCircle2,
+  Eye,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Table } from "@/components/ui/table"
+import { Modal } from "@/components/ui/modal"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"
 import { useAuth } from "@/lib/auth-context"
@@ -32,6 +34,9 @@ export function ReportCardReviewClient() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [reportCard, setReportCard] = useState<any>(null)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState<string>("")
+  const [previewLoading, setPreviewLoading] = useState(false)
 
   const isAdmin = user?.role === "admin"
 
@@ -117,6 +122,20 @@ export function ReportCardReviewClient() {
     }
   }
 
+  const handlePreview = async () => {
+    setPreviewLoading(true)
+    setError("")
+    try {
+      const html = await api.academics.reportCardPreview(id)
+      setPreviewHtml(html as string)
+      setShowPreview(true)
+    } catch {
+      toast.addToast({ message: "Preview failed", variant: "error" })
+    } finally {
+      setPreviewLoading(false)
+    }
+  }
+
   if (loading) {
     return (
       <Container>
@@ -168,6 +187,10 @@ export function ReportCardReviewClient() {
           {statusBadge(reportCard.status)}
           <Button variant="ghost" size="sm" onClick={() => router.back()}>
             Back
+          </Button>
+          <Button variant="outline" size="sm" onClick={handlePreview} disabled={previewLoading}>
+            {previewLoading ? <Loader2 size={16} className="animate-spin" /> : <Eye size={16} />}
+            Preview
           </Button>
         </div>
       </div>
@@ -360,6 +383,30 @@ export function ReportCardReviewClient() {
           </Card>
         </div>
       </div>
+
+      <Modal
+        isOpen={showPreview}
+        onClose={() => setShowPreview(false)}
+        title="Report Card Preview"
+        description="Preview how this report card will look when printed or downloaded as PDF."
+        size="full"
+        closeOnOverlayClick={true}
+        showCloseButton={true}
+      >
+        <div className="w-full h-[75vh]">
+          {previewHtml ? (
+            <iframe
+              srcDoc={previewHtml}
+              title="Report Card Preview"
+              className="w-full h-full rounded-lg border border-border-primary bg-white"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full">
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: "#006c49" }} />
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   )
 }
