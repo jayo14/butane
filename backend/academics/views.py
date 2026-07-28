@@ -440,18 +440,17 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             "term__session__start_date", "term__display_order"
         )
 
-        grouped = {}
+        grouped: dict[str, dict] = {}
         for report in reports:
-            session_key = report.term.session.name if report.term.session else "Unknown"
-            if session_key not in grouped:
-                grouped[session_key] = {
-                    "session": session_key,
+            session_name = report.term.session.name if report.term.session else "Unknown"
+            group_key = f"{session_name}|{report.classroom.name}"
+            if group_key not in grouped:
+                grouped[group_key] = {
+                    "session": session_name,
                     "classroom": report.classroom.name,
                     "terms": [],
                 }
-            grouped[session_key]["terms"].append(
-                ReportCardSerializer(report).data
-            )
+            grouped[group_key]["terms"].append(ReportCardSerializer(report).data)
 
         return Response(list(grouped.values()))
 
