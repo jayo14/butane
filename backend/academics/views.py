@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
@@ -35,7 +36,7 @@ from .serializers import (
     GradeScaleSerializer,
     ReportCardSerializer,
 )
-from .services import generate_class_report_cards
+from .services import generate_class_report_cards, promote_students
 
 
 class AcademicSessionViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
@@ -66,9 +67,9 @@ class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         target_classroom_id = request.data.get("target_classroom_id")
         target_session_id = request.data.get("target_session_id")
         student_ids = request.data.get("student_ids", [])
-        if not target_classroom_id or not target_session_id or not student_ids:
+        if not target_classroom_id or not target_session_id:
             return Response(
-                {"detail": "target_classroom_id, target_session_id, and student_ids are required."},
+                {"detail": "target_classroom_id and target_session_id are required."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         if not isinstance(student_ids, list) or not student_ids:
@@ -77,8 +78,6 @@ class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        from django.shortcuts import get_object_or_404
-
         target_classroom = get_object_or_404(
             ClassRoom, pk=target_classroom_id, school=source_classroom.school
         )
@@ -86,9 +85,9 @@ class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             AcademicSession, pk=target_session_id, school=source_classroom.school
         )
 
-        from .services import promote_students
-
-        result = promote_students(source_classroom, target_classroom, target_session, student_ids)
+        result = promote_students(
+            source_classroom, target_classroom, target_session, student_ids
+        )
         return Response(result, status=status.HTTP_200_OK)
 
 
