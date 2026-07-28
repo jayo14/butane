@@ -6,9 +6,12 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Table } from "@/components/ui/table"
+import { EmptyState } from "@/components/ui/empty-state"
+import { Skeleton, SkeletonGroup } from "@/components/ui/skeleton"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
+import { Printer } from "lucide-react"
 
 export function BroadsheetPageClient() {
   const searchParams = useSearchParams()
@@ -50,9 +53,18 @@ export function BroadsheetPageClient() {
   if (loading) {
     return (
       <Container>
-        <div className="flex items-center justify-center py-20">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: "#006c49" }} />
+        <div className="mb-6">
+          <Skeleton variant="text" width={200} height={32} className="mb-2" />
+          <Skeleton variant="text" width={300} height={16} />
         </div>
+        <Card padding="lg">
+          <div className="space-y-3">
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="text" height={40} />
+            <Skeleton variant="text" height={40} />
+          </div>
+        </Card>
       </Container>
     )
   }
@@ -60,9 +72,10 @@ export function BroadsheetPageClient() {
   if (error || !data) {
     return (
       <Container>
-        <div className="py-10 text-center">
-          <p className="text-sm text-content-muted">{error || "No broadsheet data available."}</p>
-        </div>
+        <EmptyState
+          title="No broadsheet available"
+          description={error || "Generate report cards first to view the class broadsheet."}
+        />
       </Container>
     )
   }
@@ -78,7 +91,7 @@ export function BroadsheetPageClient() {
             Class summary for {class_size} student{class_size === 1 ? "" : "s"}
           </p>
         </div>
-        <Button variant="outline" size="sm" onClick={handlePrint}>
+        <Button variant="outline" size="sm" onClick={handlePrint} leftIcon={<Printer size={16} />}>
           Download Broadsheet
         </Button>
       </div>
@@ -114,7 +127,12 @@ export function BroadsheetPageClient() {
             ]) as any}
             data={rows}
             keyExtractor={(row: any) => row.student_id}
-            emptyState={<p className="py-6 text-center text-sm text-content-secondary">No data available</p>}
+            emptyState={
+              <EmptyState
+                title="No data available"
+                description="There are no students or scores recorded for this class and term."
+              />
+            }
           />
         </div>
       </Card>
