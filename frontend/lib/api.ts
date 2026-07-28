@@ -626,6 +626,8 @@ export const api = {
       apiFetch<any[]>(`academics/report-cards/student-history/?student_id=${studentId}`),
     reportCardPdf: (id: string) =>
       apiFetch<Blob>(`academics/report-cards/${id}/pdf/`, { responseType: "blob" }),
+    reportCardPreview: (id: string) => apiFetch<string>(`academics/report-cards/${id}/preview/`),
+    reportCardPreviewUrl: (id: string) => `${BASE_URL}/api/academics/report-cards/${id}/preview/`,
     reportCardsBulkSubmit: (payload: { classroom_id: string; term_id: string }) =>
       apiFetch<{ submitted: number }>("academics/report-cards/bulk-submit/", { method: "POST", body: JSON.stringify(payload) }),
     reportCardsBulkApprove: (payload: { classroom_id: string; term_id: string }) =>
