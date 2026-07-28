@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 from django.db import transaction
+from django.db.models import Sum
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from rest_framework import permissions, status, viewsets
@@ -36,7 +37,7 @@ from .serializers import (
     GradeScaleSerializer,
     ReportCardSerializer,
 )
-from .services import generate_class_report_cards, promote_students
+from .services import generate_class_report_cards, promote_students, subject_grade
 
 
 class AcademicSessionViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
@@ -338,6 +339,27 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         serializer = self.get_serializer(report)
         return Response(serializer.data)
 
+    def _report_pdf_context(self, report: ReportCard) -> dict:
+        from django.conf import settings
+
+        profile = SchoolProfile.load(school=getattr(self.request, "school", None))
+        school_name = profile.name
+        school_logo_url = profile.logo.url if profile.logo else ""
+        primary_color = profile.primary_color or "#006c49"
+        secondary_color = profile.secondary_color or "#3c4a42"
+        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
+        return {
+            "report": report,
+            "school_name": school_name,
+            "school_logo_url": school_logo_url,
+            "site_url": site_url,
+            "primary_color": primary_color,
+            "secondary_color": secondary_color,
+            "times_present": report.times_present,
+            "times_absent": report.times_absent,
+            "school_days_open": report.school_days_open,
+        }
+
     @action(detail=True, methods=["get"], url_path="pdf")
     def pdf(self, request, pk=None):
         report = self.get_object()
@@ -360,36 +382,17 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             term=report.term,
         ).select_related("trait").order_by("trait__domain", "trait__display_order")
 
-        from django.conf import settings
-
-        profile = SchoolProfile.load(school=getattr(request, "school", None))
-        school_name = profile.name
-        school_logo_url = profile.logo.url if profile.logo else ""
-        primary_color = profile.primary_color or "#006c49"
-        secondary_color = profile.secondary_color or "#3c4a42"
-        site_url = getattr(settings, "SITE_URL", "").rstrip("/")
-
-        html = render_to_string(
-            "academics/report_card.html",
-            {
-                "report": report,
-                "components": components,
-                "scores": scores,
-                "behavioural_ratings": behavioural_ratings,
-                "times_present": report.times_present,
-                "times_absent": report.times_absent,
-                "school_days_open": report.school_days_open,
-                "school_name": school_name,
-                "school_logo_url": school_logo_url,
-                "site_url": site_url,
-                "primary_color": primary_color,
-                "secondary_color": secondary_color,
-            },
-        )
+        context = self._report_pdf_context(report)
+        context.update({
+            "components": components,
+            "scores": scores,
+            "behavioural_ratings": behavioural_ratings,
+        })
+        html = render_to_string("academics/report_card.html", context)
 
         try:
             from weasyprint import HTML
-            pdf_file = HTML(string=html, base_url=site_url).write_pdf()
+            pdf_file = HTML(string=html, base_url=context.get("site_url", "")).write_pdf()
         except Exception as exc:
             return Response({"detail": f"PDF generation failed: {exc}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
