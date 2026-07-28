@@ -1,12 +1,13 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import {
   Save,
   FileText,
   Loader2,
   Download,
+  Star,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -15,6 +16,7 @@ import { Select } from "@/components/ui/select"
 import { Table } from "@/components/ui/table"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 
 type ReportCardStatus = "draft" | "submitted" | "approved"
 
@@ -27,6 +29,7 @@ interface ScoreEntry {
 
 export function ReportCardsPageClient() {
   const router = useRouter()
+  const toast = useToast()
   const [sessions, setSessions] = useState<{ id: string; name: string }[]>([])
   const [terms, setTerms] = useState<{ id: string; name: string }[]>([])
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
@@ -35,14 +38,15 @@ export function ReportCardsPageClient() {
   const [scores, setScores] = useState<ScoreEntry[]>([])
   const [reportCards, setReportCards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [saving, setSaving] = useState<string | null>(null)
   const [generating, setGenerating] = useState(false)
   const [selectedSession, setSelectedSession] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
   const [selectedClassroom, setSelectedClassroom] = useState("")
-  const [selectedComponent, setSelectedComponent] = useState("")
   const [error, setError] = useState("")
-  const [saveMessage, setSaveMessage] = useState("")
+  const [studentSummary, setStudentSummary] = useState<any>({})
+
+  const inputRefs = useRef<Array<Array<HTMLInputElement | null>>>([])
 
   useEffect(() => {
     async function load() {
@@ -97,6 +101,7 @@ export function ReportCardsPageClient() {
           term_id: selectedTerm,
         }).catch(() => [])
         setReportCards(reportRes as any[])
+        buildStudentSummary(reportRes as any[])
       } catch {
         // leave empty
       }
@@ -104,7 +109,52 @@ export function ReportCardsPageClient() {
     load()
   }, [selectedClassroom, selectedTerm])
 
-  const handleScoreChange = (studentId: string, componentId: string, value: string) => {
+  const buildStudentSummary = useCallback((cards: any[]) => {
+    const map: Record<string, any> = {}
+    for (const card of cards) {
+      const sid = card.student || card.student_id || card.student?.id
+      if (!sid) continue
+      map[sid] = {
+        average: card.average_score ?? card.average ?? null,
+        grade: card.grade ?? null,
+        position: card.position ?? null,
+      }
+    }
+    setStudentSummary(map)
+  }, [])
+
+  const ensureRefs = useCallback((rowIndex: number, colIndex: number) => {
+    if (!inputRefs.current[rowIndex]) {
+      inputRefs.current[rowIndex] = []
+    }
+    if (!inputRefs.current[rowIndex][colIndex]) {
+      inputRefs.current[rowIndex][colIndex] = null
+    }
+  }, [])
+
+  const setRef = useCallback((rowIndex: number, colIndex: number) => (node: HTMLInputElement | null) => {
+    ensureRefs(rowIndex, colIndex)
+    inputRefs.current[rowIndex][colIndex] = node
+  }, [ensureRefs])
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>, rowIndex: number, colIndex: number) => {
+    if (e.key === "Tab" || e.key === "Enter") {
+      e.preventDefault()
+      const nextCol = e.shiftKey ? colIndex - 1 : colIndex + 1
+      if (nextCol >= 0 && nextCol < components.length) {
+        const node = inputRefs.current[rowIndex]?.[nextCol] || null
+        node?.focus()
+      } else if (!e.shiftKey && rowIndex + 1 < students.length) {
+        const node = inputRefs.current[rowIndex + 1]?.[0] || null
+        node?.focus()
+      } else if (e.shiftKey && rowIndex - 1 >= 0) {
+        const node = inputRefs.current[rowIndex - 1]?.[components.length - 1] || null
+        node?.focus()
+      }
+    }
+  }, [components.length, students.length])
+
+  const handleScoreChange = useCallback((studentId: string, componentId: string, value: string) => {
     setScores((prev) =>
       prev.map((entry) => {
         if (entry.studentId !== studentId) return entry
@@ -117,31 +167,47 @@ export function ReportCardsPageClient() {
         }
       })
     )
-  }
+  }, [])
 
-  const handleSaveScores = async () => {
-    if (!selectedComponent) return
-    setSaving(true)
-    setSaveMessage("")
+  const handleSaveScores = useCallback(async (componentId: string) => {
+    setSaving(componentId)
     setError("")
     try {
       const payload = {
-        component_id: selectedComponent,
+        component_id: componentId,
         scores: scores.map((entry) => ({
           student_id: entry.studentId,
-          score: entry.scores[selectedComponent] || 0,
+          score: entry.scores[componentId] || 0,
         })),
       }
       const res = await api.academics.scoresBulk(payload)
-      setSaveMessage(`Saved: ${res.created || 0} created, ${res.updated || 0} updated`)
+      toast.addToast({
+        message: "Scores saved",
+        description: `Created: ${res.created || 0}, Updated: ${res.updated || 0}`,
+        variant: "success",
+      })
+      if (selectedClassroom && selectedTerm) {
+        const reportRes = await api.academics.reportCardsGenerate({
+          classroom_id: selectedClassroom,
+          term_id: selectedTerm,
+        })
+        setReportCards(reportRes as any[])
+        buildStudentSummary(reportRes as any[])
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save scores")
+      const msg = err instanceof Error ? err.message : "Failed to save scores"
+      setError(msg)
+      toast.addToast({
+        message: "Save failed",
+        description: msg,
+        variant: "error",
+      })
     } finally {
-      setSaving(false)
+      setSaving(null)
     }
-  }
+  }, [scores, selectedClassroom, selectedTerm, toast, buildStudentSummary])
 
-  const handleGenerate = async () => {
+  const handleGenerate = useCallback(async () => {
     if (!selectedClassroom || !selectedTerm) return
     setGenerating(true)
     setError("")
@@ -151,32 +217,33 @@ export function ReportCardsPageClient() {
         term_id: selectedTerm,
       })
       setReportCards(res as any[])
+      buildStudentSummary(res as any[])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to generate report cards")
     } finally {
       setGenerating(false)
     }
-  }
+  }, [selectedClassroom, selectedTerm, buildStudentSummary])
 
-  const handleSubmit = async (reportId: string) => {
+  const handleSubmit = useCallback(async (reportId: string) => {
     try {
       await api.academics.reportCardsSubmit(reportId)
       setReportCards((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: "submitted" } : r)))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to submit")
     }
-  }
+  }, [])
 
-  const handleApprove = async (reportId: string) => {
+  const handleApprove = useCallback(async (reportId: string) => {
     try {
       await api.academics.reportCardsApprove(reportId)
       setReportCards((prev) => prev.map((r) => (r.id === reportId ? { ...r, status: "approved" } : r)))
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to approve")
     }
-  }
+  }, [])
 
-  const handleDownloadPdf = async (reportId: string) => {
+  const handleDownloadPdf = useCallback(async (reportId: string) => {
     try {
       const blob = await api.academics.reportCardPdf(reportId)
       const url = URL.createObjectURL(blob as Blob)
@@ -188,7 +255,7 @@ export function ReportCardsPageClient() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to download PDF")
     }
-  }
+  }, [])
 
   const statusBadge = (status: ReportCardStatus) => {
     const map: Record<ReportCardStatus, { variant: any; label: string }> = {
@@ -199,6 +266,16 @@ export function ReportCardsPageClient() {
     const { variant, label } = map[status]
     return <Badge variant={variant}>{label}</Badge>
   }
+
+  const groupedComponents = useMemo(() => {
+    const groups: Record<string, any[]> = {}
+    for (const c of components) {
+      const subject = c.subject?.name || c.subject_name || "Other"
+      groups[subject] = groups[subject] || []
+      groups[subject].push(c)
+    }
+    return groups
+  }, [components])
 
   if (loading) {
     return (
@@ -222,11 +299,6 @@ export function ReportCardsPageClient() {
       {error && (
         <div className="mb-4 rounded-xl border border-danger/40 bg-danger-light p-4 text-sm text-danger">
           {error}
-        </div>
-      )}
-      {saveMessage && (
-        <div className="mb-4 rounded-xl border border-success/40 bg-success-light p-4 text-sm text-success">
-          {saveMessage}
         </div>
       )}
 
@@ -267,54 +339,81 @@ export function ReportCardsPageClient() {
         </div>
       </Card>
 
-      {components.length > 0 && (
-        <Card padding="lg" className="mb-6">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-content-primary">Score Entry</h2>
-            <Select
-              label=""
-              options={components.map((c) => ({ label: `${c.subject?.name || ""} - ${c.name}`, value: c.id }))}
-              value={selectedComponent}
-              onChange={setSelectedComponent}
-              placeholder="Select component"
-              wrapperClassName="w-64"
-            />
-          </div>
-          {selectedComponent && (
+      {components.length > 0 && students.length > 0 && (
+        <div className="mb-6 grid gap-6 lg:grid-cols-[1fr_280px]">
+          <Card padding="lg">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-content-primary">Score Entry</h2>
+            </div>
             <div className="mb-4 overflow-x-auto">
               <Table
                 columns={([
-                  { key: "studentName", header: "Student", sortable: true },
+                  { key: "studentName", header: "Student" },
                   ...components.map((c) => ({
                     key: c.id,
                     header: c.name,
-                    render: (row: ScoreEntry) => (
-                      <input
-                        type="number"
-                        min="0"
-                        max={c.max_score}
-                        value={row.scores[c.id] ?? ""}
-                        onChange={(e) => handleScoreChange(row.studentId, c.id, e.target.value)}
-                        className="w-20 rounded-lg border border-border-primary px-2 py-1 text-sm text-content-primary"
-                      />
-                    ),
+                    align: "center" as const,
+                    render: (row: any) => {
+                      const rowIndex = students.findIndex((s: any) => (s.student || s.id) === row.studentId)
+                      const colIndex = components.findIndex((comp) => comp.id === c.id)
+                      return (
+                        <input
+                          ref={setRef(rowIndex, colIndex)}
+                          type="number"
+                          min="0"
+                          max={c.max_score}
+                          value={row.scores[c.id] ?? ""}
+                          onChange={(e) => handleScoreChange(row.studentId, c.id, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(e, rowIndex, colIndex)}
+                          className="mx-auto w-20 rounded-lg border border-border-primary px-2 py-1.5 text-center text-sm text-content-primary"
+                        />
+                      )
+                    },
                   })),
                 ]) as any}
                 data={scores}
-                keyExtractor={(s) => s.studentId}
+                keyExtractor={(s: any) => s.studentId}
                 emptyState={<p className="py-6 text-center text-sm text-content-secondary">No students enrolled</p>}
               />
             </div>
-          )}
-          {selectedComponent && (
-            <div className="flex justify-end">
-              <Button variant="primary" onClick={handleSaveScores} disabled={saving}>
-                {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                Save Scores
-              </Button>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-xs text-content-muted">Tab or Enter to move across cells</p>
+              <div className="flex flex-wrap items-center gap-2">
+                {Object.entries(groupedComponents).map(([subject, cols]) => (
+                  <Button
+                    key={subject}
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleSaveScores(cols[0].id)}
+                    disabled={saving === cols[0].id}
+                  >
+                    {saving === cols[0].id ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    Save {subject}
+                  </Button>
+                ))}
+              </div>
             </div>
-          )}
-        </Card>
+          </Card>
+
+          <Card padding="lg" className="h-fit">
+            <h3 className="text-sm font-semibold uppercase tracking-wider text-content-muted">Student Summary</h3>
+            <div className="mt-4 space-y-3">
+              {students.map((s: any) => {
+                const sid = s.student || s.id
+                const summary = studentSummary[sid] || {}
+                return (
+                  <div key={sid} className="flex items-center justify-between rounded-xl border border-border-primary bg-surface-secondary/40 p-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold text-content-primary">{s.student?.user?.full_name || s.student_name || sid}</p>
+                      <p className="text-xs text-content-muted">Avg {summary.average ?? "-"} · Pos {summary.position ?? "-"}</p>
+                    </div>
+                    <Badge variant={summary.grade ? "success" : "warning"}>{summary.grade || "Pending"}</Badge>
+                  </div>
+                )
+              })}
+            </div>
+          </Card>
+        </div>
       )}
 
       {reportCards.length > 0 && (
@@ -331,6 +430,9 @@ export function ReportCardsPageClient() {
               { key: "status", header: "Status", render: (r: any) => statusBadge(r.status) },
               { key: "actions", header: "", align: "center", render: (r: any) => (
                 <div className="flex items-center justify-center gap-2">
+                  <Button size="sm" variant="outline" onClick={() => router.push(`/dashboard/report-cards/${r.id}`)}>
+                    Review
+                  </Button>
                   {r.status === "draft" && (
                     <Button size="sm" variant="secondary" onClick={() => handleSubmit(r.id)}>
                       Submit

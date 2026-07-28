@@ -16,10 +16,12 @@ export default async function StudentProfilePage({
 
     const student = transformStudent(apiStudent)
 
-    const history = await api.reports.studentHistory(id).catch(() => null)
+    const history = (await api.academics.studentHistory(id).catch(() => []))
 
-    const attempts = history?.attempts?.map((a: any) => ({
+    const attemptsRes = await api.attempts.list({ student: id }).catch(() => ({ results: [] }))
+    const attempts = (attemptsRes?.results || []).map((a: any) => ({
       id: a.id || `${id}-${a.exam}`,
+      attemptId: a.id,
       examId: a.exam,
       examTitle: a.exam_title || "Unknown",
       subject: a.subject || "",
@@ -28,11 +30,14 @@ export default async function StudentProfilePage({
       totalMarks: a.total_marks ?? 100,
       passed: a.passed ?? false,
       duration: a.duration_seconds || 0,
-    })) || []
+      studentName: `${student.firstName} ${student.lastName}`,
+      studentGrade: student.grade,
+    }))
 
     const scores = attempts.map((a: any) => (a.totalMarks > 0 ? (a.score / a.totalMarks) * 100 : 0))
     const avgScore = scores.length > 0 ? Math.round(scores.reduce((a: number, b: number) => a + b, 0) / scores.length) : 0
     const passedCount = attempts.filter((a: any) => a.passed).length
+    const rank = student.grade || ""
 
     const transformed = {
       id: student.id,
@@ -54,7 +59,7 @@ export default async function StudentProfilePage({
       attempts,
     }
 
-    return <StudentProfileClient student={transformed} />
+    return <StudentProfileClient student={transformed} history={history} />
   } catch {
     notFound()
   }

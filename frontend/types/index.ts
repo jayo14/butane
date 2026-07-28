@@ -127,6 +127,20 @@ export interface StudentWithResults {
   attempts: ExamAttempt[]
 }
 
+export interface ReportCardHistoryItem {
+  id: string
+  session: string | null
+  session_name?: string
+  term: string | null
+  term_name?: string
+  classroom: string | null
+  classroom_name?: string
+  average_score?: number | null
+  average?: number | null
+  position?: number | null
+  grade?: string | null
+}
+
 export interface NavItem {
   label: string
   href: string

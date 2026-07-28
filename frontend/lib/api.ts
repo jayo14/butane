@@ -613,6 +613,17 @@ export const api = {
       apiFetch<any>(`academics/report-cards/${id}/submit/`, { method: "POST" }),
     reportCardsApprove: (id: string) =>
       apiFetch<any>(`academics/report-cards/${id}/approve/`, { method: "POST" }),
+    behaviouralTraits: (params?: { domain?: string }) =>
+      apiFetch<any[]>(`academics/behavioural-traits/${buildQuery(params || {})}`),
+    behaviouralRatingsBulk: (payload: { trait_id: string; classroom_id: string; term_id: string; ratings: { student_id: string; rating: number }[] }) =>
+      apiFetch<any>("academics/behavioural-ratings/bulk/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardFull: (id: string) => apiFetch<any>(`academics/report-cards/${id}/full/`),
+    reportCardUpdate: (id: string, data: any) =>
+      apiFetch<any>(`academics/report-cards/${id}/`, { method: "PATCH", body: JSON.stringify(data) }),
+    promoteClass: (classroomId: string, payload: { target_classroom_id: string; target_session_id: string; student_ids: string[] }) =>
+      apiFetch<any>(`academics/classrooms/${classroomId}/promote/`, { method: "POST", body: JSON.stringify(payload) }),
+    studentHistory: (studentId: string) =>
+      apiFetch<any[]>(`academics/report-cards/student-history/?student_id=${studentId}`),
     reportCardPdf: (id: string) =>
       apiFetch<Blob>(`academics/report-cards/${id}/pdf/`, { responseType: "blob" }),
     schoolProfile: () => apiFetch<any>("academics/school-profile/"),

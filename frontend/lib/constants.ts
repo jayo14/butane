@@ -10,6 +10,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Exams", href: "/dashboard/exams", icon: "clipboard-list" },
   { label: "Results", href: "/dashboard/results", icon: "bar-chart-3" },
   { label: "Report Cards", href: "/dashboard/report-cards", icon: "file-text" },
+  { label: "Behavioural Ratings", href: "/dashboard/behavioural-ratings", icon: "star" },
   { label: "Reports", href: "/dashboard/reports", icon: "bar-chart-3" },
   { label: "Profile", href: "/dashboard/profile", icon: "user" },
   { label: "Settings", href: "/dashboard/settings", icon: "settings" },
