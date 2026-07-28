@@ -8,6 +8,7 @@ from pathlib import Path
 
 from django.db import transaction
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
 from rest_framework import permissions, status, viewsets
@@ -432,6 +433,34 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         filename = f"report-card-{report.student.user.full_name}-{report.term.name}.pdf"
         response["Content-Disposition"] = f"attachment; filename={filename}"
         return response
+
+    @action(detail=True, methods=["get"], url_path="preview")
+    def preview(self, request, pk=None):
+        report = self.get_object()
+        components = list(
+            AssessmentComponent.objects.filter(classroom=report.classroom, term=report.term)
+            .select_related("subject")
+            .prefetch_related("scores__student")
+        )
+        scores = AssessmentScore.objects.filter(
+            component__in=components,
+            student=report.student,
+        ).select_related("component__subject")
+
+        behavioural_ratings = BehaviouralRating.objects.filter(
+            student=report.student,
+            classroom=report.classroom,
+            term=report.term,
+        ).select_related("trait").order_by("trait__domain", "trait__display_order")
+
+        context = self._report_pdf_context(report)
+        context.update({
+            "components": components,
+            "scores": scores,
+            "behavioural_ratings": behavioural_ratings,
+        })
+        html = render_to_string("academics/report_card.html", context)
+        return HttpResponse(html, content_type="text/html")
 
     @action(detail=False, methods=["get"], url_path="bulk-pdf")
     def bulk_pdf(self, request):
