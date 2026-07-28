@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
@@ -23,9 +23,11 @@ import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Select } from "@/components/ui/select"
 import { Table } from "@/components/ui/table"
 import { formatDate, formatDuration } from "@/lib/utils"
 import { useAuth } from "@/lib/auth-context"
+import { api } from "@/lib/api"
 import type { StudentWithResults, ReportCardHistoryItem } from "@/types"
 
 const statusVariant: Record<string, "success" | "warning" | "danger"> = {
@@ -60,7 +62,12 @@ export function StudentProfileClient({ student, history }: StudentProfileClientP
   const { user } = useAuth()
   const [search, setSearch] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [tab, setTab] = useState<"exams" | "history">("history")
+  const [tab, setTab] = useState<"exams" | "history" | "annual">("history")
+
+  const [sessions, setSessions] = useState<{ id: string; name: string }[]>([])
+  const [selectedSession, setSelectedSession] = useState("")
+  const [annualData, setAnnualData] = useState<any>(null)
+  const [annualLoading, setAnnualLoading] = useState(false)
 
   const filteredAttempts = useMemo(() => {
     if (!search.trim()) return student.attempts
@@ -93,6 +100,39 @@ export function StudentProfileClient({ student, history }: StudentProfileClientP
 
   const isAdmin = user?.role === "admin"
 
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await api.academics.sessions().catch(() => ({ results: [] })) as any
+        setSessions((res.results || []).map((s: any) => ({ id: s.id, name: s.name })))
+      } catch {
+        setSessions([])
+      }
+    }
+    load()
+  }, [])
+
+  useEffect(() => {
+    if (!selectedSession || tab !== "annual") {
+      setAnnualData(null)
+      return
+    }
+    let cancelled = false
+    async function load() {
+      setAnnualLoading(true)
+      try {
+        const data = await api.academics.annualSummary(student.id, selectedSession)
+        if (!cancelled) setAnnualData(data)
+      } catch {
+        if (!cancelled) setAnnualData(null)
+      } finally {
+        if (!cancelled) setAnnualLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [selectedSession, tab, student.id])
+
   function getPerformanceMessage(avg: number) {
     if (avg >= 80) return { title: "Excellent Performer", message: "Consistently excels across all subjects." }
     if (avg >= 60) return { title: "Strong Performer", message: "Shows solid understanding with room to grow." }
@@ -101,6 +141,10 @@ export function StudentProfileClient({ student, history }: StudentProfileClientP
   }
 
   const perf = getPerformanceMessage(student.summary.averageScore)
+
+  const annualTerms = annualData?.terms || []
+  const annualAverage = annualData?.annual_average ?? null
+  const termsRecorded = annualData?.terms_recorded ?? 0
 
   return (
     <div>
@@ -264,6 +308,13 @@ export function StudentProfileClient({ student, history }: StudentProfileClientP
               >
                 History
               </button>
+              <button
+                type="button"
+                onClick={() => setTab("annual")}
+                className={cn("rounded-lg px-3 py-1.5 text-sm font-medium transition-colors", tab === "annual" ? "bg-white text-content-primary shadow-sm" : "text-content-muted hover:text-content-primary")}
+              >
+                Annual
+              </button>
             </div>
             {tab === "exams" && (
               <div className="relative">
@@ -382,6 +433,70 @@ export function StudentProfileClient({ student, history }: StudentProfileClientP
                 ))}
               </div>
             )
+          )}
+
+          {tab === "annual" && (
+            <div>
+              <div className="mb-4">
+                <Select
+                  label="Session"
+                  options={sessions.map((s) => ({ label: s.name, value: s.id }))}
+                  value={selectedSession}
+                  onChange={(value) => setSelectedSession(value || "")}
+                  placeholder="Select session"
+                />
+              </div>
+
+              {annualLoading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-5 w-5 animate-spin rounded-full border-2 border-current border-t-transparent" style={{ color: "#006c49" }} />
+                </div>
+              ) : selectedSession && annualData ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-3 gap-3">
+                    {[1, 2, 3].map((termNum) => {
+                      const termData = annualTerms.find((t: any) => t.term?.display_order === termNum)
+                      const avg = termData?.average_score ?? termData?.average ?? null
+                      const grade = termData?.grade || null
+                      const isRecorded = termData != null
+                      return (
+                        <Card key={termNum} padding="md" className="text-center">
+                          <p className="text-xs font-semibold text-content-muted mb-1">Term {termNum}</p>
+                          {isRecorded ? (
+                            <>
+                              <p className="text-2xl font-bold text-content-primary">{avg ?? "-"}</p>
+                              <Badge variant={grade ? "success" : "warning"} size="sm">{grade || "Pending"}</Badge>
+                            </>
+                          ) : (
+                            <>
+                              <p className="text-2xl font-bold text-content-muted">-</p>
+                              <p className="text-xs text-content-muted">Not yet recorded</p>
+                            </>
+                          )}
+                        </Card>
+                      )
+                    })}
+                  </div>
+                  <Card padding="lg" className="bg-primary/5 border-primary/20">
+                    <div className="text-center">
+                      <p className="text-xs text-content-muted uppercase tracking-wider">Annual Average</p>
+                      <p className="text-3xl font-bold text-content-primary mt-1">{annualAverage ?? "-"}</p>
+                      <p className="text-xs text-content-muted mt-1">{termsRecorded} of 3 terms recorded</p>
+                    </div>
+                  </Card>
+                </div>
+              ) : selectedSession ? (
+                <div className="py-12 text-center">
+                  <BarChart3 size={32} className="mx-auto text-content-muted/40" />
+                  <p className="mt-2 text-sm text-content-muted">No annual data available for this session.</p>
+                </div>
+              ) : (
+                <div className="py-12 text-center">
+                  <BarChart3 size={32} className="mx-auto text-content-muted/40" />
+                  <p className="mt-2 text-sm text-content-muted">Select a session to view annual summary.</p>
+                </div>
+              )}
+            </div>
           )}
 
           {tab === "exams" && totalPages > 1 && (
