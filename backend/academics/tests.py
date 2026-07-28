@@ -1152,7 +1152,20 @@ class PromoteActionTests(APITestCase):
             {"target_classroom_id": "00000000-0000-0000-0000-000000000000", "target_session_id": "00000000-0000-0000-0000-000000000000", "student_ids": []},
             format="json",
         )
-        self.assertIn(resp.status_code, (401, 403))
+        self.assertEqual(resp.status_code, 403)
+
+    def test_promote_returns_400_for_missing_fields_as_admin(self):
+        admin, user = self._create_admin()
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        resp = self.client.post(
+            f"/api/academics/classrooms/{classroom.id}/promote/",
+            {"target_classroom_id": "", "target_session_id": "", "student_ids": []},
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 400)
 
     def _create_teacher(self, email="teacher@example.com", password="password123"):
         user = User.objects.create_user(
@@ -1160,6 +1173,12 @@ class PromoteActionTests(APITestCase):
         )
         teacher = Teacher.objects.create(user=user, department="Math")
         return teacher, user
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="A", last_name="Dmin", role="admin"
+        )
+        return user, user
 
 
 class StudentHistoryTests(APITestCase):
