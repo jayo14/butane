@@ -8,7 +8,15 @@ from django.db import transaction
 
 from accounts.models import Student
 from exams.models import Result
-from .models import AssessmentComponent, AssessmentScore, ClassRoom, Enrollment, GradeScale, ReportCard
+from .models import (
+    AcademicSession,
+    AssessmentComponent,
+    AssessmentScore,
+    ClassRoom,
+    Enrollment,
+    GradeScale,
+    ReportCard,
+)
 
 SUBJECT_GRADE_BANDS = (
     (70, 100, "A", "EXCELLENT"),
@@ -162,10 +170,13 @@ def promote_students(
     target_session: AcademicSession,
     student_ids: list[str],
 ) -> dict:
-    """Create Enrollment rows for target_classroom/target_session.
+    """Create Enrollment rows for target_classroom/target_session for each student.
 
-    Skips students already enrolled in target_session or not enrolled
-    in source_classroom. Returns {"promoted": [...], "skipped": [...]}.
+    Skips a student who already has an Enrollment for target_session (idempotent
+    - safe to call twice) or who lacks any Enrollment in source_classroom for
+    any session. Never deletes or mutates existing Enrollment or ReportCard rows.
+
+    Returns {"promoted": [...student_ids...], "skipped": [{"student_id", "reason"}, ...]}.
     """
     promoted = []
     skipped = []
