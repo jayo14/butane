@@ -626,6 +626,16 @@ export const api = {
       apiFetch<any[]>(`academics/report-cards/student-history/?student_id=${studentId}`),
     reportCardPdf: (id: string) =>
       apiFetch<Blob>(`academics/report-cards/${id}/pdf/`, { responseType: "blob" }),
+    reportCardsBulkSubmit: (payload: { classroom_id: string; term_id: string }) =>
+      apiFetch<{ submitted: number }>("academics/report-cards/bulk-submit/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardsBulkApprove: (payload: { classroom_id: string; term_id: string }) =>
+      apiFetch<{ approved: number }>("academics/report-cards/bulk-approve/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardsBulkPdf: (classroomId: string, termId: string) =>
+      apiFetch<Blob>(`academics/report-cards/bulk-pdf/?classroom_id=${classroomId}&term_id=${termId}`, { responseType: "blob" }),
+    broadsheet: (classroomId: string, termId: string) =>
+      apiFetch<any>(`academics/report-cards/broadsheet/?classroom_id=${classroomId}&term_id=${termId}`),
+    annualSummary: (studentId: string, sessionId: string) =>
+      apiFetch<any>(`academics/report-cards/annual-summary/?student_id=${studentId}&session_id=${sessionId}`),
     schoolProfile: () => apiFetch<any>("academics/school-profile/"),
     schoolProfileUpdate: (data: any) =>
       apiFetch<any>("academics/school-profile/", { method: "PATCH", body: JSON.stringify(data) }),
