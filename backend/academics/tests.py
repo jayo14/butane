@@ -1182,7 +1182,7 @@ class PromoteActionTests(APITestCase):
 
 
 class StudentHistoryTests(APITestCase):
-    def test_student_history_groups_by_session(self):
+    def test_student_history_groups_by_session_and_classroom(self):
         teacher, user = self._create_teacher()
         self.client.force_authenticate(user=user)
         school = _create_school()
@@ -1210,9 +1210,13 @@ class StudentHistoryTests(APITestCase):
         resp = self.client.get(f"/api/academics/report-cards/student-history/?student_id={student.id}")
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(len(resp.data), 2)
-        sessions = [g["session"] for g in resp.data]
-        self.assertIn("2024/2025", sessions)
-        self.assertIn("2025/2026", sessions)
+        # Ordered by session start_date
+        self.assertEqual(resp.data[0]["session"], "2024/2025")
+        self.assertEqual(resp.data[0]["classroom"], "JSS1A")
+        self.assertEqual(len(resp.data[0]["terms"]), 1)
+        self.assertEqual(resp.data[1]["session"], "2025/2026")
+        self.assertEqual(resp.data[1]["classroom"], "JSS2A")
+        self.assertEqual(len(resp.data[1]["terms"]), 1)
 
     def test_student_history_returns_empty_list_for_no_reports(self):
         teacher, user = self._create_teacher()
