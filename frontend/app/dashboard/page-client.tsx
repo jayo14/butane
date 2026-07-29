@@ -24,6 +24,7 @@ import {
   Zap,
   ClipboardCheck,
   LayoutGrid,
+  AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -55,14 +56,31 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
   const isAdmin = hasRole("admin")
   const isTeacher = !isAdmin && (data?.teacher?.role === "teacher" || data?.user?.role === "teacher")
 
-  const [teachingAssignments, setTeachingAssignments] = useState<{ id: string; classroom_id: string; classroom_name: string; subject_id: string; subject_name: string }[]>([])
+  const [teachingAssignments, setTeachingAssignments] = useState<{ classroom_id: string; classroom_name: string; subject_id: string; subject_name: string }[]>([])
   const [assignmentsLoading, setAssignmentsLoading] = useState(false)
   const [homerooms, setHomerooms] = useState<{ id: string; name: string }[]>([])
   const [homeroomsLoading, setHomeroomsLoading] = useState(false)
   const [adminStats, setAdminStats] = useState<{ draftCount: number; submittedCount: number; totalClassrooms: number; totalTeachers: number } | null>(null)
   const [adminStatsLoading, setAdminStatsLoading] = useState(false)
-
+  const [currentTermId, setCurrentTermId] = useState("")
   const [showAllActivity, setShowAllActivity] = useState(false)
+
+  useEffect(() => {
+    if (!data) return
+    let cancelled = false
+    async function load() {
+      try {
+        const termsList = await api.terms.list()
+        if (cancelled) return
+        const current = termsList.find((t: any) => t.is_current)
+        setCurrentTermId(current ? String(current.id) : termsList[0] ? String(termsList[0].id) : "")
+      } catch {
+        if (!cancelled) setCurrentTermId("")
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [data])
 
   useEffect(() => {
     if (!data || !isTeacher) return
@@ -72,9 +90,8 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
       try {
         const res = await api.academics.teachingAssignments({ mine: true })
         if (cancelled) return
-        const items = (res as any)?.results || (Array.isArray(res) ? res : [])
+        const items = Array.isArray(res) ? res : (res as any)?.results || []
         const mapped = items.map((item: any) => ({
-          id: String(item.id),
           classroom_id: String(item.classroom),
           classroom_name: item.classroom_name || `Classroom ${item.classroom}`,
           subject_id: String(item.subject),
@@ -97,14 +114,14 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
     async function load() {
       setHomeroomsLoading(true)
       try {
-        const user = data?.user || (typeof window !== "undefined" ? JSON.parse(localStorage.getItem("auth_user") || "null") : null)
-        const userId = user?.id
-        if (!userId) { setHomerooms([]); return }
+        const profile = await api.auth.profile().catch(() => null)
+        if (cancelled || !profile) { setHomerooms([]); return }
+        const teacherProfileId = String(profile.id)
         const res = await api.academics.classrooms()
         if (cancelled) return
         const list = (res as any)?.results || res || []
         const myRooms = list
-          .filter((c: any) => String(c.class_teacher) === String(userId))
+          .filter((c: any) => String(c.class_teacher) === teacherProfileId)
           .map((c: any) => ({ id: String(c.id), name: c.name }))
         setHomerooms(myRooms)
       } catch {
@@ -125,33 +142,26 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
       try {
         const classroomsRes = await api.academics.classrooms({ page: 1, page_size: 1 }).catch(() => ({ count: 0 }))
         const teachersRes = await api.teachers.list().catch(() => [])
-        const reportRes = await api.academics.reportCardsGenerate?.({}).catch(() => []) || await api.academics.reportCardsBulkPdf?.("", "").catch(() => null) || []
-        // We only have count from paginated classrooms
         const totalClassrooms = (classroomsRes as any)?.count || 0
         const totalTeachers = Array.isArray(teachersRes) ? teachersRes.length : (teachersRes as any)?.results?.length || 0
-        const currentSession = (sessions: any[]) => sessions.find((s) => s.is_current) || sessions[0]
-        // Get term circles from report cards - we'll compute counts below
-        const reportCardsRes = await api.academics.reportCardsGenerate?.({
-          classroom_id: "",
-          term_id: "",
-        }).catch(() => []) as any[]
-        
+
         let draftCount = 0
         let submittedCount = 0
-        if (reportCardsRes.length > 0) {
-          for (const card of reportCardsRes) {
-            if (card.status === "draft") draftCount++
-            if (card.status === "submitted") submittedCount++
+        if (currentTermId) {
+          const classroomsList = (classroomsRes as any)?.results || []
+          for (const cls of classroomsList) {
+            const reportRes = await api.academics.reportCardsGenerate({
+              classroom_id: cls.id,
+              term_id: currentTermId,
+            }).catch(() => [])
+            for (const card of (Array.isArray(reportRes) ? reportRes : [])) {
+              if (card.status === "draft") draftCount++
+              if (card.status === "submitted") submittedCount++
+            }
           }
         }
-        // fallback: hit a list endpoint if available, otherwise leave 0
         if (!cancelled) {
-          setAdminStats({
-            totalClassrooms,
-            totalTeachers,
-            draftCount,
-            submittedCount,
-          })
+          setAdminStats({ totalClassrooms, totalTeachers, draftCount, submittedCount })
         }
       } catch {
         if (!cancelled) setAdminStats({ totalClassrooms: 0, totalTeachers: 0, draftCount: 0, submittedCount: 0 })
@@ -161,7 +171,7 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
     }
     load()
     return () => { cancelled = true }
-  }, [data, isAdmin])
+  }, [data, isAdmin, currentTermId])
 
   const distinctAssignments = useMemo(() => {
     const seen = new Set<string>()
@@ -173,7 +183,7 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
     })
   }, [teachingAssignments])
 
-  const currentTermId = useMemo(() => "current", [])
+  const totalAssignments = useMemo(() => teachingAssignments.length, [teachingAssignments])
 
   if (!data) {
     return (
@@ -273,6 +283,24 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
           </div>
         </div>
       </div>
+
+      {/* Admin: No assignments banner */}
+      {isAdmin && !adminStatsLoading && adminStats && totalAssignments === 0 && (
+        <div className="mb-6 rounded-2xl border border-warning/30 bg-warning-light p-5 flex items-center gap-4">
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-warning/10 text-warning">
+            <AlertCircle size={24} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-warning-dark">No teachers have been assigned to classes yet.</p>
+            <p className="text-sm text-content-secondary mt-0.5">Go to Assignments to set up subject teachers and class teachers so your staff can start entering scores.</p>
+          </div>
+          <Link href="/dashboard/settings/teaching-assignments">
+            <Button variant="primary" size="sm" leftIcon={<UserPlus size={16} />}>
+              Go to Assignments
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* Stats Row */}
       <div className="mb-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -380,8 +408,8 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
                   <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                     <ClipboardCheck size={28} />
                   </div>
-                  <p className="text-base font-semibold text-content-primary">No classes assigned yet</p>
-                  <p className="mt-1 text-sm text-content-secondary">Ask your school admin to assign you to a class and subject.</p>
+                  <p className="text-base font-semibold text-content-primary">You haven&apos;t been assigned any classes yet</p>
+                  <p className="mt-1 text-sm text-content-secondary">Ask your school admin to assign you.</p>
                 </div>
               ) : (
                 <div className="grid gap-4 sm:grid-cols-2">
