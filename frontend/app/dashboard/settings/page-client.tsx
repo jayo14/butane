@@ -20,13 +20,15 @@ import {
   GraduationCap,
   Users,
   UserPlus,
+  UserCheck,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { api } from "@/lib/api"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
+import { TeachingAssignmentsClient } from "./teaching-assignments/page-client"
 
-type SettingsTab = "profile" | "school" | "branding" | "grading" | "team" | "password" | "preferences" | "notifications" | "danger"
+type SettingsTab = "profile" | "school" | "branding" | "grading" | "team" | "password" | "preferences" | "notifications" | "danger" | "teaching-assignments"
 
 const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Teacher Profile", icon: User },
@@ -38,6 +40,7 @@ const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
   { id: "preferences", label: "Preferences", icon: Settings },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "danger", label: "Danger Zone", icon: AlertTriangle },
+  { id: "teaching-assignments", label: "Teaching Assignments", icon: UserCheck },
 ]
 
 function SectionCard({
