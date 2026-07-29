@@ -102,7 +102,7 @@ export function ReportCardsPageClient() {
       try {
         const res = await api.academics.teachingAssignments({ mine: true })
         if (cancelled) return
-        const items = Array.isArray(res) ? res : (res as any)?.results || []
+        const items: any[] = Array.isArray(res) ? res : (res as any)?.results || []
         const ids = Array.from(new Set(items.map((item: any) => String(item.classroom))))
         setAllowedClassroomIds(ids)
       } catch {
@@ -124,7 +124,7 @@ export function ReportCardsPageClient() {
         ])
         const allClassrooms = (classroomsRes.results || []).map((c: any) => ({ id: c.id, name: c.name }))
         if (isTeacher && allowedClassroomIds.length > 0) {
-          setClassrooms(allClassrooms.filter((c) => allowedClassroomIds.includes(c.id)))
+          setClassrooms(allClassrooms.filter((c: any) => allowedClassroomIds.includes(c.id)))
         } else {
           setClassrooms(allClassrooms)
         }
