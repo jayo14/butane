@@ -20,6 +20,7 @@ from academics.models import (
     GradeScale,
     ReportCard,
     SchoolProfile,
+    TeachingAssignment,
 )
 from academics.signals import result_post_save
 from academics.services import generate_class_report_cards, generate_report_card, average_remark, subject_grade
@@ -1578,4 +1579,262 @@ class AnnualSummaryTests(APITestCase):
         )
         teacher = Teacher.objects.create(user=user, department="Math")
         return teacher, user
+
+
+class ScoreEntryPermissionTests(APITestCase):
+    def _create_teacher(self, email="teacher@example.com", password="password123", school=None):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math", school=school)
+        return teacher, user
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(email=email, password=password, first_name="A", last_name="Dmin", role="admin")
+        return user, user
+
+    def test_assigned_teacher_can_post_scores(self):
+        teacher, user = self._create_teacher(email="math_teacher@example.com")
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        teacher.school = school
+        teacher.save()
+        subject = _create_subject(name="Mathematics")
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        term = Term.objects.create(name="First Term", display_order=1, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        TeachingAssignment.objects.create(
+            teacher=teacher, classroom=classroom, subject=subject, session=session, school=school
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.post("/api/academics/scores/bulk/", {
+            "component_id": str(component.id),
+            "scores": [{"student_id": str(student.id), "score": 80.0}],
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_unassigned_teacher_cannot_post_scores(self):
+        teacher, user = self._create_teacher(email="english_teacher@example.com")
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        teacher.school = school
+        teacher.save()
+        subject = _create_subject(name="Mathematics")
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        term = Term.objects.create(name="First Term", display_order=1, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.post("/api/academics/scores/bulk/", {
+            "component_id": str(component.id),
+            "scores": [{"student_id": str(student.id), "score": 80.0}],
+        }, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_admin_can_post_scores_regardless_of_assignment(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        school = _create_school()
+        subject = _create_subject(name="Mathematics")
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        term = Term.objects.create(name="First Term", display_order=1, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.post("/api/academics/scores/bulk/", {
+            "component_id": str(component.id),
+            "scores": [{"student_id": str(student.id), "score": 80.0}],
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+
+
+class BehaviouralRatingPermissionTests(APITestCase):
+    def _create_teacher(self, email="teacher@example.com", password="password123", school=None):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math", school=school)
+        return teacher, user
+
+    def test_class_teacher_can_post_ratings(self):
+        teacher, user = self._create_teacher(email="class_teacher@example.com")
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        teacher.school = school
+        teacher.save()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school, class_teacher=teacher)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(name="Punctuality", domain="affective", school=school)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.post("/api/academics/behavioural-ratings/bulk/", {
+            "trait_id": str(trait.id),
+            "term_id": str(term.id),
+            "classroom_id": str(classroom.id),
+            "ratings": [{"student_id": str(student.id), "rating": 4}],
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+
+    def test_non_class_teacher_cannot_post_ratings(self):
+        teacher, user = self._create_teacher(email="other_teacher@example.com")
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        teacher.school = school
+        teacher.save()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        trait = BehaviouralTrait.objects.create(name="Punctuality", domain="affective", school=school)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        resp = self.client.post("/api/academics/behavioural-ratings/bulk/", {
+            "trait_id": str(trait.id),
+            "term_id": str(term.id),
+            "classroom_id": str(classroom.id),
+            "ratings": [{"student_id": str(student.id), "rating": 4}],
+        }, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+
+class ReportCardSubmitPermissionTests(APITestCase):
+    def _create_teacher(self, email="teacher@example.com", password="password123", school=None):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math", school=school)
+        return teacher, user
+
+    def test_class_teacher_can_submit_report_card(self):
+        school = _create_school()
+        teacher, user = self._create_teacher(email="class_teacher@example.com", school=school)
+        self.client.force_authenticate(user=user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school, class_teacher=teacher)
+        term = Term.objects.create(name="First Term", display_order=1)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        report = ReportCard.objects.create(student=student, classroom=classroom, term=term, status="draft", school=school)
+        resp = self.client.post(f"/api/academics/report-cards/{report.id}/submit/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["status"], "submitted")
+
+    def test_non_class_teacher_cannot_submit_report_card(self):
+        school = _create_school()
+        teacher, user = self._create_teacher(email="other_teacher@example.com", school=school)
+        self.client.force_authenticate(user=user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        term = Term.objects.create(name="First Term", display_order=1)
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        ))
+        AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam", component_type="exam", max_score=100
+        )
+        report = ReportCard.objects.create(student=student, classroom=classroom, term=term, status="draft", school=school)
+        resp = self.client.post(f"/api/academics/report-cards/{report.id}/submit/")
+        self.assertEqual(resp.status_code, 403)
+
+
+class TeachingAssignmentAPITests(APITestCase):
+    def _create_teacher(self, email="teacher@example.com", password="password123", school=None):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="T", last_name="Eacher", role="teacher"
+        )
+        teacher = Teacher.objects.create(user=user, department="Math", school=school)
+        return teacher, user
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(email=email, password=password, first_name="A", last_name="Dmin", role="admin")
+        return user, user
+
+    def test_admin_can_create_teaching_assignment(self):
+        admin, admin_user = self._create_admin()
+        self.client.force_authenticate(user=admin_user)
+        school = _create_school()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        teacher, _ = self._create_teacher(email="assigned_teacher@example.com")
+        resp = self.client.post("/api/academics/teaching-assignments/", {
+            "teacher": str(teacher.id),
+            "classroom": str(classroom.id),
+            "subject": str(subject.id),
+            "session": str(session.id),
+            "school": str(school.id),
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+        self.assertEqual(TeachingAssignment.objects.count(), 1)
+
+    def test_teacher_can_list_own_assignments_with_mine(self):
+        teacher, user = self._create_teacher(email="assigned_teacher@example.com")
+        self.client.force_authenticate(user=user)
+        school = _create_school()
+        teacher.school = school
+        teacher.save()
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1})[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31", is_current=True, school=school
+        )
+        TeachingAssignment.objects.create(
+            teacher=teacher, classroom=classroom, subject=subject, session=session, school=school
+        )
+        resp = self.client.get("/api/academics/teaching-assignments/?mine=true")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data.get("results", [])), 1)
+
+    def test_teacher_cannot_create_assignment(self):
+        _, user = self._create_teacher()
+        self.client.force_authenticate(user=user)
+        resp = self.client.post("/api/academics/teaching-assignments/", {}, format="json")
+        self.assertIn(resp.status_code, (401, 403))
 
