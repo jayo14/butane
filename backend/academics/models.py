@@ -325,6 +325,9 @@ class BehaviouralRating(TimestampedModel):
         db_table = "academics_behavioural_rating"
         ordering = ["term__display_order", "trait__domain", "trait__display_order"]
         unique_together = [("trait", "student", "term")]
+        indexes = [
+            models.Index(fields=["student", "classroom", "term"], name="beh_rating_student_classroom_term_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.student} — {self.trait}: {self.rating}"
@@ -390,6 +393,9 @@ class ReportCard(SoftDeleteModel):
         db_table = "academics_report_card"
         ordering = ["-created_at"]
         unique_together = [("student", "classroom", "term")]
+        indexes = [
+            models.Index(fields=["classroom", "term", "status"], name="rpt_classroom_term_status_idx"),
+        ]
 
     def __str__(self) -> str:
         return f"{self.student} — {self.classroom} ({self.term})"
