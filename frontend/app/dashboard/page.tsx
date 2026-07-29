@@ -45,6 +45,7 @@ export default async function DashboardPage() {
         totalCourses: activeCourses,
         passRate: 0,
       },
+      user: profile?.user,
       quickActions: [
         { label: "Create Exam", href: "/dashboard/exams/create", icon: "plus", description: "New CBT assessment" },
         { label: "View Students", href: "/dashboard/students", icon: "user-plus", description: "Manage enrollment" },

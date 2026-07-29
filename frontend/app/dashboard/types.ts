@@ -4,6 +4,16 @@ export interface DashboardData {
   recentActivity: ActivityItem[]
   teacher: TeacherProfile
   quickActions: QuickAction[]
+  user?: {
+    id: string
+    email: string
+    first_name: string
+    last_name: string
+    full_name: string
+    role: string
+    is_active: boolean
+    created_at: string
+  }
 }
 
 export interface StatCard {
