@@ -125,3 +125,12 @@ class TeachingAssignmentSerializer(serializers.ModelSerializer):
         model = TeachingAssignment
         fields = ["id", "teacher", "classroom", "subject", "session", "school", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
+
+    def validate(self, attrs):
+        teacher = attrs.get("teacher")
+        classroom = attrs.get("classroom")
+        if teacher and classroom and teacher.school_id != classroom.school_id:
+            raise serializers.ValidationError(
+                "Teacher and classroom must belong to the same school."
+            )
+        return attrs

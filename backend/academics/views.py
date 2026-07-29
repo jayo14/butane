@@ -101,6 +101,7 @@ class ClassRoomViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
 class EnrollmentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
+    school_field = "classroom__school"
 
     def get_permissions(self):
         if self.action in {"list", "retrieve"}:
@@ -121,6 +122,7 @@ class AssessmentComponentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet
 class AssessmentScoreViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
     queryset = AssessmentScore.objects.select_related("component", "student", "entered_by")
     serializer_class = AssessmentScoreSerializer
+    school_field = "component__school"
 
     def get_permissions(self):
         if self.action in {"list", "retrieve"}:
@@ -138,7 +140,7 @@ class AssessmentScoreViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "scores must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            component = AssessmentComponent.objects.get(pk=component_id)
+            component = AssessmentComponent.objects.get(pk=component_id, school=request.school)
         except AssessmentComponent.DoesNotExist:
             return Response({"detail": "AssessmentComponent not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -241,19 +243,19 @@ class BehaviouralRatingViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             )
 
         try:
-            trait = BehaviouralTrait.objects.get(pk=trait_id)
+            trait = BehaviouralTrait.objects.get(pk=trait_id, school=request.school)
         except BehaviouralTrait.DoesNotExist:
             return Response({"detail": "BehaviouralTrait not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             from exams.models import Term as TermModel
 
-            term = TermModel.objects.get(pk=term_id)
+            term = TermModel.objects.get(pk=term_id, session__school=request.school)
         except TermModel.DoesNotExist:
             return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id)
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -323,14 +325,13 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id)
-            term = type("Term", (), {"id": term_id, "name": ""})()
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
         from exams.models import Term as TermModel
         try:
-            term = TermModel.objects.get(pk=term_id)
+            term = TermModel.objects.get(pk=term_id, session__school=request.school)
         except TermModel.DoesNotExist:
             return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -605,7 +606,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         components = AssessmentComponent.objects.filter(
-            classroom_id=classroom_id, term_id=term_id
+            school=request.school, classroom_id=classroom_id, term_id=term_id
         ).select_related("subject")
         subjects = sorted({c.subject for c in components}, key=lambda s: s.name)
         reports = self.get_queryset().filter(
