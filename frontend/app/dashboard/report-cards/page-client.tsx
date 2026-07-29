@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import {
   Save,
   FileText,
@@ -53,6 +54,7 @@ function subjectGrade(score: number): { grade: string; variant: "success" | "war
 
 export function ReportCardsPageClient() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const toast = useToast()
   const { hasRole } = useAuth()
   const isAdmin = hasRole("admin")
@@ -77,8 +79,44 @@ export function ReportCardsPageClient() {
   const [studentSummary, setStudentSummary] = useState<any>({})
   const [showApproveConfirm, setShowApproveConfirm] = useState(false)
   const [showDownloadConfirm, setShowDownloadConfirm] = useState(false)
+  const [allowedClassroomIds, setAllowedClassroomIds] = useState<string[]>([])
+  const [allowedClassroomsLoading, setAllowedClassroomsLoading] = useState(false)
+  const [highlightedComponentId, setHighlightedComponentId] = useState<string>("")
 
   const inputRefs = useRef<Array<Array<HTMLInputElement | null>>>([])
+  const highlightRef = useRef<HTMLDivElement | null>(null)
+
+  const isTeacher = !isAdmin
+
+  useEffect(() => {
+    const classroomParam = searchParams.get("classroom")
+    const termParam = searchParams.get("term")
+    const subjectParam = searchParams.get("subject")
+    if (classroomParam) setSelectedClassroom(classroomParam)
+    if (termParam) setSelectedTerm(termParam)
+    // session selection handled by term change below
+  }, [searchParams])
+
+  useEffect(() => {
+    if (!isTeacher) return
+    let cancelled = false
+    async function load() {
+      setAllowedClassroomsLoading(true)
+      try {
+        const res = await api.academics.teachingAssignments({ mine: true })
+        if (cancelled) return
+        const items = (res as any)?.results || (Array.isArray(res) ? res : [])
+        const ids = Array.from(new Set(items.map((item: any) => String(item.classroom))))
+        setAllowedClassroomIds(ids)
+      } catch {
+        if (!cancelled) setAllowedClassroomIds([])
+      } finally {
+        if (!cancelled) setAllowedClassroomsLoading(false)
+      }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [isTeacher])
 
   useEffect(() => {
     async function load() {
@@ -87,7 +125,12 @@ export function ReportCardsPageClient() {
           api.academics.classrooms().catch(() => ({ results: [] })) as any,
           api.academics.sessions().catch(() => ({ results: [] })) as any,
         ])
-        setClassrooms((classroomsRes.results || []).map((c: any) => ({ id: c.id, name: c.name })))
+        const allClassrooms = (classroomsRes.results || []).map((c: any) => ({ id: c.id, name: c.name }))
+        if (isTeacher && allowedClassroomIds.length > 0) {
+          setClassrooms(allClassrooms.filter((c) => allowedClassroomIds.includes(c.id)))
+        } else {
+          setClassrooms(allClassrooms)
+        }
         setSessions((sessionsRes.results || []).map((s: any) => ({ id: s.id, name: s.name })))
       } catch {
         // leave empty
@@ -96,7 +139,37 @@ export function ReportCardsPageClient() {
       }
     }
     load()
-  }, [])
+  }, [isTeacher, allowedClassroomIds])
+
+  useEffect(() => {
+    const subjectParam = searchParams.get("subject")
+    const classroomParam = searchParams.get("classroom")
+    // If no subject param, clear highlight
+    if (!subjectParam || !components.length) {
+      setHighlightedComponentId("")
+      return
+    }
+    const match = components.find((c: any) => {
+      const subjectName = c.subject?.name || c.subject_name || ""
+      return subjectName.toLowerCase() === subjectParam.toLowerCase()
+    })
+    if (match) {
+      setHighlightedComponentId(match.id)
+    }
+  }, [searchParams, components])
+
+  useEffect(() => {
+    if (!highlightedComponentId) return
+    const idx = components.findIndex((c: any) => c.id === highlightedComponentId)
+    if (idx < 0) return
+    const tableEl = document.querySelector('table')
+    if (!tableEl) return
+    const headerCells = tableEl.querySelectorAll('th')
+    const targetIdx = idx + 1
+    if (headerCells[targetIdx]) {
+      headerCells[targetIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+    }
+  }, [highlightedComponentId, components])
 
   useEffect(() => {
     if (!selectedSession) {
@@ -492,6 +565,7 @@ export function ReportCardsPageClient() {
                     key: c.id,
                     header: c.name,
                     align: "center" as const,
+                    className: c.id === highlightedComponentId ? "bg-primary/5 ring-1 ring-primary/30" : undefined,
                     render: (row: any) => {
                       const rowIndex = students.findIndex((s: any) => (s.student || s.id) === row.studentId)
                       const colIndex = components.findIndex((comp) => comp.id === c.id)
