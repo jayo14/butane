@@ -326,7 +326,7 @@ class BehaviouralRating(TimestampedModel):
         ordering = ["term__display_order", "trait__domain", "trait__display_order"]
         unique_together = [("trait", "student", "term")]
         indexes = [
-            models.Index(fields=["student", "classroom", "term"], name="beh_rating_student_classroom_term_idx"),
+            models.Index(fields=["student", "classroom", "term"], name="beh_rating_stu_class_term_idx"),
         ]
 
     def __str__(self) -> str:
