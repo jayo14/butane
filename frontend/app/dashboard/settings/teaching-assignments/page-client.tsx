@@ -25,7 +25,7 @@ export function TeachingAssignmentsClient() {
   const isAdmin = hasRole("admin")
 
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([])
-  const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
+  const [classrooms, setClassrooms] = useState<{ id: string; name: string; class_teacher: string | null }[]>([])
   const [subjects, setSubjects] = useState<{ id: string; name: string }[]>([])
   const [sessions, setSessions] = useState<{ id: string; name: string }[]>([])
   const [assignments, setAssignments] = useState<any[]>([])
@@ -57,14 +57,19 @@ export function TeachingAssignmentsClient() {
           api.academics.classrooms({ page: 1, page_size: 1000 }).catch(() => ({ results: [] })),
           api.subjects.list().catch(() => []),
           api.academics.sessions().catch(() => []),
-          api.academics.teachingAssignments().catch(() => ({ results: [] })),
+          api.academics.teachingAssignments().catch(() => []),
         ])
         const teacherList = Array.isArray(teachersRes) ? teachersRes : (teachersRes as any)?.results || []
         setTeachers(teacherList.map((t: any) => ({ id: String(t.id), full_name: t.full_name || t.user?.full_name || `Teacher ${t.id}` })))
-        setClassrooms(((classroomsRes as any)?.results || classroomsRes || []).map((c: any) => ({ id: String(c.id), name: c.name })))
+
+        const classroomsList = ((classroomsRes as any)?.results || classroomsRes || [])
+        setClassrooms(classroomsList.map((c: any) => ({ id: String(c.id), name: c.name, class_teacher: c.class_teacher ? String(c.class_teacher) : null })))
+
         setSubjects((subjectsRes as any[]).map((s: any) => ({ id: String(s.id), name: s.name })))
         setSessions(((sessionsRes as any)?.results || sessionsRes || []).map((s: any) => ({ id: String(s.id), name: s.name })))
-        setAssignments(((assignmentsRes as any)?.results || assignmentsRes || []))
+
+        const assignData = Array.isArray(assignmentsRes) ? assignmentsRes : (assignmentsRes as any)?.results || []
+        setAssignments(assignData)
       } catch {
         // leave empty
       } finally {
@@ -92,8 +97,8 @@ export function TeachingAssignmentsClient() {
       })
       setSuccess("Assignment added")
       setForm({ teacher: "", classroom: "", subject: "", session: "" })
-      const assignmentsRes = await api.academics.teachingAssignments().catch(() => ({ results: [] }))
-      setAssignments(((assignmentsRes as any)?.results || assignmentsRes || []))
+      const res = await api.academics.teachingAssignments().catch(() => [])
+      setAssignments(Array.isArray(res) ? res : (res as any)?.results || [])
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to create assignment")
     } finally {
@@ -113,12 +118,15 @@ export function TeachingAssignmentsClient() {
     }
   }
 
-  const handleClassTeacherChange = async (classroomId: string, teacherId: string | number | null) => {
+  const handleClassTeacherChange = async (classroomId: string, teacherId: string | null) => {
     setError("")
     setSuccess("")
     try {
-      await api.academics.classroomsUpdate(classroomId, { class_teacher: teacherId || "" })
+      await api.academics.classroomsUpdate(classroomId, { class_teacher: teacherId || null })
       setSuccess("Class teacher updated")
+      setClassrooms((prev) =>
+        prev.map((c) => (c.id === classroomId ? { ...c, class_teacher: teacherId } : c))
+      )
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update class teacher")
     }
@@ -174,8 +182,9 @@ export function TeachingAssignmentsClient() {
         <div className="mb-4 rounded-xl border border-success/40 bg-success-light p-4 text-sm text-success">{success}</div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Form */}
+      {/* Subject Teachers */}
+      <div className="grid gap-6 lg:grid-cols-4">
+        {/* Add Subject Teacher Form */}
         <Card padding="lg" className="lg:col-span-1">
           <h2 className="text-lg font-semibold text-content-primary mb-4">Add Subject Teacher</h2>
           <form onSubmit={handleCreate} className="space-y-4">
@@ -221,23 +230,23 @@ export function TeachingAssignmentsClient() {
           </form>
         </Card>
 
-        {/* Assignment table grouped by classroom */}
-        <Card padding="lg" className="lg:col-span-2">
+        {/* Subject teachers list grouped by classroom */}
+        <Card padding="lg" className="lg:col-span-3">
           <h2 className="text-lg font-semibold text-content-primary mb-4">Subject Teachers</h2>
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 size={24} className="animate-spin text-primary" />
             </div>
           ) : Object.keys(grouped).length === 0 ? (
-            <div className="py-12 text-center text-sm text-content-secondary">
-              No assignments yet. Add your first assignment using the form.
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <BookOpen size={32} className="text-content-muted mb-3" />
+              <p className="text-sm font-medium text-content-primary">No subject teachers assigned yet</p>
+              <p className="mt-1 text-sm text-content-secondary">Use the form to assign teachers to classrooms and subjects.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {Object.entries(grouped).map(([classroomId, items]) => {
                 const isExpanded = expandedClassrooms.has(classroomId)
-                const classroom = classrooms.find((c) => c.id === classroomId)
-                const existingClassTeacherId = (classroom as any)?.class_teacher
                 return (
                   <div key={classroomId} className="rounded-2xl border border-border-primary bg-surface-secondary/40">
                     <button
@@ -284,18 +293,24 @@ export function TeachingAssignmentsClient() {
         </Card>
       </div>
 
-      {/* Class Teachers section */}
-      <Card padding="lg" className="mt-8">
+      {/* Class Teachers - visually separated */}
+      <Card padding="lg" className="mt-8 border-primary/20">
         <div className="mb-4 flex items-center gap-3">
           <UserCheck size={20} className="text-primary" />
           <div>
             <h2 className="text-lg font-semibold text-content-primary">Class Teachers</h2>
-            <p className="text-xs text-content-secondary">Set one class teacher per classroom for report-card control.</p>
+            <p className="text-xs text-content-secondary">Set one class teacher per classroom for report-card control. This is a different role from subject teachers above — a class teacher can submit behavioural ratings and review report cards for their homeroom.</p>
           </div>
         </div>
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 size={24} className="animate-spin text-primary" />
+          </div>
+        ) : classrooms.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <GraduationCap size={32} className="text-content-muted mb-3" />
+            <p className="text-sm font-medium text-content-primary">No classrooms yet</p>
+            <p className="mt-1 text-sm text-content-secondary">Create classrooms before assigning class teachers.</p>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -313,8 +328,8 @@ export function TeachingAssignmentsClient() {
                       { label: "Unassigned", value: "__unassigned__" },
                       ...teachers.map((t) => ({ label: t.full_name, value: t.id })),
                     ]}
-                    value={(c as any).class_teacher || "__unassigned__"}
-                    onChange={(val) => handleClassTeacherChange(c.id, val === "__unassigned__" ? "" : val)}
+                    value={c.class_teacher || "__unassigned__"}
+                    onChange={(val) => handleClassTeacherChange(c.id, val === "__unassigned__" ? null : val)}
                     className="w-full"
                   />
                 </div>
