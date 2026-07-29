@@ -11,6 +11,7 @@ from .models import (
     GradeScale,
     ReportCard,
     SchoolProfile,
+    TeachingAssignment,
 )
 
 
@@ -80,3 +81,10 @@ class ReportCardAdmin(admin.ModelAdmin):
 class SchoolProfileAdmin(admin.ModelAdmin):
     list_display = ("name", "primary_color", "secondary_color")
     search_fields = ("name",)
+
+
+@admin.register(TeachingAssignment)
+class TeachingAssignmentAdmin(admin.ModelAdmin):
+    list_display = ("teacher", "classroom", "subject", "session", "school")
+    list_filter = ("session", "classroom", "subject")
+    search_fields = ("teacher__user__email", "classroom__name", "subject__name")
