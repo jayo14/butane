@@ -14,6 +14,7 @@ from .models import (
     GradeScale,
     ReportCard,
     SchoolProfile,
+    TeachingAssignment,
 )
 
 
@@ -27,7 +28,7 @@ class AcademicSessionSerializer(serializers.ModelSerializer):
 class ClassRoomSerializer(serializers.ModelSerializer):
     class Meta:
         model = ClassRoom
-        fields = ["id", "name", "grade_level", "created_at", "updated_at"]
+        fields = ["id", "name", "grade_level", "class_teacher", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
 
@@ -116,4 +117,11 @@ class SchoolProfileSerializer(serializers.ModelSerializer):
             "primary_color", "secondary_color",
             "created_at", "updated_at",
         ]
+        read_only_fields = ["id", "created_at", "updated_at"]
+
+
+class TeachingAssignmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TeachingAssignment
+        fields = ["id", "teacher", "classroom", "subject", "session", "school", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
