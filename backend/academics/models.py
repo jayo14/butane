@@ -55,6 +55,13 @@ class ClassRoom(TimestampedModel):
         null=True,
         blank=True,
     )
+    class_teacher = models.ForeignKey(
+        "accounts.Teacher",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="homeroom_classrooms",
+    )
 
     class Meta:
         db_table = "academics_classroom"
@@ -91,6 +98,46 @@ class Enrollment(TimestampedModel):
 
     def __str__(self) -> str:
         return f"{self.student} → {self.classroom} ({self.session})"
+
+
+class TeachingAssignment(TimestampedModel):
+    """Maps a teacher to a subject within a classroom for a specific session."""
+
+    teacher = models.ForeignKey(
+        "accounts.Teacher",
+        on_delete=models.CASCADE,
+        related_name="teaching_assignments",
+    )
+    classroom = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.CASCADE,
+        related_name="teaching_assignments",
+    )
+    subject = models.ForeignKey(
+        "exams.Subject",
+        on_delete=models.CASCADE,
+        related_name="teaching_assignments",
+    )
+    session = models.ForeignKey(
+        AcademicSession,
+        on_delete=models.CASCADE,
+        related_name="teaching_assignments",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="teaching_assignments",
+        null=True,
+        blank=True,
+    )
+
+    class Meta:
+        db_table = "academics_teaching_assignment"
+        unique_together = [("teacher", "classroom", "subject", "session")]
+        ordering = ["classroom__name", "subject__name"]
+
+    def __str__(self) -> str:
+        return f"{self.teacher} teaches {self.subject} in {self.classroom} ({self.session})"
 
 
 class AssessmentComponent(TimestampedModel):
