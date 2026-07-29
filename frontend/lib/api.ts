@@ -205,18 +205,13 @@ export interface ApiClassroom {
 export interface ApiTeachingAssignment {
   id: string
   teacher: string | number
+  teacher_name?: string
   classroom: string | number
+  classroom_name?: string
   subject: string | number
+  subject_name?: string
   session: string | number
   school: string | number | null
-}
-
-export interface ApiTerm {
-  id: string
-  name: string
-  display_order: number
-  session: string | number
-  is_current: boolean
 }
 
 export interface ApiExam {
@@ -402,6 +397,7 @@ export interface ApiTerm {
   name: string
   display_order: number
   session: string | null
+  is_current: boolean
   created_at: string
   updated_at: string
 }
@@ -668,7 +664,7 @@ export const api = {
     schoolProfileUpdate: (data: any) =>
       apiFetch<any>("academics/school-profile/", { method: "PATCH", body: JSON.stringify(data) }),
     teachingAssignments: (params?: { mine?: boolean }) =>
-      apiFetch<PaginatedResponse<ApiTeachingAssignment>>(`academics/teaching-assignments/${buildQuery(params || {})}`),
+      apiFetch<any[]>(`academics/teaching-assignments/${buildQuery(params || {})}`),
     teachingAssignmentsCreate: (data: { teacher: string; classroom: string; subject: string; session: string }) =>
       apiFetch<any>("academics/teaching-assignments/", { method: "POST", body: JSON.stringify(data) }),
     teachingAssignmentsUpdate: (id: string, data: { teacher?: string; classroom?: string; subject?: string; session?: string }) =>
