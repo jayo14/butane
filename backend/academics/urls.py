@@ -12,6 +12,7 @@ from .views import (
     GradeScaleViewSet,
     ReportCardViewSet,
     SchoolProfileViewSet,
+    TeachingAssignmentViewSet,
 )
 
 router = routers.DefaultRouter()
@@ -24,6 +25,7 @@ router.register(r"grade-scales", GradeScaleViewSet, basename="grade-scale")
 router.register(r"report-cards", ReportCardViewSet, basename="report-card")
 router.register(r"behavioural-traits", BehaviouralTraitViewSet, basename="behavioural-trait")
 router.register(r"behavioural-ratings", BehaviouralRatingViewSet, basename="behavioural-rating")
+router.register(r"teaching-assignments", TeachingAssignmentViewSet, basename="teaching-assignment")
 
 urlpatterns = [
     path("", include(router.urls)),

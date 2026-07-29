@@ -28,7 +28,9 @@ from .models import (
     GradeScale,
     ReportCard,
     SchoolProfile,
+    TeachingAssignment,
 )
+from .permissions import CanEnterScoresForComponent, IsClassTeacherOrAdmin
 from .serializers import (
     AcademicSessionSerializer,
     AssessmentComponentSerializer,
@@ -39,6 +41,7 @@ from .serializers import (
     EnrollmentSerializer,
     GradeScaleSerializer,
     ReportCardSerializer,
+    TeachingAssignmentSerializer,
 )
 from .services import generate_class_report_cards, promote_students, subject_grade
 
@@ -138,6 +141,19 @@ class AssessmentScoreViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             component = AssessmentComponent.objects.get(pk=component_id)
         except AssessmentComponent.DoesNotExist:
             return Response({"detail": "AssessmentComponent not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if request.user.role != "admin":
+            has_assignment = TeachingAssignment.objects.filter(
+                teacher=request.user.teacher_profile,
+                classroom=component.classroom,
+                subject=component.subject,
+                session=component.term.session,
+            ).exists()
+            if not has_assignment:
+                return Response(
+                    {"detail": "You are not assigned to teach this subject for this class."},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
 
         created = 0
         updated = 0
@@ -241,6 +257,12 @@ class BehaviouralRatingViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if request.user.role != "admin" and classroom.class_teacher_id != request.user.teacher_profile.id:
+            return Response(
+                {"detail": "You are not the class teacher for this classroom."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         teacher = request.user.teacher_profile
         created = 0
         updated = 0
@@ -321,6 +343,11 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         report = self.get_object()
         if report.status != "draft":
             return Response({"detail": "Only draft report cards can be submitted."}, status=status.HTTP_400_BAD_REQUEST)
+        if request.user.role != "admin" and report.classroom.class_teacher_id != request.user.teacher_profile.id:
+            return Response(
+                {"detail": "You are not authorized to submit report cards for this classroom."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
         report.status = "submitted"
         report.save(update_fields=["status", "updated_at"])
         serializer = self.get_serializer(report)
@@ -639,6 +666,23 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             "annual_average": annual_average,
             "terms_recorded": len(term_data),
         })
+
+
+class TeachingAssignmentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = TeachingAssignment.objects.select_related("teacher", "classroom", "subject", "session", "school")
+    serializer_class = TeachingAssignmentSerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        return [IsAdmin()]
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        mine = self.request.query_params.get("mine")
+        if mine == "true" and self.request.user.role == "teacher":
+            return qs.filter(teacher=self.request.user.teacher_profile)
+        return qs
 
 
 class SchoolProfileViewSet(viewsets.ViewSet):
