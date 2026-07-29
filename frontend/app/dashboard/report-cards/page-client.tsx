@@ -84,17 +84,14 @@ export function ReportCardsPageClient() {
   const [highlightedComponentId, setHighlightedComponentId] = useState<string>("")
 
   const inputRefs = useRef<Array<Array<HTMLInputElement | null>>>([])
-  const highlightRef = useRef<HTMLDivElement | null>(null)
 
   const isTeacher = !isAdmin
 
   useEffect(() => {
     const classroomParam = searchParams.get("classroom")
     const termParam = searchParams.get("term")
-    const subjectParam = searchParams.get("subject")
     if (classroomParam) setSelectedClassroom(classroomParam)
     if (termParam) setSelectedTerm(termParam)
-    // session selection handled by term change below
   }, [searchParams])
 
   useEffect(() => {
@@ -105,7 +102,7 @@ export function ReportCardsPageClient() {
       try {
         const res = await api.academics.teachingAssignments({ mine: true })
         if (cancelled) return
-        const items = (res as any)?.results || (Array.isArray(res) ? res : [])
+        const items = Array.isArray(res) ? res : (res as any)?.results || []
         const ids = Array.from(new Set(items.map((item: any) => String(item.classroom))))
         setAllowedClassroomIds(ids)
       } catch {
@@ -143,15 +140,13 @@ export function ReportCardsPageClient() {
 
   useEffect(() => {
     const subjectParam = searchParams.get("subject")
-    const classroomParam = searchParams.get("classroom")
-    // If no subject param, clear highlight
     if (!subjectParam || !components.length) {
       setHighlightedComponentId("")
       return
     }
     const match = components.find((c: any) => {
-      const subjectName = c.subject?.name || c.subject_name || ""
-      return subjectName.toLowerCase() === subjectParam.toLowerCase()
+      const subjectId = c.subject_id || c.subject
+      return String(subjectId) === subjectParam
     })
     if (match) {
       setHighlightedComponentId(match.id)
