@@ -42,6 +42,10 @@ class TermSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "display_order", "session", "created_at", "updated_at"]
         read_only_fields = ["id", "created_at", "updated_at"]
 
+    def validate_name(self, value: str) -> str:
+        from exams.models import normalize_term_name
+        return normalize_term_name(value)
+
 
 class ExamListSerializer(serializers.ModelSerializer):
     created_by = serializers.CharField(source="created_by.user.full_name", read_only=True)

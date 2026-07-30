@@ -27,7 +27,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
     serializer_class = SchoolSerializer
 
     def get_permissions(self):
-        if self.action in {"list", "retrieve"}:
+        if self.action in {"list", "retrieve", "onboarding_status", "onboarding-status"}:
             return [permissions.IsAuthenticated()]
         return [IsAdmin()]
 

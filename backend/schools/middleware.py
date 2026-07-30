@@ -17,7 +17,19 @@ class CurrentSchoolMiddleware(MiddlewareMixin):
         user = getattr(request, "user", None)
         if not (user and user.is_authenticated):
             return
-        if hasattr(user, "teacher_profile") and user.teacher_profile.school_id:
-            request.school = user.teacher_profile.school
-        elif hasattr(user, "student_profile") and user.student_profile.school_id:
-            request.school = user.student_profile.school
+        try:
+            if hasattr(user, "teacher_profile"):
+                tp = user.teacher_profile
+                if tp.school_id is not None:
+                    request.school = tp.school
+                    return
+        except Exception:
+            pass
+        try:
+            if hasattr(user, "student_profile"):
+                sp = user.student_profile
+                if sp.school_id is not None:
+                    request.school = sp.school
+                    return
+        except Exception:
+            pass

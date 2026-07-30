@@ -1,6 +1,8 @@
 """Exams app: exams, questions, choices, attempts, answers, and results."""
 from __future__ import annotations
 
+import re
+
 import hashlib
 import hmac
 import uuid
@@ -65,6 +67,49 @@ class GradeLevel(TimestampedModel):
         return self.name
 
 
+_TERM_ALIASES: dict[str, tuple[str, int]] = {
+    "1st": ("First Term", 1),
+    "1st term": ("First Term", 1),
+    "first": ("First Term", 1),
+    "first term": ("First Term", 1),
+    "2nd": ("Second Term", 2),
+    "2nd term": ("Second Term", 2),
+    "second": ("Second Term", 2),
+    "second term": ("Second Term", 2),
+    "3rd": ("Third Term", 3),
+    "3rd term": ("Third Term", 3),
+    "third": ("Third Term", 3),
+    "third term": ("Third Term", 3),
+}
+
+
+def normalize_term_name(raw: str) -> str:
+    """Return the canonical term name.
+
+    ``"1st"``, ``"first"``, ``"First Term"`` all become ``"First Term"``.
+    Unrecognised strings are returned title-cased as-is.
+    """
+    key = raw.strip().lower()
+    if key in _TERM_ALIASES:
+        return _TERM_ALIASES[key][0]
+    return raw.strip().title()
+
+
+def term_display_order(raw: str) -> int:
+    """Return the 1-based display order for a term name/alias."""
+    key = raw.strip().lower()
+    if key in _TERM_ALIASES:
+        return _TERM_ALIASES[key][1]
+    return 99
+
+
+_DEFAULT_TERMS = [
+    ("First Term", 1),
+    ("Second Term", 2),
+    ("Third Term", 3),
+]
+
+
 class Term(TimestampedModel):
     """An academic term (e.g. First Term, Second Term, Third Term)."""
 
@@ -86,6 +131,12 @@ class Term(TimestampedModel):
 
     def __str__(self) -> str:
         return self.name
+
+    def save(self, *args, **kwargs):
+        self.name = normalize_term_name(self.name)
+        if not self.display_order:
+            self.display_order = term_display_order(self.name)
+        super().save(*args, **kwargs)
 
 
 class Exam(SoftDeleteModel):
