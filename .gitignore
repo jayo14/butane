@@ -1,3 +1,11 @@
+.env 
+venv/ 
+.env.local 
+node_modules/ 
+.next/
+next-env.d.ts
+tsconfig.tsbuildinfo
+..gitignore.swp
 .env
-venv/
 .env.local
+
