@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   Palette,
@@ -14,17 +14,13 @@ import {
   Archive,
   ClipboardCheck,
   MessageSquare,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
-
-const GRADING_SCALES = [
-  { id: "standard", name: "Standard", description: "A+ A B C D E F", ranges: "90+ 80-89 70-79 60-69 50-59 40-49 <40" },
-  { id: "uk", name: "UK System", description: "A* A B C D E U", ranges: "90+ 80-89 70-79 60-69 50-59 40-49 <40" },
-  { id: "nigerian", name: "Nigerian Standard", description: "A B C D E F", ranges: "70-100 60-69 50-59 40-49 30-39 0-29" },
-  { id: "custom", name: "Custom Scale", description: "Define your own grade boundaries", ranges: "Custom ranges" },
-]
 
 const REPORT_SECTIONS = [
   { id: "student_info", label: "Student Information", description: "Name, photo, admission number", visible: true },
@@ -41,9 +37,31 @@ const REPORT_SECTIONS = [
 ]
 
 export function ReportCardCustomizeClient() {
-  const [gradingScale, setGradingScale] = useState("standard")
+  const { addToast } = useToast()
+  const [gradeScales, setGradeScales] = useState<any[]>([])
+  const [selectedScaleId, setSelectedScaleId] = useState<string>("")
+  const [schoolProfile, setSchoolProfile] = useState<any>(null)
+  const [motto, setMotto] = useState("")
   const [sections, setSections] = useState(REPORT_SECTIONS)
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    Promise.all([
+      api.academics.gradeScales().catch(() => []),
+      api.academics.schoolProfile().catch(() => null),
+    ]).then(([scales, profile]) => {
+      setGradeScales(scales || [])
+      if (profile) {
+        setSchoolProfile(profile)
+        setMotto(profile.motto || "")
+      }
+      if (scales && scales.length > 0) {
+        setSelectedScaleId(scales[0].id)
+      }
+    }).finally(() => setLoading(false))
+  }, [])
 
   const toggleSection = (id: string) => {
     setSections((prev) =>
@@ -51,10 +69,26 @@ export function ReportCardCustomizeClient() {
     )
   }
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const handleSave = async () => {
+    setSaving(true)
+    try {
+      await api.academics.schoolProfileUpdate({ motto })
+      setSaved(true)
+      addToast({ message: "Settings saved successfully!", variant: "success" })
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      addToast({ message: "Failed to save settings.", variant: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
+
+  const groupedScales = gradeScales.reduce((acc: any, scale: any) => {
+    const key = `${scale.min_score}-${scale.max_score}`
+    if (!acc[key]) acc[key] = { min: scale.min_score, max: scale.max_score, grades: [] }
+    acc[key].grades.push(scale)
+    return acc
+  }, {})
 
   return (
     <Container>
@@ -82,32 +116,32 @@ export function ReportCardCustomizeClient() {
                 </div>
                 <h2 className="text-xl text-content-primary font-bold">Grading Scale</h2>
               </div>
-              <div className="space-y-3">
-                {GRADING_SCALES.map((scale) => (
-                  <div
-                    key={scale.id}
-                    onClick={() => setGradingScale(scale.id)}
-                    className={cn(
-                      "p-4 rounded-2xl border cursor-pointer transition-all",
-                      gradingScale === scale.id
-                        ? "bg-primary/5 border-primary/30"
-                        : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20"
-                    )}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-bold text-content-primary">{scale.name}</p>
-                        <p className="text-xs text-content-secondary">{scale.description}</p>
-                      </div>
-                      {gradingScale === scale.id && (
-                        <div className="w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center">
-                          <Check size={14} />
-                        </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-primary" />
+                </div>
+              ) : gradeScales.length === 0 ? (
+                <p className="text-sm text-content-secondary text-center py-4">No grade scales configured yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {gradeScales.map((scale: any) => (
+                    <div
+                      key={scale.id}
+                      className={cn(
+                        "p-3 rounded-xl border flex items-center justify-between transition-all",
+                        selectedScaleId === scale.id
+                          ? "bg-primary/5 border-primary/30"
+                          : "bg-surface-secondary/30 border-border-primary/20"
                       )}
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-content-primary">{scale.grade} — {scale.remark}</p>
+                        <p className="text-xs text-content-secondary">{scale.min_score}% – {scale.max_score}%</p>
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -122,7 +156,28 @@ export function ReportCardCustomizeClient() {
                   <div className="recessed-well bg-white border border-border-primary/40 rounded-2xl">
                     <input
                       type="text"
-                      defaultValue="Knowledge is Power"
+                      value={motto}
+                      onChange={(e) => setMotto(e.target.value)}
+                      placeholder="Enter school motto..."
+                      className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
+                    />
+                  </div>
+                </div>
+                {schoolProfile?.name && (
+                  <div className="p-3 bg-surface-secondary/30 rounded-xl">
+                    <p className="text-xs text-content-secondary mb-1">School Name</p>
+                    <p className="text-sm font-bold text-content-primary">{schoolProfile.name}</p>
+                  </div>
+                )}
+                {schoolProfile?.address && (
+                  <div className="p-3 bg-surface-secondary/30 rounded-xl">
+                    <p className="text-xs text-content-secondary mb-1">Address</p>
+                    <p className="text-sm font-bold text-content-primary">{schoolProfile.address}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
                       className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
                     />
                   </div>
@@ -196,6 +251,7 @@ export function ReportCardCustomizeClient() {
             </button>
             <button
               onClick={handleSave}
+              disabled={saving}
               className={cn(
                 "flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold transition-all",
                 saved
@@ -203,7 +259,8 @@ export function ReportCardCustomizeClient() {
                   : "bg-primary text-primary-foreground hover:brightness-110 active:scale-95 shadow-md"
               )}
             >
-              {saved ? <><Check size={16} /> Saved!</> : <><Save size={16} /> Save Changes</>}
+              {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
+              {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
             </button>
           </div>
         </section>
