@@ -47,6 +47,22 @@
   --shadow-dropdown: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
   --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   --shadow-drawer: -4px 0 10px rgb(0 0 0 / 0.06);
+  --shadow-inset: inset 0 2px 4px 0 rgb(0 0 0 / 0.06);
+
+  /* Grading flow emerald accent palette */
+  --color-emerald-50: #ECFDF5;
+  --color-emerald-100: #D1FAE5;
+  --color-emerald-200: #A7F3D0;
+  --color-emerald-500: #10B981;
+  --color-emerald-600: #059669;
+  --color-emerald-700: #047857;
+  --color-emerald-800: #065F46;
+  --color-emerald-900: #064E3B;
+
+  /* Sidebar tokens */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 64px;
 }
 
 body {
@@ -178,3 +194,70 @@ body {
   text-rendering: optimizeLegibility;
   font-feature-settings: 'liga';
 }
+
+/* ── Grading Flow Utility Classes ── */
+
+/* Linen-texture: subtle paper-like background for score sheets and cards */
+.linen-texture {
+  background-color: #FFFDF7;
+  background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23e5e5e5' fill-opacity='0.08'%3E%3Cpath d='M0 0h40v40H0z'/%3E%3Cpath d='M0 0h1v1H0zM10 0h1v1h-1zM20 0h1v1h-1zM30 0h1v1h-1zM0 10h1v1H0zM10 10h1v1h-1zM20 10h1v1h-1zM30 10h1v1h-1zM0 20h1v1H0zM10 20h1v1h-1zM20 20h1v1h-1zM30 20h1v1h-1zM0 30h1v1H0zM10 30h1v1h-1zM20 30h1v1h-1zM30 30h1v1h-1z'/%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Stitched border: dashed border that mimics notebook perforation */
+.stitched-border {
+  border: 2px dashed var(--color-emerald-200);
+  border-radius: var(--radius-lg);
+}
+
+/* Recessed well: inset shadow for input fields and score cells */
+.recessed-well {
+  box-shadow: var(--shadow-inset);
+  border: 1px solid var(--color-border-primary);
+  border-radius: var(--radius-md);
+}
+
+/* Crease divider: a horizontal rule styled like a folded paper crease */
+.crease-divider {
+  border: none;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--color-emerald-200) 15%,
+    var(--color-emerald-500) 50%,
+    var(--color-emerald-200) 85%,
+    transparent
+  );
+  margin: 1.5rem 0;
+}
+
+/* Emerald gradient: for headers and primary surfaces */
+.gradient-emerald {
+  background: linear-gradient(135deg, var(--color-emerald-600) 0%, var(--color-emerald-800) 100%);
+}
+
+/* Score cell: compact, centered input for mark sheets */
+.score-cell {
+  width: 3rem;
+  height: 2.25rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* Tab active indicator: the green underline on active tabs */
+.tab-indicator {
+  position: relative;
+}
+.tab-indicator::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background-color: var(--color-primary);
+}
+
+
