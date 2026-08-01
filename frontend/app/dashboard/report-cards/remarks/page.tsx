@@ -6,7 +6,7 @@ export default async function TeacherRemarksPage() {
 
   try {
     const classroomsRes = await api.academics.classrooms().catch(() => [])
-    classrooms = classroomsRes?.results || classroomsRes || []
+    classrooms = (classroomsRes as any)?.results || classroomsRes || []
   } catch {
     // Use empty array as fallback
   }
