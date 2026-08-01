@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import {
   Sparkles,
@@ -18,6 +18,8 @@ import {
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 interface ReportCardGenerateClientProps {
@@ -33,6 +35,7 @@ export function ReportCardGenerateClient({
   initialClassrooms,
   initialStudents,
 }: ReportCardGenerateClientProps) {
+  const { addToast } = useToast()
   const [selectedSession, setSelectedSession] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
   const [selectedClassroom, setSelectedClassroom] = useState("")
@@ -40,17 +43,37 @@ export function ReportCardGenerateClient({
   const [generating, setGenerating] = useState(false)
   const [completed, setCompleted] = useState(false)
   const [studentSearch, setStudentSearch] = useState("")
+  const [enrolledStudents, setEnrolledStudents] = useState<any[]>([])
+  const [loadingStudents, setLoadingStudents] = useState(false)
+  const [generatedCount, setGeneratedCount] = useState(0)
+
+  useEffect(() => {
+    if (!selectedClassroom || !selectedSession) {
+      setEnrolledStudents([])
+      return
+    }
+    setLoadingStudents(true)
+    api.academics.enrollments({ classroom: selectedClassroom, session__is_current: "true" })
+      .then((res) => {
+        const results = (res as any)?.results || res || []
+        setEnrolledStudents(results.map((e: any) => e.student || e))
+      })
+      .catch(() => setEnrolledStudents([]))
+      .finally(() => setLoadingStudents(false))
+  }, [selectedClassroom, selectedSession])
+
+  const displayStudents = enrolledStudents.length > 0 ? enrolledStudents : initialStudents
 
   const filteredStudents = useMemo(() => {
-    if (!studentSearch.trim()) return initialStudents
+    if (!studentSearch.trim()) return displayStudents
     const q = studentSearch.toLowerCase()
-    return initialStudents.filter(
+    return displayStudents.filter(
       (s: any) =>
         s.user?.first_name?.toLowerCase().includes(q) ||
         s.user?.last_name?.toLowerCase().includes(q) ||
         s.admission_number?.toLowerCase().includes(q)
     )
-  }, [initialStudents, studentSearch])
+  }, [displayStudents, studentSearch])
 
   const toggleStudent = (id: string) => {
     setSelectedStudents((prev) => {
@@ -70,11 +93,26 @@ export function ReportCardGenerateClient({
   }
 
   const handleGenerate = async () => {
+    if (!selectedClassroom || !selectedTerm) {
+      addToast({ message: "Please select a classroom and term first.", variant: "error" })
+      return
+    }
     setGenerating(true)
-    // Simulate generation
-    await new Promise((r) => setTimeout(r, 2000))
-    setGenerating(false)
-    setCompleted(true)
+    try {
+      const result = await api.academics.reportCardsGenerate({
+        classroom_id: selectedClassroom,
+        term_id: selectedTerm,
+      })
+      const count = Array.isArray(result) ? result.length : 0
+      setGeneratedCount(count)
+      setCompleted(true)
+      addToast({ message: `${count} report cards generated successfully!`, variant: "success" })
+    } catch (err) {
+      console.error(err)
+      addToast({ message: "Failed to generate report cards. Please try again.", variant: "error" })
+    } finally {
+      setGenerating(false)
+    }
   }
 
   if (completed) {
@@ -89,7 +127,7 @@ export function ReportCardGenerateClient({
               </div>
               <h2 className="text-3xl text-content-primary font-bold mb-3">Reports Generated!</h2>
               <p className="text-content-secondary mb-8 max-w-md mx-auto">
-                {selectedStudents.size} report cards have been generated and are ready for review and approval.
+                {generatedCount} report cards have been generated and are ready for review and approval.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
@@ -99,7 +137,7 @@ export function ReportCardGenerateClient({
                   Review & Approve <ArrowRight size={16} />
                 </Link>
                 <button
-                  onClick={() => { setCompleted(false); setSelectedStudents(new Set()) }}
+                  onClick={() => { setCompleted(false); setSelectedStudents(new Set()); setGeneratedCount(0) }}
                   className="inline-flex items-center justify-center gap-2 border border-border-primary text-content-primary px-8 py-4 rounded-full font-bold hover:bg-surface-secondary transition-all"
                 >
                   Generate More
@@ -277,38 +315,50 @@ export function ReportCardGenerateClient({
             </div>
 
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-3 overflow-y-auto max-h-[500px]">
-              {filteredStudents.map((student: any) => {
-                const name = `${student.user?.first_name || ""} ${student.user?.last_name || ""}`.trim()
-                const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
-                const isSelected = selectedStudents.has(student.id)
-                return (
-                  <div
-                    key={student.id}
-                    onClick={() => toggleStudent(student.id)}
-                    className={cn(
-                      "p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all group hover:scale-[1.02]",
-                      isSelected
-                        ? "bg-primary/5 border-primary/30 shadow-md"
-                        : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20 hover:shadow-sm"
-                    )}
-                    style={{ animationDelay: `${(filteredStudents.indexOf(student) % 10) * 50}ms` }}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleStudent(student.id)}
-                      className="w-5 h-5 rounded border-border-primary accent-primary"
-                    />
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-                      {initials}
+              {loadingStudents ? (
+                <div className="col-span-2 flex items-center justify-center py-12">
+                  <Loader2 size={24} className="animate-spin text-primary" />
+                  <span className="ml-3 text-sm text-content-secondary">Loading enrolled students...</span>
+                </div>
+              ) : filteredStudents.length === 0 ? (
+                <div className="col-span-2 text-center py-12">
+                  <Users size={32} className="text-content-secondary/40 mx-auto mb-3" />
+                  <p className="text-sm text-content-secondary">No students found. Select a classroom to load enrolled students.</p>
+                </div>
+              ) : (
+                filteredStudents.map((student: any) => {
+                  const name = `${student.user?.first_name || ""} ${student.user?.last_name || ""}`.trim()
+                  const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+                  const isSelected = selectedStudents.has(student.id)
+                  return (
+                    <div
+                      key={student.id}
+                      onClick={() => toggleStudent(student.id)}
+                      className={cn(
+                        "p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all group hover:scale-[1.02]",
+                        isSelected
+                          ? "bg-primary/5 border-primary/30 shadow-md"
+                          : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20 hover:shadow-sm"
+                      )}
+                      style={{ animationDelay: `${(filteredStudents.indexOf(student) % 10) * 50}ms` }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleStudent(student.id)}
+                        className="w-5 h-5 rounded border-border-primary accent-primary"
+                      />
+                      <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                        {initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-content-primary truncate">{name}</p>
+                        <p className="text-xs text-content-secondary">ID: {student.admission_number || student.id}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-content-primary truncate">{name}</p>
-                      <p className="text-xs text-content-secondary">ID: {student.admission_number || student.id}</p>
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })
+              )}
             </div>
 
             <div className="p-6 border-t border-border-primary/30 flex justify-end">
