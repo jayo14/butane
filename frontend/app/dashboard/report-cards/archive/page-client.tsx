@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import {
   Archive,
@@ -18,25 +18,14 @@ import {
   ClipboardCheck,
   Settings,
   MessageSquare,
+  Loader2,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
-
-const MOCK_REPORTS = [
-  { id: 1, session: "2024/2025", term: "Second Term", classroom: "JSS 1A", count: 42, generated: "2025-03-15", status: "approved" },
-  { id: 2, session: "2024/2025", term: "Second Term", classroom: "JSS 1B", count: 38, generated: "2025-03-15", status: "approved" },
-  { id: 3, session: "2024/2025", term: "Second Term", classroom: "JSS 2A", count: 45, generated: "2025-03-14", status: "approved" },
-  { id: 4, session: "2024/2025", term: "Second Term", classroom: "JSS 2B", count: 40, generated: "2025-03-14", status: "draft" },
-  { id: 5, session: "2024/2025", term: "Second Term", classroom: "SS 1A", count: 36, generated: "2025-03-13", status: "approved" },
-  { id: 6, session: "2024/2025", term: "Second Term", classroom: "SS 1B", count: 34, generated: "2025-03-13", status: "submitted" },
-  { id: 7, session: "2024/2025", term: "First Term", classroom: "JSS 1A", count: 42, generated: "2024-12-20", status: "approved" },
-  { id: 8, session: "2024/2025", term: "First Term", classroom: "JSS 1B", count: 38, generated: "2024-12-20", status: "approved" },
-  { id: 9, session: "2024/2025", term: "First Term", classroom: "JSS 2A", count: 45, generated: "2024-12-19", status: "approved" },
-  { id: 10, session: "2023/2024", term: "Third Term", classroom: "JSS 1A", count: 41, generated: "2024-07-18", status: "approved" },
-  { id: 11, session: "2023/2024", term: "Third Term", classroom: "SS 1A", count: 35, generated: "2024-07-17", status: "approved" },
-  { id: 12, session: "2023/2024", term: "Second Term", classroom: "JSS 2A", count: 44, generated: "2024-03-22", status: "approved" },
-]
 
 interface ReportCardArchiveClientProps {
   initialTerms: any[]
@@ -47,17 +36,97 @@ export function ReportCardArchiveClient({
   initialTerms,
   initialClassrooms,
 }: ReportCardArchiveClientProps) {
+  const { addToast } = useToast()
+  const [reports, setReports] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
   const [selectedClassroom, setSelectedClassroom] = useState("")
   const [currentPage, setCurrentPage] = useState(1)
-  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [downloading, setDownloading] = useState<string | null>(null)
   const itemsPerPage = 6
 
+  useEffect(() => {
+    setLoading(true)
+    const params: any = { page_size: 100 }
+    if (selectedClassroom) params.classroom = selectedClassroom
+    if (selectedTerm) params.term = selectedTerm
+    api.academics.reportCardsList(params)
+      .then((res) => {
+        const results = (res as any)?.results || res || []
+        setReports(results)
+      })
+      .catch(() => setReports([]))
+      .finally(() => setLoading(false))
+  }, [selectedClassroom, selectedTerm])
+
   const filteredReports = useMemo(() => {
-    let result = MOCK_REPORTS
-    if (selectedTerm) result = result.filter((r) => r.term === selectedTerm)
-    if (selectedClassroom) result = result.filter((r) => r.classroom === selectedClassroom)
+    let result = reports
+    if (search.trim()) {
+      const q = search.toLowerCase()
+      result = result.filter(
+        (r: any) =>
+          r.classroom_name?.toLowerCase().includes(q) ||
+          r.student_name?.toLowerCase().includes(q) ||
+          r.term_name?.toLowerCase().includes(q)
+      )
+    }
+    return result
+  }, [reports, search, selectedTerm, selectedClassroom])
+
+  const totalPages = Math.ceil(filteredReports.length / itemsPerPage)
+  const paginatedReports = filteredReports.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  )
+
+  const toggleSelect = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    if (selected.size === paginatedReports.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(paginatedReports.map((r: any) => r.id)))
+    }
+  }
+
+  const handleDownloadPdf = async (reportId: string) => {
+    setDownloading(reportId)
+    try {
+      const blob = await api.academics.reportCardPdf(reportId)
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = `report-card-${reportId}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+      addToast({ message: "PDF downloaded successfully", variant: "success" })
+    } catch {
+      addToast({ message: "Failed to download PDF", variant: "error" })
+    } finally {
+      setDownloading(null)
+    }
+  }
+
+  const statusIcon = (status: string) => {
+    if (status === "approved") return <CheckCircle size={14} className="text-success" />
+    if (status === "submitted") return <Clock size={14} className="text-warning" />
+    return <Clock size={14} className="text-content-secondary" />
+  }
+
+  const statusLabel = (status: string) => {
+    if (status === "approved") return "Approved"
+    if (status === "submitted") return "Pending"
+    return "Draft"
+  }
     if (search.trim()) {
       const q = search.toLowerCase()
       result = result.filter(
@@ -164,8 +233,21 @@ export function ReportCardArchiveClient({
             )}
           </div>
 
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 size={24} className="animate-spin text-primary" />
+              <span className="ml-3 text-sm text-content-secondary">Loading report cards...</span>
+            </div>
+          ) : paginatedReports.length === 0 ? (
+            <div className="text-center py-12">
+              <Archive size={32} className="text-content-secondary/40 mx-auto mb-3" />
+              <p className="text-sm text-content-secondary">No report cards found. Generate some reports first.</p>
+            </div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {paginatedReports.map((report) => (
+            {paginatedReports.map((report: any) => {
+              const studentName = report.student_name || `${report.student_first_name || ""} ${report.student_last_name || ""}`.trim()
+              return (
               <div
                 key={report.id}
                 className={cn(
@@ -186,22 +268,29 @@ export function ReportCardArchiveClient({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-content-primary truncate">
-                    {report.classroom} &middot; {report.term}
+                    {report.classroom_name || report.classroom} &middot; {studentName || "Class Report"}
                   </p>
                   <p className="text-xs text-content-secondary flex items-center gap-2">
                     <Calendar size={12} />
-                    {report.generated}
+                    {report.created_at ? new Date(report.created_at).toLocaleDateString() : ""}
+                    {report.position ? ` • Position: ${report.position}/${report.class_size}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {statusIcon(report.status)}
-                  <button className="text-content-secondary hover:text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors">
-                    <Download size={16} />
+                  <button
+                    onClick={() => handleDownloadPdf(report.id)}
+                    disabled={downloading === report.id}
+                    className="text-content-secondary hover:text-primary hover:bg-primary/10 p-2 rounded-xl transition-colors"
+                  >
+                    {downloading === report.id ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
                   </button>
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
+          )}
 
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
