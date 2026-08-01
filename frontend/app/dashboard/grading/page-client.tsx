@@ -223,7 +223,7 @@ export function GradingPageClient({
 
             {/* KPI Cards Row */}
             <section className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 hover:shadow-dropdown transition-all duration-300">
                 <div className="linen-texture absolute inset-0"></div>
                 <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Sessions</p>
                 <div className="flex items-baseline gap-2">
@@ -231,7 +231,7 @@ export function GradingPageClient({
                   <span className="text-primary text-xs font-bold">Active</span>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 hover:shadow-dropdown transition-all duration-300">
                 <div className="linen-texture absolute inset-0"></div>
                 <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Classrooms</p>
                 <div className="flex items-baseline gap-2">
@@ -239,7 +239,7 @@ export function GradingPageClient({
                   <span className="text-content-secondary text-xs font-medium">Assigned</span>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 hover:shadow-dropdown transition-all duration-300">
                 <div className="linen-texture absolute inset-0"></div>
                 <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Terms</p>
                 <div className="flex items-baseline gap-2">
@@ -247,7 +247,7 @@ export function GradingPageClient({
                   <span className="text-primary text-xs font-bold">Setup</span>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 hover:shadow-dropdown transition-all duration-300">
                 <div className="linen-texture absolute inset-0"></div>
                 <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Subjects</p>
                 <div className="flex items-baseline gap-2">
@@ -255,7 +255,7 @@ export function GradingPageClient({
                   <span className="text-content-secondary text-xs font-medium">Active</span>
                 </div>
               </div>
-              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 hover:shadow-dropdown transition-all duration-300">
                 <div className="linen-texture absolute inset-0"></div>
                 <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Grade Scales</p>
                 <div className="flex items-baseline gap-2">
