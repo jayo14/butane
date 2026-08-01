@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import {
   BarChart2,
   TrendingUp,
@@ -10,10 +10,12 @@ import {
   Search,
   Users,
   Sliders,
-  BookOpen
+  BookOpen,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { api } from "@/lib/api"
 
 interface AnalyticsPageClientProps {
   classrooms: any[]
@@ -28,34 +30,60 @@ export function AnalyticsPageClient({
 }: AnalyticsPageClientProps) {
   const [selectedClassroom, setSelectedClassroom] = useState(classrooms[0]?.id || "")
   const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || "")
+  const [loading, setLoading] = useState(false)
+  const [broadsheet, setBroadsheet] = useState<any[]>([])
 
   const classroomName = classrooms.find(c => c.id === selectedClassroom)?.name || "SS2A"
   const subjectName = subjects.find(s => s.id === selectedSubject)?.name || "Chemistry"
 
-  // Mock analytics data based on selections
+  // Fetch broadsheet data for selected classroom
+  useEffect(() => {
+    if (!selectedClassroom) return
+    setLoading(true)
+    api.academics.broadsheet({ classroom: selectedClassroom })
+      .then((data: any) => {
+        const results = data?.results || data || []
+        setBroadsheet(Array.isArray(results) ? results : [])
+      })
+      .catch(() => setBroadsheet([]))
+      .finally(() => setLoading(false))
+  }, [selectedClassroom])
+
+  // Calculate analytics from real broadsheet data
   const analyticsData = useMemo(() => {
-    // Generate seeded mock results based on selection hash for stability
-    const seed = (classroomName + subjectName).length
-    const classSize = 25 + (seed % 15)
-    const graded = classSize - (seed % 4)
-    const completionPercent = Math.round((graded / classSize) * 100)
-    const averageScore = 65 + (seed % 20)
-    
-    // Distribution
-    const aCount = Math.round(graded * 0.25)
-    const bCount = Math.round(graded * 0.35)
-    const cCount = Math.round(graded * 0.30)
-    const fCount = graded - (aCount + bCount + cCount)
+    if (broadsheet.length === 0) {
+      return {
+        classSize: 0,
+        graded: 0,
+        completionPercent: 0,
+        averageScore: 0,
+        pendingCount: 0,
+        distribution: { aCount: 0, bCount: 0, cCount: 0, fCount: 0 }
+      }
+    }
+
+    const classSize = broadsheet.length
+    const scored = broadsheet.filter((r: any) => r.average_score > 0 || r.total_score > 0)
+    const graded = scored.length
+    const completionPercent = classSize > 0 ? Math.round((graded / classSize) * 100) : 0
+    const avgScore = graded > 0
+      ? scored.reduce((sum: number, r: any) => sum + (r.average_score || r.total_score || 0), 0) / graded
+      : 0
+
+    const aCount = scored.filter((r: any) => (r.average_score || r.total_score || 0) >= 70).length
+    const bCount = scored.filter((r: any) => { const s = r.average_score || r.total_score || 0; return s >= 60 && s < 70 }).length
+    const cCount = scored.filter((r: any) => { const s = r.average_score || r.total_score || 0; return s >= 50 && s < 60 }).length
+    const fCount = graded - aCount - bCount - cCount
 
     return {
       classSize,
       graded,
       completionPercent,
-      averageScore,
+      averageScore: Math.round(avgScore),
       pendingCount: classSize - graded,
       distribution: { aCount, bCount, cCount, fCount }
     }
-  }, [classroomName, subjectName])
+  }, [broadsheet])
 
   return (
     <div className="min-h-screen text-content-primary p-6 md:p-10">
@@ -65,7 +93,7 @@ export function AnalyticsPageClient({
         <div>
           <h1 className="text-4xl text-primary font-bold tracking-tight">Academic Analytics</h1>
           <p className="text-lg text-content-secondary">
-            Performance analysis and grade distribution insights for {profile?.full_name || "Lead Teacher"}.
+            Performance analysis and grade distribution insights for {classroomName} — {subjectName}.
           </p>
         </div>
         <div className="flex gap-2">
@@ -105,6 +133,13 @@ export function AnalyticsPageClient({
         </div>
       </div>
 
+      {loading ? (
+        <div className="flex items-center justify-center py-20">
+          <Loader2 size={24} className="animate-spin text-primary" />
+          <span className="ml-3 text-content-secondary">Loading analytics data...</span>
+        </div>
+      ) : (
+      <>
       {/* KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <div className="bg-white rounded-3xl p-6 border border-border-primary/20 shadow-sm relative overflow-hidden">
@@ -252,6 +287,8 @@ export function AnalyticsPageClient({
           </div>
         </div>
       </div>
+      </>
+      )}
 
     </div>
   )
