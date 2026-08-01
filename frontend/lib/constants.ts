@@ -5,13 +5,14 @@ export const APP_DESCRIPTION = "CBT Management System"
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Dashboard", href: "/dashboard", icon: "layout-dashboard" },
-  { label: "Score Entry", href: "/dashboard/score-entry", icon: "pen-tool" },
   { label: "Grading", href: "/dashboard/grading", icon: "clipboard-check" },
+  { label: "Assessment Setup", href: "/dashboard/grading/setup-assessment", icon: "settings" },
+  { label: "Score Entry", href: "/dashboard/score-entry", icon: "pen-tool" },
+  { label: "Results", href: "/dashboard/results", icon: "bar-chart-3" },
   { label: "Analytics", href: "/dashboard/analytics", icon: "bar-chart-3" },
   { label: "Students", href: "/dashboard/students", icon: "users", roles: ["admin"] },
   { label: "Subjects", href: "/dashboard/courses", icon: "book-open" },
   { label: "Exams", href: "/dashboard/exams", icon: "clipboard-list" },
-  { label: "Results", href: "/dashboard/results", icon: "bar-chart-3" },
   { label: "Report Cards", href: "/dashboard/report-cards", icon: "file-text" },
   { label: "Behavioural Ratings", href: "/dashboard/behavioural-ratings", icon: "star" },
   { label: "Reports", href: "/dashboard/reports", icon: "file-text" },
