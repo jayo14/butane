@@ -246,96 +246,47 @@ export function ScoreEntryPageClient({
 
   return (
     <>
-      <style jsx global>{`
-        /* Artisanal Canvas Textures & Effects */
-        .canvas-bg {
-          background-color: #fcfbf7;
-          background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
-          background-blend-mode: multiply;
-        }
-
-        .stitched-border {
-          position: relative;
-        }
-        .stitched-border::after {
-          content: '';
-          position: absolute;
-          inset: 4px;
-          border: 1.5px dashed #00422b;
-          border-radius: inherit;
-          pointer-events: none;
-          opacity: 0.3;
-        }
-
-        .recessed-well {
-          box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
-          background: #ffffff;
-        }
-
-        .tactile-card {
-          box-shadow: 0 12px 24px -2px rgba(55, 65, 81, 0.08);
-          border: 1px solid rgba(187, 202, 191, 0.3);
-        }
-
-        .convex-button {
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.4);
-        }
-        
-        .crease-divider {
-          height: 1px;
-          background: linear-gradient(to right, transparent, #bbcabf, transparent);
-          margin: 1.5rem 0;
-          opacity: 0.5;
-        }
-
-        .linen-texture {
-          background-image: url("https://www.transparenttextures.com/patterns/linen.png");
-          opacity: 0.03;
-          pointer-events: none;
-        }
-      `}</style>
-
-      <div className="canvas-bg min-h-screen text-on-surface font-body-md relative overflow-x-hidden p-6 md:p-10">
+      <div className="min-h-screen relative overflow-x-hidden p-6 md:p-10">
 
         {/* Step 1: Selection Form */}
         {step === "select" && (
           <div className="max-w-4xl mx-auto space-y-8 animate-slide-right">
             <div>
-              <h1 className="font-headline-xl text-4xl text-primary font-bold tracking-tight">Score Entry Selection</h1>
-              <p className="text-body-lg text-tertiary max-w-xl">
+              <h1 className="text-4xl text-primary font-bold tracking-tight">Score Entry Selection</h1>
+              <p className="text-content-secondary max-w-xl">
                 Refine your selection to access the digital mark sheet. Ensure all academic contexts are correctly identified.
               </p>
             </div>
 
-            <div className="bg-white rounded-3xl p-8 shadow-sm border border-outline-variant/30 relative">
+            <div className="bg-white rounded-2xl p-8 shadow-card border border-border-primary/60 relative">
               <div className="linen-texture absolute inset-0"></div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
                 {/* Step 1: Academic Context */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary font-bold">
-                    <span className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">1</span>
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">1</span>
                     <span className="text-xs uppercase tracking-wider">Academic Context</span>
                   </div>
                   <div className="space-y-3">
-                    <div className="recessed-input rounded-xl p-4 border border-outline-variant/40">
-                      <label className="text-xs text-outline font-semibold block mb-1">Session</label>
+                    <div className="recessed-well bg-white p-4">
+                      <label className="text-xs text-content-secondary font-semibold block mb-1">Session</label>
                       <select
                         value={selectedSession}
                         onChange={(e) => setSelectedSession(e.target.value)}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-on-surface w-full"
+                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
                         {initialSessions.map((s) => (
                           <option key={s.id} value={s.id}>{s.name} Session</option>
                         ))}
                       </select>
                     </div>
-                    <div className="recessed-input rounded-xl p-4 border border-outline-variant/40">
-                      <label className="text-xs text-outline font-semibold block mb-1">Term</label>
+                    <div className="recessed-well bg-white p-4">
+                      <label className="text-xs text-content-secondary font-semibold block mb-1">Term</label>
                       <select
                         value={selectedTerm}
                         onChange={(e) => setSelectedTerm(e.target.value)}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-on-surface w-full"
+                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
                         {initialTerms.map((t) => (
                           <option key={t.id} value={t.id}>{t.name}</option>
@@ -348,28 +299,28 @@ export function ScoreEntryPageClient({
                 {/* Step 2: Subject & Class */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary font-bold">
-                    <span className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">2</span>
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">2</span>
                     <span className="text-xs uppercase tracking-wider">Subject &amp; Class</span>
                   </div>
                   <div className="space-y-3">
-                    <div className="recessed-input rounded-xl p-4 border border-outline-variant/40">
-                      <label className="text-xs text-outline font-semibold block mb-1">Subject</label>
+                    <div className="recessed-well bg-white p-4">
+                      <label className="text-xs text-content-secondary font-semibold block mb-1">Subject</label>
                       <select
                         value={selectedSubject}
                         onChange={(e) => setSelectedSubject(e.target.value)}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-on-surface w-full"
+                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
                         {initialSubjects.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
                     </div>
-                    <div className="recessed-input rounded-xl p-4 border border-outline-variant/40">
-                      <label className="text-xs text-outline font-semibold block mb-1">Classroom</label>
+                    <div className="recessed-well bg-white p-4">
+                      <label className="text-xs text-content-secondary font-semibold block mb-1">Classroom</label>
                       <select
                         value={selectedClassroom}
                         onChange={(e) => setSelectedClassroom(e.target.value)}
-                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-on-surface w-full"
+                        className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
                         {initialClassrooms.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
@@ -382,7 +333,7 @@ export function ScoreEntryPageClient({
                 {/* Step 3: Assessment Type */}
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 text-primary font-bold">
-                    <span className="w-6 h-6 rounded-full bg-secondary-container flex items-center justify-center text-xs">3</span>
+                    <span className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs">3</span>
                     <span className="text-xs uppercase tracking-wider">Assessment Type</span>
                   </div>
                   <div className="space-y-3">
@@ -391,24 +342,24 @@ export function ScoreEntryPageClient({
                       className={cn(
                         "w-full text-left p-4 rounded-xl border flex items-center justify-between transition-all",
                         assessmentType === "ca"
-                          ? "border-primary bg-secondary-container/20 font-bold"
-                          : "border-outline-variant bg-surface-container-low"
+                          ? "border-primary bg-primary/10 font-bold"
+                          : "border-border-primary/60 bg-surface-secondary"
                       )}
                     >
                       <span className="text-sm">Continuous Assessment</span>
-                      <CheckCircle size={16} className={assessmentType === "ca" ? "text-primary" : "text-outline/40"} />
+                      <CheckCircle size={16} className={assessmentType === "ca" ? "text-primary" : "text-content-secondary/40"} />
                     </button>
                     <button
                       onClick={() => setAssessmentType("exam")}
                       className={cn(
                         "w-full text-left p-4 rounded-xl border flex items-center justify-between transition-all",
                         assessmentType === "exam"
-                          ? "border-primary bg-secondary-container/20 font-bold"
-                          : "border-outline-variant bg-surface-container-low"
+                          ? "border-primary bg-primary/10 font-bold"
+                          : "border-border-primary/60 bg-surface-secondary"
                       )}
                     >
                       <span className="text-sm">Examination</span>
-                      <CheckCircle size={16} className={assessmentType === "exam" ? "text-primary" : "text-outline/40"} />
+                      <CheckCircle size={16} className={assessmentType === "exam" ? "text-primary" : "text-content-secondary/40"} />
                     </button>
                   </div>
                 </div>
@@ -418,38 +369,38 @@ export function ScoreEntryPageClient({
 
               {/* Feedback stats panel */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
-                <div className="flex items-center gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
+                <div className="flex items-center gap-4 bg-surface-secondary p-5 rounded-2xl border border-border-primary/30 shadow-card">
                   <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-primary shadow-sm">
                     <Users size={24} />
                   </div>
                   <div>
-                    <p className="text-xl font-bold text-on-surface">{students.length} Students</p>
-                    <p className="text-xs text-outline font-semibold">Registered for {currentSubjectName}</p>
+                    <p className="text-xl font-bold text-content-primary">{students.length} Students</p>
+                    <p className="text-xs text-content-secondary font-semibold">Registered for {currentSubjectName}</p>
                   </div>
                 </div>
 
-                <div className="bg-surface-container-low p-5 rounded-2xl border border-outline-variant/20 shadow-sm flex flex-col justify-center">
+                <div className="bg-surface-secondary p-5 rounded-2xl border border-border-primary/30 shadow-card flex flex-col justify-center">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs font-bold text-on-surface">Completion: {stats.completionPercent}%</span>
+                    <span className="text-xs font-bold text-content-primary">Completion: {stats.completionPercent}%</span>
                     <span className="text-xs text-primary font-bold">
                       {stats.gradedCount}/{stats.totalPossible} Done
                     </span>
                   </div>
-                  <div className="w-full h-3 bg-surface-variant rounded-full overflow-hidden recessed-input">
+                  <div className="w-full h-3 bg-surface-secondary rounded-full overflow-hidden recessed-well">
                     <div
-                      className="h-full bg-primary-container transition-all duration-1000"
+                      className="h-full bg-primary transition-all duration-1000"
                       style={{ width: `${stats.completionPercent}%` }}
                     ></div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4 bg-surface-container-low p-5 rounded-2xl border border-outline-variant/20 shadow-sm">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-on-surface-variant shadow-sm">
+                <div className="flex items-center gap-4 bg-surface-secondary p-5 rounded-2xl border border-border-primary/30 shadow-card">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-content-secondary shadow-sm">
                     <Clock size={24} />
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-on-surface">Last Edited</p>
-                    <p className="text-xs text-on-surface-variant">Today</p>
+                    <p className="text-sm font-bold text-content-primary">Last Edited</p>
+                    <p className="text-xs text-content-secondary">Today</p>
                   </div>
                 </div>
               </div>
@@ -457,7 +408,7 @@ export function ScoreEntryPageClient({
               <div className="mt-8 flex justify-center relative z-10">
                 <Button
                   onClick={() => setStep("mark_sheet")}
-                  className="group bg-primary text-on-primary px-10 py-6 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3 stitched-border"
+                  className="group bg-primary text-primary-foreground px-10 py-6 rounded-full font-bold text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 active:translate-y-0 transition-all flex items-center gap-3"
                 >
                   <LockKeyhole size={20} className="group-hover:rotate-12 transition-transform" />
                   <span>Open Mark Sheet</span>
@@ -478,10 +429,10 @@ export function ScoreEntryPageClient({
                 >
                   <ArrowLeft size={14} /> Back to Selection
                 </button>
-                <h2 className="font-headline-xl text-3xl text-primary font-bold">
+                <h2 className="text-3xl text-primary font-bold">
                   Mark Sheet &mdash; {currentSubjectName} ({currentClassroomName})
                 </h2>
-                <p className="text-xs text-tertiary">
+                <p className="text-xs text-content-secondary">
                   Enter student marks for each designated assessment component. Weight total is 100 max.
                 </p>
               </div>
@@ -489,14 +440,15 @@ export function ScoreEntryPageClient({
                 <Button
                   onClick={handleSaveProgress}
                   disabled={loading}
-                  className="bg-white text-primary border border-primary/20 hover:bg-primary-container/10 rounded-full px-5 flex items-center gap-1.5"
+                  variant="outline"
+                  className="rounded-full px-5 flex items-center gap-1.5"
                 >
                   {loading ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
                   Save Progress
                 </Button>
                 <Button
                   onClick={() => setStep("review")}
-                  className="bg-primary text-on-primary rounded-full px-6 stitched-border hover:brightness-110 flex items-center gap-1.5"
+                  className="bg-primary text-primary-foreground rounded-full px-6 hover:brightness-110 flex items-center gap-1.5"
                 >
                   Review & Lock <ArrowRight size={14} />
                 </Button>
@@ -504,18 +456,18 @@ export function ScoreEntryPageClient({
             </div>
 
             {/* Score grid table */}
-            <div className="bg-white rounded-3xl border border-outline-variant/30 shadow-sm overflow-hidden relative">
+            <div className="bg-white rounded-2xl border border-border-primary/60 shadow-card overflow-hidden relative">
               <div className="linen-texture absolute inset-0"></div>
               <div className="overflow-x-auto relative z-10">
                 <table className="w-full text-left">
-                  <thead className="bg-surface-container-low text-xs font-bold text-outline uppercase tracking-wider border-b border-outline-variant/10">
+                  <thead className="bg-surface-secondary text-xs font-bold text-content-secondary uppercase tracking-wider border-b border-border-primary/30">
                     <tr>
                       <th className="px-6 py-4">Student</th>
                       <th className="px-6 py-4">ID</th>
                       {components.map((c) => (
                         <th key={c.id} className="px-6 py-4">
                           {c.name}
-                          <span className="block text-[10px] text-outline-variant font-semibold">Max Score: {c.max_score}</span>
+                          <span className="block text-[10px] text-content-secondary font-semibold">Max Score: {c.max_score}</span>
                         </th>
                       ))}
                       <th className="px-6 py-4 text-center">Total (100)</th>
@@ -523,7 +475,7 @@ export function ScoreEntryPageClient({
                       <th className="px-6 py-4">Remarks</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant/10">
+                  <tbody className="divide-y divide-border-primary/30">
                     {students.map((s) => {
                       const studentScores = scores[s.id] || {}
                       let total = 0
@@ -539,30 +491,30 @@ export function ScoreEntryPageClient({
                       const { grade, remark } = calculateGradeAndRemark(total)
 
                       return (
-                        <tr key={s.id} className="hover:bg-surface-bright/30 transition-colors">
-                          <td className="px-6 py-4 font-bold text-sm text-on-surface">{s.name}</td>
-                          <td className="px-6 py-4 text-xs font-semibold text-outline">{s.student_id}</td>
+                        <tr key={s.id} className="hover:bg-surface-secondary/50 transition-colors">
+                          <td className="px-6 py-4 font-bold text-sm text-content-primary">{s.name}</td>
+                          <td className="px-6 py-4 text-xs font-semibold text-content-secondary">{s.student_id}</td>
                           {components.map((c) => (
                             <td key={c.id} className="px-6 py-3 w-36">
-                              <div className="recessed-input rounded-xl border border-outline-variant/40 focus-within:border-primary flex items-center px-3 py-1">
+                              <div className="recessed-well bg-white flex items-center px-3 py-1">
                                 <input
                                   type="number"
                                   min="0"
                                   max={c.max_score}
                                   value={studentScores[c.id] ?? ""}
                                   onChange={(e) => handleScoreChange(s.id, c.id, e.target.value)}
-                                  className="w-full bg-transparent border-none p-1 text-sm font-bold text-on-surface text-center outline-none focus:ring-0"
+                                  className="w-full bg-transparent border-none p-1 text-sm font-bold text-content-primary text-center outline-none focus:ring-0"
                                   placeholder="&mdash;"
                                 />
                               </div>
                             </td>
                           ))}
                           <td className="px-6 py-4 text-center font-bold text-sm text-primary">
-                            {isComplete ? total : <span className="text-outline font-semibold text-xs">Pending</span>}
+                            {isComplete ? total : <span className="text-content-secondary font-semibold text-xs">Pending</span>}
                           </td>
                           <td className="px-6 py-4 text-center">
                             {isComplete ? (
-                              <span className="w-8 h-8 rounded-full bg-primary-container text-on-primary-container text-xs font-bold flex items-center justify-center mx-auto shadow-inner">
+                              <span className="w-8 h-8 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center mx-auto">
                                 {grade}
                               </span>
                             ) : (
@@ -573,9 +525,9 @@ export function ScoreEntryPageClient({
                             {isComplete ? (
                               <span className={cn(
                                 "px-2 py-1 rounded-full text-[10px] font-bold uppercase",
-                                remark === "DISTINCTION" && "bg-secondary-container text-on-secondary-container",
-                                remark === "VERY GOOD" && "bg-primary-container/20 text-primary",
-                                remark === "FAIL" && "bg-error-container text-on-error-container"
+                                remark === "DISTINCTION" && "bg-primary/10 text-primary",
+                                remark === "VERY GOOD" && "bg-primary/10 text-primary",
+                                remark === "FAIL" && "bg-danger-light text-danger"
                               )}>
                                 {remark}
                               </span>
@@ -603,76 +555,76 @@ export function ScoreEntryPageClient({
               >
                 <ArrowLeft size={14} /> Back to Mark Sheet
               </button>
-              <h1 className="font-headline-xl text-4xl text-primary font-bold tracking-tight">Final Review & Completion</h1>
-              <p className="text-body-lg text-tertiary">
+              <h1 className="text-4xl text-primary font-bold tracking-tight">Final Review & Completion</h1>
+              <p className="text-content-secondary">
                 Verify the grading analytics, class performance levels, and check warning statuses before locking.
               </p>
             </div>
 
             {/* KPI Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card relative overflow-hidden">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-xs font-bold text-outline uppercase mb-4">Completion Status</p>
+                <p className="text-xs font-bold text-content-secondary uppercase mb-4">Completion Status</p>
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-3xl font-bold text-on-background">
+                    <span className="text-3xl font-bold text-content-primary">
                       {stats.gradedCount} / {stats.totalPossible}
                     </span>
-                    <p className="text-xs text-outline mt-1 font-semibold">Students Graded</p>
+                    <p className="text-xs text-content-secondary mt-1 font-semibold">Students Graded</p>
                   </div>
-                  <div className="relative w-16 h-16 bg-primary-container/10 rounded-full flex items-center justify-center text-primary font-bold text-sm border border-primary/20 shadow-inner">
+                  <div className="relative w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary font-bold text-sm border border-primary/20">
                     {stats.completionPercent}%
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card relative overflow-hidden">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-xs font-bold text-outline uppercase mb-4">Missing Scores</p>
+                <p className="text-xs font-bold text-content-secondary uppercase mb-4">Missing Scores</p>
                 <div className="flex items-center gap-4">
                   <div className={cn(
                     "w-12 h-12 rounded-full flex items-center justify-center",
-                    stats.pendingCount > 0 ? "bg-error-container text-error" : "bg-secondary-container text-secondary"
+                    stats.pendingCount > 0 ? "bg-danger-light text-danger" : "bg-primary/10 text-primary"
                   )}>
                     <AlertTriangle size={24} />
                   </div>
                   <div>
-                    <span className={cn("text-3xl font-bold", stats.pendingCount > 0 ? "text-error" : "text-secondary")}>
+                    <span className={cn("text-3xl font-bold", stats.pendingCount > 0 ? "text-danger" : "text-primary")}>
                       {stats.pendingCount}
                     </span>
-                    <p className="text-xs text-outline mt-1 font-semibold">Students Pending</p>
+                    <p className="text-xs text-content-secondary mt-1 font-semibold">Students Pending</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card relative overflow-hidden">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-xs font-bold text-outline uppercase mb-4">Validation Status</p>
+                <p className="text-xs font-bold text-content-secondary uppercase mb-4">Validation Status</p>
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-secondary shadow-sm">
+                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                     <CheckCircle size={24} />
                   </div>
                   <div>
-                    <span className="text-3xl font-bold text-secondary">0</span>
-                    <p className="text-xs text-outline mt-1 font-semibold">Invalid Entries</p>
+                    <span className="text-3xl font-bold text-primary">0</span>
+                    <p className="text-xs text-content-secondary mt-1 font-semibold">Invalid Entries</p>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl p-6 border border-outline-variant/20 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card relative overflow-hidden">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-xs font-bold text-outline uppercase mb-4">Class Performance</p>
+                <p className="text-xs font-bold text-content-secondary uppercase mb-4">Class Performance</p>
                 <div className="space-y-1">
                   <div className="flex justify-between text-xs font-bold">
-                    <span className="text-outline">Average</span>
+                    <span className="text-content-secondary">Average</span>
                     <span className="text-primary">{stats.averageScore}%</span>
                   </div>
-                  <div className="flex justify-between text-[10px] text-outline font-semibold">
+                  <div className="flex justify-between text-[10px] text-content-secondary font-semibold">
                     <span>Range</span>
                     <span>42% &mdash; 96%</span>
                   </div>
-                  <div className="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden mt-2">
+                  <div className="w-full bg-surface-secondary h-1.5 rounded-full overflow-hidden mt-2">
                     <div className="bg-primary h-full" style={{ width: `${stats.averageScore}%` }}></div>
                   </div>
                 </div>
@@ -683,10 +635,10 @@ export function ScoreEntryPageClient({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-headline-md text-xl text-primary font-bold flex items-center gap-2">
-                    <AlertTriangle className="text-error" /> Unfinished Business
+                  <h2 className="text-xl text-primary font-bold flex items-center gap-2">
+                    <AlertTriangle className="text-danger" /> Unfinished Business
                   </h2>
-                  <span className="px-3 py-1 rounded-full bg-error-container text-error text-[10px] font-bold uppercase tracking-wider">
+                  <span className="px-3 py-1 rounded-full bg-danger-light text-danger text-[10px] font-bold uppercase tracking-wider">
                     Action Required
                   </span>
                 </div>
@@ -696,83 +648,84 @@ export function ScoreEntryPageClient({
                     const studScores = scores[s.id] || {}
                     return components.some(c => studScores[c.id] === "" || studScores[c.id] === undefined)
                   }).map(s => (
-                    <div key={s.id} className="bg-white rounded-2xl p-4 flex items-center justify-between border border-outline-variant/30 shadow-sm">
+                    <div key={s.id} className="bg-white rounded-2xl p-4 flex items-center justify-between border border-border-primary/60 shadow-card">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center font-bold text-outline">
+                        <div className="w-10 h-10 rounded-full bg-surface-secondary flex items-center justify-center font-bold text-content-secondary">
                           {s.name.substring(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <h4 className="font-bold text-sm text-on-surface">{s.name}</h4>
-                          <p className="text-xs text-outline">{s.student_id}</p>
+                          <h4 className="font-bold text-sm text-content-primary">{s.name}</h4>
+                          <p className="text-xs text-content-secondary">{s.student_id}</p>
                         </div>
                       </div>
                       <Button
                         onClick={() => setStep("mark_sheet")}
-                        className="bg-transparent hover:bg-primary-container/10 border border-primary text-primary text-xs font-bold rounded-full px-4 flex items-center gap-1"
+                        variant="outline"
+                        className="text-xs font-bold rounded-full px-4 flex items-center gap-1"
                       >
                         Jump to Entry <ArrowRight size={12} />
                       </Button>
                     </div>
                   ))}
                   {stats.pendingCount === 0 && (
-                    <div className="bg-secondary-container/10 border border-secondary/20 rounded-2xl p-6 text-center text-secondary">
+                    <div className="bg-primary/5 border border-primary/20 rounded-2xl p-6 text-center text-primary">
                       <Check className="mx-auto mb-2" size={32} />
                       <p className="font-bold text-sm">All student grades have been entered successfully!</p>
                     </div>
                   )}
                 </div>
 
-                <div className="bg-surface-container p-6 rounded-2xl border-l-4 border-primary text-xs italic text-on-surface-variant leading-relaxed">
+                <div className="bg-surface-secondary p-6 rounded-2xl border-l-4 border-primary text-xs italic text-content-secondary leading-relaxed">
                   &ldquo;Please ensure all absences are correctly coded (e.g. leave blanks for absent or handle according to school policy) before locking. Once locked, modifications require department head approval.&rdquo;
                 </div>
               </div>
 
               {/* Score Distribution bar chart */}
               <div className="space-y-6">
-                <h2 className="font-headline-md text-xl text-primary font-bold flex items-center gap-2">
+                <h2 className="text-xl text-primary font-bold flex items-center gap-2">
                   <BarChart2 /> Score Distribution
                 </h2>
 
-                <div className="bg-white rounded-3xl p-6 border border-outline-variant/30 shadow-sm relative overflow-hidden">
+                <div className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card relative overflow-hidden">
                   <div className="linen-texture absolute inset-0"></div>
                   <div className="flex flex-col gap-5 relative z-10">
                     <div className="space-y-1">
                       <div className="flex justify-between items-end text-xs font-semibold">
                         <span className="font-bold text-primary">Grade A (75-100)</span>
-                        <span className="text-outline">{gradeDistribution.aCount} Students</span>
+                        <span className="text-content-secondary">{gradeDistribution.aCount} Students</span>
                       </div>
-                      <div className="h-6 w-full bg-surface-variant rounded-lg overflow-hidden flex items-center px-1 shadow-inner">
-                        <div className="h-4 bg-primary rounded-md shadow-sm transition-all duration-1000" style={{ width: `${(gradeDistribution.aCount / students.length) * 100}%` }}></div>
+                      <div className="h-6 w-full bg-surface-secondary rounded-lg overflow-hidden flex items-center px-1">
+                        <div className="h-4 bg-primary rounded-md transition-all duration-1000" style={{ width: `${(gradeDistribution.aCount / students.length) * 100}%` }}></div>
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex justify-between items-end text-xs font-semibold">
                         <span className="font-bold text-primary">Grade B (65-74)</span>
-                        <span className="text-outline">{gradeDistribution.bCount} Students</span>
+                        <span className="text-content-secondary">{gradeDistribution.bCount} Students</span>
                       </div>
-                      <div className="h-6 w-full bg-surface-variant rounded-lg overflow-hidden flex items-center px-1 shadow-inner">
-                        <div className="h-4 bg-primary rounded-md shadow-sm transition-all duration-1000" style={{ width: `${(gradeDistribution.bCount / students.length) * 100}%` }}></div>
+                      <div className="h-6 w-full bg-surface-secondary rounded-lg overflow-hidden flex items-center px-1">
+                        <div className="h-4 bg-primary rounded-md transition-all duration-1000" style={{ width: `${(gradeDistribution.bCount / students.length) * 100}%` }}></div>
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex justify-between items-end text-xs font-semibold">
                         <span className="font-bold text-primary">Grade C (50-64)</span>
-                        <span className="text-outline">{gradeDistribution.cCount} Students</span>
+                        <span className="text-content-secondary">{gradeDistribution.cCount} Students</span>
                       </div>
-                      <div className="h-6 w-full bg-surface-variant rounded-lg overflow-hidden flex items-center px-1 shadow-inner">
-                        <div className="h-4 bg-primary rounded-md shadow-sm transition-all duration-1000" style={{ width: `${(gradeDistribution.cCount / students.length) * 100}%` }}></div>
+                      <div className="h-6 w-full bg-surface-secondary rounded-lg overflow-hidden flex items-center px-1">
+                        <div className="h-4 bg-primary rounded-md transition-all duration-1000" style={{ width: `${(gradeDistribution.cCount / students.length) * 100}%` }}></div>
                       </div>
                     </div>
 
                     <div className="space-y-1">
                       <div className="flex justify-between items-end text-xs font-semibold">
-                        <span className="font-bold text-error">Grade F (Below 50)</span>
-                        <span className="text-outline">{gradeDistribution.fCount} Students</span>
+                        <span className="font-bold text-danger">Grade F (Below 50)</span>
+                        <span className="text-content-secondary">{gradeDistribution.fCount} Students</span>
                       </div>
-                      <div className="h-6 w-full bg-surface-variant rounded-lg overflow-hidden flex items-center px-1 shadow-inner">
-                        <div className="h-4 bg-error rounded-md shadow-sm transition-all duration-1000" style={{ width: `${(gradeDistribution.fCount / students.length) * 100}%` }}></div>
+                      <div className="h-6 w-full bg-surface-secondary rounded-lg overflow-hidden flex items-center px-1">
+                        <div className="h-4 bg-danger rounded-md transition-all duration-1000" style={{ width: `${(gradeDistribution.fCount / students.length) * 100}%` }}></div>
                       </div>
                     </div>
                   </div>
@@ -784,9 +737,9 @@ export function ScoreEntryPageClient({
 
         {/* Floating action bar for locking & finalizing */}
         {step !== "select" && (
-          <footer className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.05)] py-5 px-6 md:px-10 border-t border-surface-container">
+          <footer className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md shadow-[0_-4px_20px_rgba(0,0,0,0.05)] py-5 px-6 md:px-10 border-t border-border-primary/60">
             <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-outline text-xs font-semibold">
+              <div className="flex items-center gap-3 text-content-secondary text-xs font-semibold">
                 <Info size={16} />
                 <span>
                   {currentSubjectName} &mdash; {currentClassroomName} | Term boundary locks scores permanently.
@@ -795,21 +748,22 @@ export function ScoreEntryPageClient({
               <div className="flex items-center gap-3 w-full sm:w-auto">
                 <Button
                   onClick={() => setStep(step === "review" ? "mark_sheet" : "select")}
-                  className="flex-1 sm:flex-none px-6 py-2.5 rounded-full border-2 border-outline-variant text-on-surface-variant bg-white font-bold text-xs hover:bg-surface-variant"
+                  variant="outline"
+                  className="flex-1 sm:flex-none px-6 py-2.5 rounded-full font-bold text-xs"
                 >
                   {step === "review" ? "Back to Mark Sheet" : "Cancel"}
                 </Button>
                 {step === "mark_sheet" ? (
                   <Button
                     onClick={() => setStep("review")}
-                    className="flex-1 sm:flex-none bg-primary text-on-primary px-8 py-2.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110 stitched-border"
+                    className="flex-1 sm:flex-none bg-primary text-primary-foreground px-8 py-2.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110"
                   >
                     Go to Finalize Review
                   </Button>
                 ) : (
                   <Button
                     onClick={handleFinalizeLock}
-                    className="flex-1 sm:flex-none bg-primary-container text-white px-8 py-2.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110 stitched-border flex items-center justify-center gap-1"
+                    className="flex-1 sm:flex-none bg-primary text-primary-foreground px-8 py-2.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110 flex items-center justify-center gap-1"
                   >
                     <Lock size={14} /> Finalize &amp; Lock Scores
                   </Button>
