@@ -155,7 +155,7 @@ export function ResultsPageClient() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1) }}
               placeholder="Search by exam title, course, or ID..."
-              className="h-10 w-full rounded-xl border border-border-primary bg-white pl-10 pr-4 text-sm text-content-primary placeholder:text-content-secondary transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+              className="h-10 w-full recessed-well bg-white pl-10 pr-4 text-sm text-content-primary placeholder:text-content-secondary transition-all duration-200 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             {search && (
               <button
@@ -313,7 +313,7 @@ export function ResultsPageClient() {
                           setSelectedIds(next)
                         }
                       }}
-                      className="size-4 rounded border-border-primary accent-[#006c49]"
+                      className="size-4 rounded border-border-primary accent-primary"
                     />
                   </th>
                   <th className="px-4 py-3 md:px-6">Student</th>
@@ -347,7 +347,7 @@ export function ResultsPageClient() {
                             else next.add(attempt.id)
                             setSelectedIds(next)
                           }}
-                          className="size-4 rounded border-border-primary accent-[#006c49]"
+                          className="size-4 rounded border-border-primary accent-primary"
                         />
                       </td>
                       <td className="px-4 py-3.5 md:px-6">
@@ -447,7 +447,7 @@ export function ResultsPageClient() {
       {/* Delete confirmation dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-border-primary bg-white p-6 shadow-xl">
+          <div className="w-full max-w-sm rounded-2xl border border-border-primary bg-white p-6 shadow-modal">
             <h3 className="mb-2 text-lg font-bold text-content-primary">Delete Results?</h3>
             <p className="mb-6 text-sm text-content-secondary">
               This will permanently delete {selectedIds.size} result{selectedIds.size > 1 ? "s" : ""}.
