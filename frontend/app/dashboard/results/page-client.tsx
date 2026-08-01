@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   Search,
   X,
@@ -13,6 +14,7 @@ import {
   Loader2,
   MoreHorizontal,
   Trash2,
+  BarChart2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
@@ -139,11 +141,20 @@ export function ResultsPageClient() {
 
   return (
     <Container>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-content-primary">Results</h1>
-        <p className="mt-1 text-content-secondary">
-          View all exam attempts and scores across students
-        </p>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-content-primary">Results</h1>
+          <p className="mt-1 text-content-secondary">
+            View all exam attempts and scores across students
+          </p>
+        </div>
+        <Link
+          href="/dashboard/analytics"
+          className="inline-flex items-center gap-2 text-sm font-bold text-primary hover:underline"
+        >
+          <BarChart2 size={16} />
+          View Analytics
+        </Link>
       </div>
 
       <div className="mb-6 space-y-3">
