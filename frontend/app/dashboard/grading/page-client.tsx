@@ -663,12 +663,12 @@ export function GradingPageClient({
           <div className="space-y-6 animate-slide-right">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="font-headline-lg text-2xl text-primary font-bold">Academic Subjects</h3>
-                <p className="text-sm text-tertiary">Group core subjects under their respective categories.</p>
+                <h3 className="text-2xl text-primary font-bold">Academic Subjects</h3>
+                <p className="text-sm text-content-secondary">Group core subjects under their respective categories.</p>
               </div>
               <Button
                 onClick={() => setShowSubjectModal(true)}
-                className="bg-primary text-on-primary rounded-full px-5 stitched-border hover:brightness-110 active:scale-95 transition-all"
+                className="bg-primary text-primary-foreground rounded-full px-5 hover:brightness-110 active:scale-95 transition-all"
               >
                 <Plus size={16} className="mr-1" /> Add New Subject
               </Button>
@@ -676,22 +676,22 @@ export function GradingPageClient({
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Category: Science */}
-              <div className="space-y-4 bg-white/40 p-6 rounded-3xl border border-outline-variant/20 shadow-sm">
-                <div className="flex items-center gap-3 border-b border-outline-variant pb-3 mb-2">
+              <div className="space-y-4 bg-white/40 p-6 rounded-2xl border border-border-primary/30 shadow-card">
+                <div className="flex items-center gap-3 border-b border-border-primary pb-3 mb-2">
                   <span className="material-symbols-outlined text-primary text-2xl">science</span>
-                  <h3 className="font-headline-md text-lg text-on-surface font-bold">Sciences</h3>
+                  <h3 className="text-lg text-content-primary font-bold">Sciences</h3>
                 </div>
                 <div className="space-y-3">
                   {subjects.filter(s => s.code?.toLowerCase().includes("sci") || ["chemistry", "physics", "biology", "mathematics"].includes(s.name.toLowerCase())).map(s => (
-                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 flex items-center gap-4 group hover:shadow-md transition-all">
-                      <div className="w-10 h-10 rounded-full bg-primary-container/20 flex items-center justify-center text-primary shadow-inner">
+                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-card border border-border-primary/20 flex items-center gap-4 group hover:shadow-dropdown transition-all">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <BookOpen size={16} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-on-surface">{s.name}</p>
-                        <p className="text-[10px] text-outline font-semibold uppercase">{s.code || "Core Subject"}</p>
+                        <p className="font-bold text-sm text-content-primary">{s.name}</p>
+                        <p className="text-[10px] text-content-secondary font-semibold uppercase">{s.code || "Core Subject"}</p>
                       </div>
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-outline hover:text-primary">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-content-secondary hover:text-primary">
                         <Sliders size={14} />
                       </button>
                     </div>
@@ -700,22 +700,22 @@ export function GradingPageClient({
               </div>
 
               {/* Category: Arts */}
-              <div className="space-y-4 bg-white/40 p-6 rounded-3xl border border-outline-variant/20 shadow-sm">
-                <div className="flex items-center gap-3 border-b border-outline-variant pb-3 mb-2">
-                  <span className="material-symbols-outlined text-secondary text-2xl">palette</span>
-                  <h3 className="font-headline-md text-lg text-on-surface font-bold">Arts & Humanities</h3>
+              <div className="space-y-4 bg-white/40 p-6 rounded-2xl border border-border-primary/30 shadow-card">
+                <div className="flex items-center gap-3 border-b border-border-primary pb-3 mb-2">
+                  <span className="material-symbols-outlined text-primary text-2xl">palette</span>
+                  <h3 className="text-lg text-content-primary font-bold">Arts & Humanities</h3>
                 </div>
                 <div className="space-y-3">
                   {subjects.filter(s => s.code?.toLowerCase().includes("art") || ["english literature", "history", "geography"].includes(s.name.toLowerCase())).map(s => (
-                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 flex items-center gap-4 group hover:shadow-md transition-all">
-                      <div className="w-10 h-10 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary shadow-inner">
+                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-card border border-border-primary/20 flex items-center gap-4 group hover:shadow-dropdown transition-all">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <BookOpen size={16} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-on-surface">{s.name}</p>
-                        <p className="text-[10px] text-outline font-semibold uppercase">{s.code || "Humanity"}</p>
+                        <p className="font-bold text-sm text-content-primary">{s.name}</p>
+                        <p className="text-[10px] text-content-secondary font-semibold uppercase">{s.code || "Humanity"}</p>
                       </div>
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-outline hover:text-primary">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-content-secondary hover:text-primary">
                         <Sliders size={14} />
                       </button>
                     </div>
@@ -724,22 +724,22 @@ export function GradingPageClient({
               </div>
 
               {/* Category: General / Commercial */}
-              <div className="space-y-4 bg-white/40 p-6 rounded-3xl border border-outline-variant/20 shadow-sm">
-                <div className="flex items-center gap-3 border-b border-outline-variant pb-3 mb-2">
-                  <span className="material-symbols-outlined text-tertiary text-2xl">payments</span>
-                  <h3 className="font-headline-md text-lg text-on-surface font-bold">Commercial & General</h3>
+              <div className="space-y-4 bg-white/40 p-6 rounded-2xl border border-border-primary/30 shadow-card">
+                <div className="flex items-center gap-3 border-b border-border-primary pb-3 mb-2">
+                  <span className="material-symbols-outlined text-primary text-2xl">payments</span>
+                  <h3 className="text-lg text-content-primary font-bold">Commercial & General</h3>
                 </div>
                 <div className="space-y-3">
                   {subjects.filter(s => !s.code?.toLowerCase().includes("sci") && !s.code?.toLowerCase().includes("art") && !["chemistry", "physics", "biology", "mathematics", "english literature", "history", "geography"].includes(s.name.toLowerCase())).map(s => (
-                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-sm border border-outline-variant/10 flex items-center gap-4 group hover:shadow-md transition-all">
-                      <div className="w-10 h-10 rounded-full bg-tertiary-container/20 flex items-center justify-center text-tertiary shadow-inner">
+                    <div key={s.id} className="bg-white p-4 rounded-2xl shadow-card border border-border-primary/20 flex items-center gap-4 group hover:shadow-dropdown transition-all">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <BookOpen size={16} />
                       </div>
                       <div className="flex-1">
-                        <p className="font-bold text-sm text-on-surface">{s.name}</p>
-                        <p className="text-[10px] text-outline font-semibold uppercase">{s.code || "Elective"}</p>
+                        <p className="font-bold text-sm text-content-primary">{s.name}</p>
+                        <p className="text-[10px] text-content-secondary font-semibold uppercase">{s.code || "Elective"}</p>
                       </div>
-                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-outline hover:text-primary">
+                      <button className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-content-secondary hover:text-primary">
                         <Sliders size={14} />
                       </button>
                     </div>
@@ -1016,49 +1016,50 @@ export function GradingPageClient({
         {/* Modal: Add Subject */}
         {showSubjectModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-outline-variant/30">
-              <h3 className="font-headline-md text-2xl font-bold text-primary mb-4">Add Subject</h3>
+            <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-modal relative border border-border-primary/60">
+              <h3 className="text-2xl font-bold text-primary mb-4">Add Subject</h3>
               <form onSubmit={handleAddSubject} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Subject Name</label>
+                  <label className="text-xs font-bold text-content-secondary">Subject Name</label>
                   <input
                     value={subjectForm.name}
                     onChange={(e) => setSubjectForm({ ...subjectForm, name: e.target.value })}
                     required
                     placeholder="e.g. Chemistry"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Subject Code</label>
+                  <label className="text-xs font-bold text-content-secondary">Subject Code</label>
                   <input
                     value={subjectForm.code}
                     onChange={(e) => setSubjectForm({ ...subjectForm, code: e.target.value })}
                     required
                     placeholder="e.g. CHEM"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Description (Optional)</label>
+                  <label className="text-xs font-bold text-content-secondary">Description (Optional)</label>
                   <textarea
                     value={subjectForm.description}
                     onChange={(e) => setSubjectForm({ ...subjectForm, description: e.target.value })}
                     placeholder="Brief description of course modules..."
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     onClick={() => setShowSubjectModal(false)}
-                    className="rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest px-5"
+                    variant="outline"
+                    className="rounded-full px-5"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-primary text-on-primary rounded-full px-6 stitched-border hover:brightness-110"
+                    className="bg-primary text-primary-foreground rounded-full px-6 hover:brightness-110"
                   >
                     Save Subject
                   </Button>
