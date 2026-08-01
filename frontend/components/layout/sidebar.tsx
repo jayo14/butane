@@ -56,7 +56,7 @@ export function Sidebar() {
   const pathname = usePathname()
   const isMobile = useIsMobile()
   const { isOpen, onToggle, onClose } = useDisclosure(false)
-  const { collapsed } = useSidebar()
+  const { collapsed, toggle } = useSidebar()
   const { user } = useAuth()
 
   const visibleItems = useMemo(
@@ -73,6 +73,16 @@ export function Sidebar() {
         {!collapsed && (
           <>
             <span className="text-base font-semibold text-content-primary">{APP_NAME}</span>
+            {!isMobile && (
+              <button
+                type="button"
+                onClick={toggle}
+                className="ml-auto flex size-8 items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+                aria-label="Toggle sidebar"
+              >
+                <PanelLeftClose size={18} />
+              </button>
+            )}
             {isMobile && (
               <button
                 type="button"
@@ -84,6 +94,16 @@ export function Sidebar() {
               </button>
             )}
           </>
+        )}
+        {collapsed && !isMobile && (
+          <button
+            type="button"
+            onClick={toggle}
+            className="flex size-8 items-center justify-center rounded-lg text-content-muted transition-colors hover:bg-surface-secondary hover:text-content-primary"
+            aria-label="Expand sidebar"
+          >
+            <PanelLeft size={18} />
+          </button>
         )}
       </div>
 
