@@ -560,21 +560,21 @@ export function GradingPageClient({
           <div className="space-y-6 animate-slide-right">
             <div className="flex justify-between items-end mb-6">
               <div>
-                <h3 className="font-headline-lg text-2xl text-primary font-bold">Manage Classrooms</h3>
-                <p className="text-sm text-tertiary">Organize academic arms, departments, and class teachers.</p>
+                <h3 className="text-2xl text-primary font-bold">Manage Classrooms</h3>
+                <p className="text-sm text-content-secondary">Organize academic arms, departments, and class teachers.</p>
               </div>
               <Button
                 onClick={() => setShowClassModal(true)}
-                className="bg-primary text-on-primary rounded-full px-5 stitched-border hover:brightness-110 active:scale-95 transition-all"
+                className="bg-primary text-primary-foreground rounded-full px-5 hover:brightness-110 active:scale-95 transition-all"
               >
                 <Plus size={16} className="mr-1" /> Add New Class
               </Button>
             </div>
 
             {/* Filter Bar */}
-            <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-4 border border-outline-variant/20 shadow-sm">
-              <div className="recessed-well flex-1 min-w-[280px] bg-white rounded-full px-4 py-2 flex items-center gap-2 border border-outline-variant/40">
-                <Search size={18} className="text-outline" />
+            <div className="bg-white rounded-2xl p-4 flex flex-wrap items-center gap-4 border border-border-primary/60 shadow-card">
+              <div className="recessed-well flex-1 min-w-[280px] bg-white rounded-full px-4 py-2 flex items-center gap-2">
+                <Search size={18} className="text-content-secondary" />
                 <input
                   value={classSearch}
                   onChange={(e) => setClassSearch(e.target.value)}
@@ -587,7 +587,7 @@ export function GradingPageClient({
                 <select
                   value={selectedGrade}
                   onChange={(e) => setSelectedGrade(e.target.value)}
-                  className="bg-white rounded-full border-outline-variant/40 text-xs px-4 py-2 hover:border-primary focus:ring-primary transition-all"
+                  className="bg-white rounded-full border-border-primary/60 text-xs px-4 py-2 hover:border-primary focus:ring-primary transition-all"
                 >
                   <option>All Grade Levels</option>
                   <option>Junior Secondary</option>
@@ -596,7 +596,7 @@ export function GradingPageClient({
                 <select
                   value={selectedDept}
                   onChange={(e) => setSelectedDept(e.target.value)}
-                  className="bg-white rounded-full border-outline-variant/40 text-xs px-4 py-2 hover:border-primary focus:ring-primary transition-all"
+                  className="bg-white rounded-full border-border-primary/60 text-xs px-4 py-2 hover:border-primary focus:ring-primary transition-all"
                 >
                   <option>All Departments</option>
                   <option>Science</option>
@@ -608,47 +608,47 @@ export function GradingPageClient({
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredClassrooms.map((c: any) => (
-                <div key={c.id} className="bg-white rounded-3xl p-6 border border-outline-variant/30 shadow-sm hover:shadow-md transition-all flex flex-col relative group">
+                <div key={c.id} className="bg-white rounded-2xl p-6 border border-border-primary/60 shadow-card hover:shadow-dropdown transition-all flex flex-col relative group">
                   <div className="absolute top-4 right-4">
-                    <span className="bg-primary-container/20 text-on-primary-container text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full">
+                    <span className="bg-primary/10 text-primary text-[10px] uppercase tracking-widest font-bold px-3 py-1 rounded-full">
                       ACTIVE
                     </span>
                   </div>
                   <div className="mb-6">
-                    <h3 className="font-headline-md text-xl text-on-surface font-bold">{c.name}</h3>
-                    <p className="text-xs text-on-surface-variant flex items-center gap-1 mt-1 font-medium">
-                      <Layers size={12} className="text-outline" />
+                    <h3 className="text-xl text-content-primary font-bold">{c.name}</h3>
+                    <p className="text-xs text-content-secondary flex items-center gap-1 mt-1 font-medium">
+                      <Layers size={12} className="text-content-secondary" />
                       Grade Level: {c.grade_level_name || "Senior Secondary"}
                     </p>
                   </div>
 
                   <div className="space-y-4 mb-6">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full border border-primary/20 bg-secondary-container flex items-center justify-center font-bold text-primary shadow-inner">
+                      <div className="w-10 h-10 rounded-full border border-primary/20 bg-primary/10 flex items-center justify-center font-bold text-primary">
                         {c.class_teacher_name ? c.class_teacher_name.substring(0, 2).toUpperCase() : "TR"}
                       </div>
                       <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-tighter">Class Teacher</p>
-                        <p className="text-xs font-bold text-on-surface">{c.class_teacher_name || "Assigned Teacher"}</p>
+                        <p className="text-[10px] font-bold text-content-secondary uppercase tracking-tighter">Class Teacher</p>
+                        <p className="text-xs font-bold text-content-primary">{c.class_teacher_name || "Assigned Teacher"}</p>
                       </div>
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-1 text-xs">
-                        <span className="text-on-surface-variant font-medium">Enrolled Students</span>
-                        <span className="font-bold text-on-surface">28 / 35</span>
+                        <span className="text-content-secondary font-medium">Enrolled Students</span>
+                        <span className="font-bold text-content-primary">28 / 35</span>
                       </div>
-                      <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden shadow-inner">
+                      <div className="w-full h-2 bg-surface-secondary rounded-full overflow-hidden">
                         <div className="h-full bg-primary rounded-full" style={{ width: "80%" }}></div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="mt-auto pt-4 border-t border-outline-variant/20 flex gap-2">
-                    <button className="flex-1 py-2 rounded-full text-xs font-bold bg-surface-container-low text-primary hover:bg-primary hover:text-on-primary transition-all flex items-center justify-center gap-1">
+                  <div className="mt-auto pt-4 border-t border-border-primary/30 flex gap-2">
+                    <button className="flex-1 py-2 rounded-full text-xs font-bold bg-surface-secondary text-primary hover:bg-primary hover:text-primary-foreground transition-all flex items-center justify-center gap-1">
                       <Eye size={12} /> View Details
                     </button>
-                    <button className="p-2 rounded-full text-outline hover:text-danger hover:bg-danger-light/10 transition-colors">
+                    <button className="p-2 rounded-full text-content-secondary hover:text-danger hover:bg-danger-light/10 transition-colors">
                       <Trash2 size={14} />
                     </button>
                   </div>
@@ -922,39 +922,40 @@ export function GradingPageClient({
         {/* Modal: Add Class */}
         {showClassModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-outline-variant/30">
-              <h3 className="font-headline-md text-2xl font-bold text-primary mb-4">Create Classroom</h3>
+            <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-modal relative border border-border-primary/60">
+              <h3 className="text-2xl font-bold text-primary mb-4">Create Classroom</h3>
               <form onSubmit={handleAddClass} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Class Name</label>
+                  <label className="text-xs font-bold text-content-secondary">Class Name</label>
                   <input
                     value={classForm.name}
                     onChange={(e) => setClassForm({ ...classForm, name: e.target.value })}
                     required
                     placeholder="e.g. SS1 Alpha"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Select Grade Level (Optional ID)</label>
+                  <label className="text-xs font-bold text-content-secondary">Select Grade Level (Optional ID)</label>
                   <input
                     value={classForm.grade_level}
                     onChange={(e) => setClassForm({ ...classForm, grade_level: e.target.value })}
                     placeholder="Defaults to standard grade level ID"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     onClick={() => setShowClassModal(false)}
-                    className="rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest px-5"
+                    variant="outline"
+                    className="rounded-full px-5"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-primary text-on-primary rounded-full px-6 stitched-border hover:brightness-110"
+                    className="bg-primary text-primary-foreground rounded-full px-6 hover:brightness-110"
                   >
                     Create Class
                   </Button>
