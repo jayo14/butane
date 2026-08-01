@@ -753,20 +753,20 @@ export function GradingPageClient({
         {/* Tab 6: Grade Scales */}
         {activeTab === "grading" && (
           <div className="space-y-6 animate-slide-right">
-            <div className="bg-white rounded-3xl shadow-sm border border-outline-variant/20 overflow-hidden">
-              <div className="p-8 border-b border-outline-variant/10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <div className="bg-white rounded-2xl shadow-card border border-border-primary/60 overflow-hidden">
+              <div className="p-8 border-b border-border-primary/30 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                  <h3 className="font-headline-lg text-2xl text-primary font-bold">WAEC Standard Scale</h3>
-                  <p className="text-sm text-tertiary">Current active grading policy for all senior classes.</p>
+                  <h3 className="text-2xl text-primary font-bold">WAEC Standard Scale</h3>
+                  <p className="text-sm text-content-secondary">Current active grading policy for all senior classes.</p>
                 </div>
-                <Button className="rounded-full border border-primary text-primary bg-white hover:bg-primary-container px-6 text-xs font-semibold">
+                <Button variant="outline" className="rounded-full px-6 text-xs font-semibold">
                   New Scale Definition
                 </Button>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left">
-                  <thead className="bg-surface-container-low text-xs font-bold text-outline uppercase tracking-wider border-b border-outline-variant/10">
+                  <thead className="bg-surface-secondary text-xs font-bold text-content-secondary uppercase tracking-wider border-b border-border-primary/30">
                     <tr>
                       <th className="px-8 py-4">Grade</th>
                       <th className="px-8 py-4">Score Range</th>
@@ -774,23 +774,23 @@ export function GradingPageClient({
                       <th className="px-8 py-4 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-outline-variant/10">
+                  <tbody className="divide-y divide-border-primary/30">
                     {gradeScales.length > 0 ? (
                       gradeScales.map((g: any) => (
-                        <tr key={g.id} className="hover:bg-surface-bright/50 transition-colors">
+                        <tr key={g.id} className="hover:bg-surface-secondary/50 transition-colors">
                           <td className="px-8 py-6">
-                            <span className="w-10 h-10 bg-primary-container text-on-primary-container font-bold rounded-full flex items-center justify-center shadow-inner">
+                            <span className="w-10 h-10 bg-primary/10 text-primary font-bold rounded-full flex items-center justify-center">
                               {g.grade}
                             </span>
                           </td>
-                          <td className="px-8 py-6 font-bold text-sm text-on-surface">
+                          <td className="px-8 py-6 font-bold text-sm text-content-primary">
                             {g.min_score} &mdash; {g.max_score}
                           </td>
                           <td className="px-8 py-6">
                             <span className={cn(
                               "px-3 py-1 rounded-full text-xs font-bold uppercase",
                               g.grade.startsWith("A") && "bg-success-light text-success",
-                              g.grade.startsWith("B") && "bg-primary-container/10 text-primary",
+                              g.grade.startsWith("B") && "bg-primary/10 text-primary",
                               g.grade.startsWith("C") && "bg-warning-light text-warning",
                               g.grade.startsWith("F") && "bg-danger-light text-danger"
                             )}>
@@ -798,7 +798,7 @@ export function GradingPageClient({
                             </span>
                           </td>
                           <td className="px-8 py-6 text-right">
-                            <button className="text-outline hover:text-primary p-1">
+                            <button className="text-content-secondary hover:text-primary p-1">
                               <Edit2 size={16} />
                             </button>
                           </td>
@@ -813,28 +813,28 @@ export function GradingPageClient({
                         { grade: "C4", min: 60, max: 64, remark: "CREDIT" },
                         { grade: "F9", min: 0, max: 39, remark: "FAIL" }
                       ].map((g, idx) => (
-                        <tr key={idx} className="hover:bg-surface-bright/50 transition-colors">
+                        <tr key={idx} className="hover:bg-surface-secondary/50 transition-colors">
                           <td className="px-8 py-6">
-                            <span className="w-10 h-10 bg-secondary-container text-on-secondary-container font-bold rounded-full flex items-center justify-center shadow-sm">
+                            <span className="w-10 h-10 bg-primary/10 text-primary font-bold rounded-full flex items-center justify-center shadow-sm">
                               {g.grade}
                             </span>
                           </td>
-                          <td className="px-8 py-6 font-bold text-sm text-on-surface">
+                          <td className="px-8 py-6 font-bold text-sm text-content-primary">
                             {g.min} &mdash; {g.max}
                           </td>
                           <td className="px-8 py-6">
                             <span className={cn(
                               "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                              g.remark === "DISTINCTION" && "bg-secondary-container text-on-secondary-container",
-                              g.remark === "VERY GOOD" && "bg-primary-container/20 text-primary",
-                              g.remark === "CREDIT" && "bg-tertiary-fixed text-on-tertiary-fixed",
-                              g.remark === "FAIL" && "bg-error-container text-on-error-container"
+                              g.remark === "DISTINCTION" && "bg-primary/10 text-primary",
+                              g.remark === "VERY GOOD" && "bg-primary/10 text-primary",
+                              g.remark === "CREDIT" && "bg-surface-secondary text-content-secondary",
+                              g.remark === "FAIL" && "bg-danger-light text-danger"
                             )}>
                               {g.remark}
                             </span>
                           </td>
                           <td className="px-8 py-6 text-right">
-                            <button className="text-outline hover:text-primary p-1">
+                            <button className="text-content-secondary hover:text-primary p-1">
                               <Edit2 size={16} />
                             </button>
                           </td>
