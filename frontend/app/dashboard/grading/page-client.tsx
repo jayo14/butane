@@ -471,12 +471,12 @@ export function GradingPageClient({
           <div className="space-y-6 animate-slide-right">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="font-headline-lg text-2xl text-primary font-bold">Academic Terms</h3>
-                <p className="text-sm text-tertiary">Configure and transition between terms within the current session.</p>
+                <h3 className="text-2xl text-primary font-bold">Academic Terms</h3>
+                <p className="text-sm text-content-secondary">Configure and transition between terms within the current session.</p>
               </div>
               <Button
                 onClick={() => setShowTermModal(true)}
-                className="bg-primary text-on-primary rounded-full px-5 stitched-border hover:brightness-110 active:scale-95 transition-all"
+                className="bg-primary text-primary-foreground rounded-full px-5 hover:brightness-110 active:scale-95 transition-all"
               >
                 <Plus size={16} className="mr-1" /> Add New Term
               </Button>
@@ -489,8 +489,8 @@ export function GradingPageClient({
                   <div
                     key={t.id || idx}
                     className={cn(
-                      "relative rounded-3xl p-8 shadow-sm border overflow-hidden flex flex-col justify-between min-h-[240px] transition-all hover:shadow-md bg-white",
-                      status === "Active" ? "border-primary-container ring-2 ring-primary-container/20" : "border-outline-variant/30"
+                      "relative rounded-2xl p-8 shadow-card border overflow-hidden flex flex-col justify-between min-h-[240px] transition-all hover:shadow-dropdown bg-white",
+                      status === "Active" ? "border-primary/30 ring-2 ring-primary/10" : "border-border-primary/60"
                     )}
                   >
                     <div className="linen-texture absolute inset-0"></div>
@@ -499,30 +499,30 @@ export function GradingPageClient({
                         <span
                           className={cn(
                             "px-3 py-1 rounded-full text-[10px] uppercase tracking-wider font-bold",
-                            status === "Concluded" && "bg-surface-container-highest text-on-surface-variant",
-                            status === "Active" && "bg-secondary-container text-on-secondary-container shadow-sm",
-                            status === "Upcoming" && "bg-tertiary-fixed text-on-tertiary-fixed"
+                            status === "Concluded" && "bg-surface-secondary text-content-secondary",
+                            status === "Active" && "bg-primary/10 text-primary shadow-sm",
+                            status === "Upcoming" && "bg-surface-secondary text-content-secondary"
                           )}
                         >
                           {status}
                         </span>
-                        <button className="text-on-surface-variant hover:text-primary transition-colors">
+                        <button className="text-content-secondary hover:text-primary transition-colors">
                           <Edit2 size={14} />
                         </button>
                       </div>
-                      <h3 className="font-headline-md text-2xl text-on-surface font-bold mb-1">{t.name}</h3>
-                      <div className="flex items-center gap-2 text-on-surface-variant/70 text-xs">
+                      <h3 className="text-2xl text-content-primary font-bold mb-1">{t.name}</h3>
+                      <div className="flex items-center gap-2 text-content-secondary text-xs">
                         <Calendar size={14} />
                         <span>Display Order: {t.display_order}</span>
                       </div>
                     </div>
                     
-                    <div className="pt-4 border-t border-outline-variant/30 flex items-center justify-between">
-                      <span className="text-xs text-on-surface-variant font-semibold">
+                    <div className="pt-4 border-t border-border-primary/30 flex items-center justify-between">
+                      <span className="text-xs text-content-secondary font-semibold">
                         {status === "Active" ? "Currently in progress" : "Scheduled"}
                       </span>
                       {status === "Upcoming" && (
-                        <button className="bg-surface-container-high px-3 py-1 rounded-full text-xs font-bold text-on-surface hover:bg-primary hover:text-on-primary transition-all">
+                        <button className="bg-surface-secondary px-3 py-1 rounded-full text-xs font-bold text-content-primary hover:bg-primary hover:text-primary-foreground transition-all">
                           Initialize
                         </button>
                       )}
@@ -532,23 +532,23 @@ export function GradingPageClient({
               })}
             </div>
 
-            <div className="bg-surface-container-low rounded-3xl p-6 border border-outline-variant/30 flex flex-col md:flex-row gap-6 items-center">
+            <div className="bg-surface-secondary rounded-2xl p-6 border border-border-primary/30 flex flex-col md:flex-row gap-6 items-center">
               <div className="flex-1">
-                <h4 className="font-headline-md text-lg font-bold mb-2 italic">Did you know?</h4>
-                <p className="text-sm text-on-surface-variant mb-4">
+                <h4 className="text-lg font-bold mb-2 italic">Did you know?</h4>
+                <p className="text-sm text-content-secondary mb-4">
                   Standardizing your term dates across all departments ensures synchronized grading cycles and easier credit transferability for your students.
                 </p>
-                <Button className="bg-white hover:bg-white/95 text-primary border border-primary/20 rounded-full px-5 text-xs shadow-sm">
+                <Button variant="outline" className="rounded-full px-5 text-xs">
                   Download 2026 Academic Calendar
                 </Button>
               </div>
-              <div className="bg-[#002114] text-secondary-container rounded-2xl p-6 stitched-border md:w-80">
-                <div className="flex items-center gap-2 mb-2 text-white">
+              <div className="bg-dark text-primary-foreground rounded-2xl p-6 stitched-border md:w-80">
+                <div className="flex items-center gap-2 mb-2">
                   <AlertCircle size={16} />
                   <span className="font-bold text-xs uppercase tracking-wider">System Alert</span>
                 </div>
                 <p className="text-xs opacity-90 leading-relaxed">
-                  The transition to 'Third Term' is scheduled for automatic activation in 42 days. Make sure all assessment records for Second Term are locked.
+                  The transition to &lsquo;Third Term&rsquo; is scheduled for automatic activation in 42 days. Make sure all assessment records for Second Term are locked.
                 </p>
               </div>
             </div>
@@ -967,41 +967,42 @@ export function GradingPageClient({
         {/* Modal: Add Term */}
         {showTermModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-outline-variant/30">
-              <h3 className="font-headline-md text-2xl font-bold text-primary mb-4">Add Academic Term</h3>
+            <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-modal relative border border-border-primary/60">
+              <h3 className="text-2xl font-bold text-primary mb-4">Add Academic Term</h3>
               <form onSubmit={handleAddTerm} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Term Name</label>
+                  <label className="text-xs font-bold text-content-secondary">Term Name</label>
                   <input
                     value={termForm.name}
                     onChange={(e) => setTermForm({ ...termForm, name: e.target.value })}
                     required
                     placeholder="e.g. First Term"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Display Order</label>
+                  <label className="text-xs font-bold text-content-secondary">Display Order</label>
                   <input
                     value={termForm.display_order}
                     onChange={(e) => setTermForm({ ...termForm, display_order: parseInt(e.target.value) || 1 })}
                     required
                     type="number"
                     min="1"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     onClick={() => setShowTermModal(false)}
-                    className="rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest px-5"
+                    variant="outline"
+                    className="rounded-full px-5"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-primary text-on-primary rounded-full px-6 stitched-border hover:brightness-110"
+                    className="bg-primary text-primary-foreground rounded-full px-6 hover:brightness-110"
                   >
                     Add Term
                   </Button>
