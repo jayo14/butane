@@ -631,6 +631,8 @@ export const api = {
       apiFetch<any>("academics/scores/bulk/", { method: "POST", body: JSON.stringify(payload) }),
     reportCardsGenerate: (payload: { classroom_id: string; term_id: string }) =>
       apiFetch<any[]>("academics/report-cards/generate/", { method: "POST", body: JSON.stringify(payload) }),
+    reportCardsList: (params?: { classroom?: string; term?: string; status?: string; student?: string; page?: number; page_size?: number }) =>
+      apiFetch<PaginatedResponse<any>>(`academics/report-cards/${buildQuery(params || {})}`),
     reportCardsSubmit: (id: string) =>
       apiFetch<any>(`academics/report-cards/${id}/submit/`, { method: "POST" }),
     reportCardsApprove: (id: string) =>
