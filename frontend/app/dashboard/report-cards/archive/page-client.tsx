@@ -169,10 +169,10 @@ export function ReportCardArchiveClient({
               <div
                 key={report.id}
                 className={cn(
-                  "p-4 rounded-2xl border flex items-center gap-4 transition-all group",
+                  "p-4 rounded-2xl border flex items-center gap-4 transition-all group hover:scale-[1.01]",
                   selected.has(report.id)
-                    ? "bg-primary/5 border-primary/30"
-                    : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20"
+                    ? "bg-primary/5 border-primary/30 shadow-md"
+                    : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20 hover:shadow-sm"
                 )}
               >
                 <input

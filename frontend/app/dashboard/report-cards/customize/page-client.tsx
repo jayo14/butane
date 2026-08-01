@@ -153,7 +153,7 @@ export function ReportCardCustomizeClient() {
                 {sections.map((section) => (
                   <div
                     key={section.id}
-                    className="flex items-center gap-4 p-4 rounded-2xl bg-surface-secondary/30 border border-border-primary/10 group hover:border-primary/20 transition-all"
+                    className="flex items-center gap-4 p-4 rounded-2xl bg-surface-secondary/30 border border-border-primary/10 group hover:border-primary/20 hover:shadow-sm transition-all"
                   >
                     <button
                       onClick={() => toggleSection(section.id)}

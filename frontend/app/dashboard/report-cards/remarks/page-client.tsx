@@ -127,9 +127,9 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
                       key={student.id}
                       onClick={() => setSelectedStudent(student)}
                       className={cn(
-                        "w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left",
+                        "w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left hover:scale-[1.01]",
                         selectedStudent.id === student.id
-                          ? "bg-primary/5 border border-primary/20"
+                          ? "bg-primary/5 border border-primary/20 shadow-sm"
                           : "hover:bg-surface-secondary/50 border border-transparent"
                       )}
                     >

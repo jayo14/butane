@@ -104,7 +104,7 @@ export function ReportCardApprovalClient({
                 <div
                   key={report.id}
                   onClick={() => setReviewDrawer(report)}
-                  className="bg-white p-5 rounded-2xl border border-border-primary/20 shadow-card hover:shadow-dropdown transition-all cursor-pointer group"
+                  className="bg-white p-5 rounded-2xl border border-border-primary/20 shadow-card hover:shadow-dropdown hover:scale-[1.01] transition-all cursor-pointer group"
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">

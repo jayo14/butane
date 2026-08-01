@@ -286,11 +286,12 @@ export function ReportCardGenerateClient({
                     key={student.id}
                     onClick={() => toggleStudent(student.id)}
                     className={cn(
-                      "p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all group",
+                      "p-4 rounded-2xl border flex items-center gap-4 cursor-pointer transition-all group hover:scale-[1.02]",
                       isSelected
-                        ? "bg-primary/5 border-primary/30"
-                        : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20"
+                        ? "bg-primary/5 border-primary/30 shadow-md"
+                        : "bg-surface-secondary/30 border-border-primary/20 hover:border-primary/20 hover:shadow-sm"
                     )}
+                    style={{ animationDelay: `${(filteredStudents.indexOf(student) % 10) * 50}ms` }}
                   >
                     <input
                       type="checkbox"
