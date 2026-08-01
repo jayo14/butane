@@ -11,6 +11,10 @@ import {
   Users,
   FileText,
   Loader2,
+  Archive,
+  Settings,
+  MessageSquare,
+  ClipboardCheck,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
@@ -210,6 +214,32 @@ export function ReportCardGenerateClient({
                   className="h-full bg-primary rounded-full transition-all duration-500"
                   style={{ width: `${filteredStudents.length > 0 ? (selectedStudents.size / filteredStudents.length) * 100 : 0}%` }}
                 ></div>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Navigation */}
+          <div className="bg-white p-6 rounded-3xl shadow-card border border-border-primary/60 relative overflow-hidden">
+            <div className="linen-texture absolute inset-0"></div>
+            <div className="relative z-10">
+              <p className="text-xs text-content-secondary uppercase tracking-widest font-bold mb-3">Related Pages</p>
+              <div className="space-y-2">
+                <Link href="/dashboard/report-cards/approval" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
+                  <ClipboardCheck size={16} className="text-content-secondary group-hover:text-primary" />
+                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Review & Approve</span>
+                </Link>
+                <Link href="/dashboard/report-cards/archive" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
+                  <Archive size={16} className="text-content-secondary group-hover:text-primary" />
+                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">View Archive</span>
+                </Link>
+                <Link href="/dashboard/report-cards/customize" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
+                  <Settings size={16} className="text-content-secondary group-hover:text-primary" />
+                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Customize Report</span>
+                </Link>
+                <Link href="/dashboard/report-cards/remarks" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
+                  <MessageSquare size={16} className="text-content-secondary group-hover:text-primary" />
+                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Write Remarks</span>
+                </Link>
               </div>
             </div>
           </div>
