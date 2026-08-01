@@ -35,7 +35,7 @@ class AcademicSession(TimestampedModel):
 
     def save(self, *args, **kwargs):
         if self.is_current:
-            AcademicSession.objects.filter(is_current=True).exclude(pk=self.pk).update(is_current=False)
+            AcademicSession.objects.filter(is_current=True, school=self.school).exclude(pk=self.pk).update(is_current=False)
         super().save(*args, **kwargs)
 
 
