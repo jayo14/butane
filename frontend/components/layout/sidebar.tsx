@@ -26,6 +26,11 @@ import {
   X,
   PanelLeftClose,
   PanelLeft,
+  Sparkles,
+  Archive,
+  CheckCircle,
+  Palette,
+  MessageSquare,
 } from "lucide-react"
 
 const iconMap: Record<string, React.ReactNode> = {
@@ -40,6 +45,11 @@ const iconMap: Record<string, React.ReactNode> = {
   settings: <Settings size={20} />,
   "pen-tool": <PenTool size={20} />,
   star: <Star size={20} />,
+  sparkles: <Sparkles size={20} />,
+  archive: <Archive size={20} />,
+  "check-circle": <CheckCircle size={20} />,
+  palette: <Palette size={20} />,
+  "message-square": <MessageSquare size={20} />,
 }
 
 export function Sidebar() {
