@@ -173,7 +173,7 @@ export function MaximizedMarkSheetClient({ initialStudents }: MaximizedMarkSheet
           <p className="text-content-secondary">Select a class and term to view the mark sheet</p>
         </div>
       ) : (
-
+      <>
       <div className="bg-white rounded-2xl border border-border-primary/40 shadow-card overflow-auto max-h-[calc(100vh-200px)]">
         <table className="w-full border-collapse text-sm">
           <thead className="sticky top-0 z-10">
@@ -262,6 +262,8 @@ export function MaximizedMarkSheetClient({ initialStudents }: MaximizedMarkSheet
         <p>Classroom broadsheet view — scores are read-only here. Use Score Entry to edit.</p>
         <p>{filteredStudents.length} students &middot; {subjects.length} subjects</p>
       </div>
+      </>
+      )}
     </Container>
   )
 }

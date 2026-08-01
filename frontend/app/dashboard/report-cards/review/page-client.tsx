@@ -10,6 +10,12 @@ import {
   BarChart3,
   ArrowRight,
   Loader2,
+  Sparkles,
+  ClipboardCheck,
+  MessageSquare,
+  Archive,
+  BookOpen,
+  Settings,
 } from "lucide-react"
 import { Container } from "@/components/layout/container"
 import { api } from "@/lib/api"

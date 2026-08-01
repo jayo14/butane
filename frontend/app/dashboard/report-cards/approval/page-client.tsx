@@ -202,7 +202,8 @@ export function ReportCardApprovalClient({
                   <p className="text-sm text-content-secondary">No approved reports yet.</p>
                 </div>
               ) : (
-              currentReports.map((report: any) => (
+              <>
+              {currentReports.map((report: any) => (
                 <div key={report.id} className="bg-white p-5 rounded-2xl border border-success/20 shadow-card">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -223,13 +224,15 @@ export function ReportCardApprovalClient({
                   </div>
                 </div>
               ))}
+              </>
+              )}
             </div>
           )}
 
           {/* Rejected */}
           {activeTab === "rejected" && (
             <div className="flex flex-col gap-3 animate-slide-up">
-              {MOCK_REJECTED.map((report) => (
+              {reports.filter((r: any) => r.status === "rejected").map((report: any) => (
                 <div key={report.id} className="bg-white p-5 rounded-2xl border border-danger/20 shadow-card">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -237,20 +240,16 @@ export function ReportCardApprovalClient({
                         <XCircle size={20} />
                       </div>
                       <div>
-                        <p className="font-bold text-content-primary">{report.classroom}</p>
+                        <p className="font-bold text-content-primary">{report.classroom_name || `Class ${report.classroom}`}</p>
                         <p className="text-xs text-content-secondary">
-                          {report.count} students &middot; {report.term}
+                          {report.term_name || `Term ${report.term}`} &middot; Rejected
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className="text-xs text-danger font-bold">Rejected</p>
-                      <p className="text-xs text-content-secondary">{report.rejectedDate}</p>
+                      <p className="text-xs text-content-secondary">{report.updated_at ? new Date(report.updated_at).toLocaleDateString() : ""}</p>
                     </div>
-                  </div>
-                  <div className="mt-3 p-3 bg-danger/5 rounded-xl border border-danger/10 flex items-start gap-2">
-                    <AlertTriangle size={14} className="text-danger mt-0.5 shrink-0" />
-                    <p className="text-xs text-danger">{report.reason}</p>
                   </div>
                 </div>
               ))}

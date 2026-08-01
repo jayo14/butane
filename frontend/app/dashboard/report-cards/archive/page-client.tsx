@@ -127,46 +127,6 @@ export function ReportCardArchiveClient({
     if (status === "submitted") return "Pending"
     return "Draft"
   }
-    if (search.trim()) {
-      const q = search.toLowerCase()
-      result = result.filter(
-        (r) =>
-          r.classroom.toLowerCase().includes(q) ||
-          r.session.toLowerCase().includes(q) ||
-          r.term.toLowerCase().includes(q)
-      )
-    }
-    return result
-  }, [search, selectedTerm, selectedClassroom])
-
-  const totalPages = Math.ceil(filteredReports.length / itemsPerPage)
-  const paginatedReports = filteredReports.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  )
-
-  const toggleSelect = (id: number) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
-  const toggleAll = () => {
-    if (selected.size === paginatedReports.length) {
-      setSelected(new Set())
-    } else {
-      setSelected(new Set(paginatedReports.map((r) => r.id)))
-    }
-  }
-
-  const statusIcon = (status: string) => {
-    if (status === "approved") return <CheckCircle size={14} className="text-success" />
-    if (status === "submitted") return <Clock size={14} className="text-warning" />
-    return <Clock size={14} className="text-content-secondary" />
-  }
 
   return (
     <Container>

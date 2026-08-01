@@ -178,20 +178,6 @@ export function ReportCardCustomizeClient() {
               </div>
             </div>
           </div>
-                      className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-content-secondary uppercase tracking-wider block mb-1.5 px-1">School Logo</label>
-                  <button className="w-full p-6 border-2 border-dashed border-border-primary/40 rounded-2xl text-content-secondary hover:border-primary/40 hover:text-primary transition-all flex flex-col items-center gap-2">
-                    <Upload size={24} />
-                    <span className="text-xs font-bold">Click to upload logo</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Section Visibility */}

@@ -40,7 +40,8 @@ export function AnalyticsPageClient({
   useEffect(() => {
     if (!selectedClassroom) return
     setLoading(true)
-    api.academics.broadsheet({ classroom: selectedClassroom })
+    // Use empty term to get all terms' data for broadsheet overview
+    api.academics.broadsheet(selectedClassroom, "")
       .then((data: any) => {
         const results = data?.results || data || []
         setBroadsheet(Array.isArray(results) ? results : [])
