@@ -37,7 +37,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@heroui/react"
 
 interface GradingPageClientProps {
   initialSessions: any[]
@@ -187,16 +186,22 @@ export function GradingPageClient({
         </div>
 
         {/* Tab System */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-8">
-          <TabsList className="bg-surface-secondary p-1.5 rounded-2xl w-fit border border-border-primary/30 shadow-inner">
-            <TabsTrigger value="dashboard" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Dashboard</TabsTrigger>
-            <TabsTrigger value="sessions" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Sessions</TabsTrigger>
-            <TabsTrigger value="terms" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Terms</TabsTrigger>
-            <TabsTrigger value="classes" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Classes</TabsTrigger>
-            <TabsTrigger value="subjects" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Subjects</TabsTrigger>
-            <TabsTrigger value="grading" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Grade Scales</TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <div className="mb-8 bg-surface-secondary p-1.5 rounded-2xl w-fit border border-border-primary/30 shadow-inner inline-flex gap-1">
+          {(["dashboard", "sessions", "terms", "classes", "subjects", "grading"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={cn(
+                "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all",
+                activeTab === tab
+                  ? "bg-primary text-primary-foreground shadow-md"
+                  : "text-content-secondary hover:text-content-primary"
+              )}
+            >
+              {tab === "dashboard" ? "Dashboard" : tab === "sessions" ? "Sessions" : tab === "terms" ? "Terms" : tab === "classes" ? "Classes" : tab === "subjects" ? "Subjects" : "Grade Scales"}
+            </button>
+          ))}
+        </div>
 
         {/* Tab Contents */}
         {activeTab === "dashboard" && (
