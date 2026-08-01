@@ -414,12 +414,12 @@ export function GradingPageClient({
           <div className="space-y-6 animate-slide-right">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="font-headline-lg text-2xl text-primary font-bold">Academic Sessions</h3>
-                <p className="text-sm text-tertiary">Create and manage your school's annual academic calendar cycles.</p>
+                <h3 className="text-2xl text-primary font-bold">Academic Sessions</h3>
+                <p className="text-sm text-content-secondary">Create and manage your school&apos;s annual academic calendar cycles.</p>
               </div>
               <Button
                 onClick={() => setShowSessionModal(true)}
-                className="bg-primary text-on-primary rounded-full px-5 stitched-border hover:brightness-110 active:scale-95 transition-all"
+                className="bg-primary text-primary-foreground rounded-full px-5 hover:brightness-110 active:scale-95 transition-all"
               >
                 <Plus size={16} className="mr-1" /> Add New Session
               </Button>
@@ -430,30 +430,30 @@ export function GradingPageClient({
                 <div
                   key={s.id}
                   className={cn(
-                    "rounded-3xl p-8 shadow-sm border relative overflow-hidden flex flex-col min-h-[220px] transition-all duration-300 hover:shadow-md",
+                    "rounded-2xl p-8 shadow-card border relative overflow-hidden flex flex-col min-h-[220px] transition-all duration-300 hover:shadow-dropdown",
                     s.is_current
-                      ? "bg-white border-primary-container ring-2 ring-primary-container/20"
-                      : "bg-white border-outline-variant/30 opacity-80"
+                      ? "bg-white border-primary/30 ring-2 ring-primary/10"
+                      : "bg-white border-border-primary/60 opacity-80"
                   )}
                 >
                   <div className="linen-texture absolute inset-0"></div>
                   <div className="flex justify-between items-start mb-6 z-10">
                     <span className="material-symbols-outlined text-primary text-4xl">history_edu</span>
                     {s.is_current ? (
-                      <span className="bg-primary-container text-on-primary-container px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                      <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider shadow-sm">
                         Active
                       </span>
                     ) : (
-                      <span className="bg-tertiary-fixed text-on-tertiary-fixed px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                      <span className="bg-surface-secondary text-content-secondary px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
                         Archived
                       </span>
                     )}
                   </div>
-                  <h3 className="font-headline-md text-2xl text-on-surface font-bold z-10">{s.name}</h3>
-                  <p className="text-xs text-outline font-semibold mb-6 z-10">Academic Cycle</p>
+                  <h3 className="text-2xl text-content-primary font-bold z-10">{s.name}</h3>
+                  <p className="text-xs text-content-secondary font-semibold mb-6 z-10">Academic Cycle</p>
                   
-                  <div className="mt-auto pt-4 flex justify-between items-center border-t border-outline-variant/20 z-10">
-                    <span className="text-xs text-on-surface-variant font-semibold">
+                  <div className="mt-auto pt-4 flex justify-between items-center border-t border-border-primary/30 z-10">
+                    <span className="text-xs text-content-secondary font-semibold">
                       {s.start_date} &mdash; {s.end_date}
                     </span>
                     <button className="text-primary font-bold text-xs flex items-center hover:underline">
@@ -851,38 +851,38 @@ export function GradingPageClient({
         {/* Modal: Add Session */}
         {showSessionModal && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] animate-in fade-in duration-200">
-            <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-outline-variant/30">
-              <h3 className="font-headline-md text-2xl font-bold text-primary mb-4">Add Academic Session</h3>
+            <div className="bg-white rounded-2xl max-w-md w-full p-8 shadow-modal relative border border-border-primary/60">
+              <h3 className="text-2xl font-bold text-primary mb-4">Add Academic Session</h3>
               <form onSubmit={handleAddSession} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-on-surface-variant">Session Name</label>
+                  <label className="text-xs font-bold text-content-secondary">Session Name</label>
                   <input
                     value={sessionForm.name}
                     onChange={(e) => setSessionForm({ ...sessionForm, name: e.target.value })}
                     required
                     placeholder="e.g. 2026/2027"
-                    className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                    className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold text-on-surface-variant">Start Date</label>
+                    <label className="text-xs font-bold text-content-secondary">Start Date</label>
                     <input
                       value={sessionForm.start_date}
                       onChange={(e) => setSessionForm({ ...sessionForm, start_date: e.target.value })}
                       required
                       type="date"
-                      className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                      className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-bold text-on-surface-variant">End Date</label>
+                    <label className="text-xs font-bold text-content-secondary">End Date</label>
                     <input
                       value={sessionForm.end_date}
                       onChange={(e) => setSessionForm({ ...sessionForm, end_date: e.target.value })}
                       required
                       type="date"
-                      className="w-full rounded-xl border border-outline-variant p-3 text-sm focus:ring-primary focus:border-primary mt-1"
+                      className="w-full recessed-well bg-white p-3 text-sm text-content-primary focus:ring-primary focus:border-primary mt-1"
                     />
                   </div>
                 </div>
@@ -894,7 +894,7 @@ export function GradingPageClient({
                     id="is_current"
                     className="rounded text-primary focus:ring-primary"
                   />
-                  <label htmlFor="is_current" className="text-xs font-semibold text-on-surface-variant cursor-pointer">
+                  <label htmlFor="is_current" className="text-xs font-semibold text-content-secondary cursor-pointer">
                     Set as Current Academic Session
                   </label>
                 </div>
@@ -902,13 +902,14 @@ export function GradingPageClient({
                   <Button
                     type="button"
                     onClick={() => setShowSessionModal(false)}
-                    className="rounded-full bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest px-5"
+                    variant="outline"
+                    className="rounded-full px-5"
                   >
                     Cancel
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-primary text-on-primary rounded-full px-6 stitched-border hover:brightness-110"
+                    className="bg-primary text-primary-foreground rounded-full px-6 hover:brightness-110"
                   >
                     Save Session
                   </Button>
