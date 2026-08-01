@@ -94,6 +94,7 @@ export function ScoreEntryPageClient({
 
   // Loading indicator
   const [loading, setLoading] = useState(false)
+  const [completed, setCompleted] = useState(false)
 
   // Fetch or mock students when classroom changes
   useEffect(() => {
@@ -241,7 +242,7 @@ export function ScoreEntryPageClient({
       }
     }
     addToast({ message: "Scores locked and approved! Syncing report card grades...", variant: "success" })
-    setStep("select")
+    setCompleted(true)
   }
 
   return (
@@ -771,6 +772,39 @@ export function ScoreEntryPageClient({
               </div>
             </div>
           </footer>
+        )}
+
+        {/* Completion Screen */}
+        {completed && (
+          <div className="max-w-2xl mx-auto text-center py-16 animate-slide-up">
+            <div className="bg-white rounded-3xl p-12 border border-border-primary/60 shadow-card relative overflow-hidden">
+              <div className="linen-texture absolute inset-0"></div>
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6 mx-auto">
+                  <CheckCircle size={40} />
+                </div>
+                <h2 className="text-3xl text-content-primary font-bold mb-3">Scores Locked!</h2>
+                <p className="text-content-secondary mb-8 max-w-md mx-auto">
+                  All scores for <strong className="text-primary">{currentSubjectName}</strong> in <strong className="text-primary">{currentClassroomName}</strong> have been finalized and synced.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    href="/dashboard/results"
+                    className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-md"
+                  >
+                    View Results <ArrowRight size={16} />
+                  </Link>
+                  <button
+                    onClick={() => { setCompleted(false); setStep("select") }}
+                    className="inline-flex items-center justify-center gap-2 border border-border-primary text-content-primary px-8 py-4 rounded-full font-bold hover:bg-surface-secondary transition-all"
+                  >
+                    Enter More Scores
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
 
       </div>
