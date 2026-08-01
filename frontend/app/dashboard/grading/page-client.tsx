@@ -201,19 +201,19 @@ export function GradingPageClient({
         {activeTab === "dashboard" && (
           <div className="space-y-8 animate-slide-right">
             {/* Welcome banner */}
-            <section className="relative overflow-hidden bg-primary-container/15 rounded-3xl p-8 border border-primary-container/30 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
+            <section className="relative overflow-hidden gradient-emerald rounded-2xl p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-sm">
               <div className="relative z-10 flex-1">
-                <h2 className="font-headline-lg text-2xl text-on-primary-container mb-2 font-bold">
+                <h2 className="text-2xl text-white mb-2 font-bold">
                   Good Day, {profile?.full_name || "School Administrator"}
                 </h2>
-                <p className="font-body-lg text-on-surface-variant max-w-xl">
+                <p className="text-white/80 max-w-xl">
                   Manage the school structural framework, build grade distributions, or finalize assessment weights. Use quick actions to fast-track setups.
                 </p>
               </div>
               <div className="flex gap-2">
                 <Button
                   onClick={() => setIsEmptyState(!isEmptyState)}
-                  className="bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20 rounded-full px-4"
+                  className="bg-white/20 hover:bg-white/30 text-white border border-white/20 rounded-full px-4"
                 >
                   Toggle Demo Empty State
                 </Button>
@@ -268,77 +268,77 @@ export function GradingPageClient({
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {/* Left Column: Recent Activity */}
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-surface-container-lowest p-8 rounded-3xl tactile-card relative overflow-hidden min-h-[400px]">
+                <div className="bg-white p-8 rounded-2xl shadow-card border border-border-primary/60 relative overflow-hidden min-h-[400px]">
                   <div className="linen-texture absolute inset-0"></div>
-                  <h3 className="font-headline-md text-xl text-on-surface font-bold mb-6">Recent Activity</h3>
+                  <h3 className="text-xl text-content-primary font-bold mb-6">Recent Activity</h3>
                   
                   {!isEmptyState ? (
                     <div className="space-y-4">
                       {/* Activity Item 1 */}
-                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-container-low/50 rounded-2xl">
+                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-secondary/50 rounded-2xl">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-secondary-container flex items-center justify-center text-secondary shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                             <Layers size={20} />
                           </div>
                           <div>
-                            <p className="font-bold text-on-surface text-sm">Grading Policy Initialized</p>
-                            <p className="text-xs text-on-surface-variant">WAEC Standard Scale sync completed across all grade arms.</p>
+                            <p className="font-bold text-content-primary text-sm">Grading Policy Initialized</p>
+                            <p className="text-xs text-content-secondary">WAEC Standard Scale sync completed across all grade arms.</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-semibold text-on-surface-variant">2 hours ago</p>
+                          <p className="text-xs font-semibold text-content-secondary">2 hours ago</p>
                           <span className="text-primary text-xs font-bold hover:underline cursor-pointer">Details</span>
                         </div>
                       </div>
-                      <div className="crease-line"></div>
+                      <div className="crease-divider"></div>
                       
                       {/* Activity Item 2 */}
-                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-container-low/50 rounded-2xl">
+                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-secondary/50 rounded-2xl">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-primary-container/20 flex items-center justify-center text-primary shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                             <Calendar size={20} />
                           </div>
                           <div>
-                            <p className="font-bold text-on-surface text-sm">New Session 2026/2027</p>
-                            <p className="text-xs text-on-surface-variant">Academic calendar and term boundaries set up.</p>
+                            <p className="font-bold text-content-primary text-sm">New Session 2026/2027</p>
+                            <p className="text-xs text-content-secondary">Academic calendar and term boundaries set up.</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-semibold text-on-surface-variant">Yesterday</p>
+                          <p className="text-xs font-semibold text-content-secondary">Yesterday</p>
                           <span className="text-primary text-xs font-bold hover:underline cursor-pointer">View Setup</span>
                         </div>
                       </div>
-                      <div className="crease-line"></div>
+                      <div className="crease-divider"></div>
 
                       {/* Activity Item 3 */}
-                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-container-low/50 rounded-2xl">
+                      <div className="group p-4 flex items-center justify-between transition-all hover:bg-surface-secondary/50 rounded-2xl">
                         <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-2xl bg-tertiary-container/20 flex items-center justify-center text-tertiary shadow-inner">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
                             <BookOpen size={20} />
                           </div>
                           <div>
-                            <p className="font-bold text-on-surface text-sm">Course List Synchronized</p>
-                            <p className="text-xs text-on-surface-variant">Science, Arts, and Commercial departments updated.</p>
+                            <p className="font-bold text-content-primary text-sm">Course List Synchronized</p>
+                            <p className="text-xs text-content-secondary">Science, Arts, and Commercial departments updated.</p>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="text-xs font-semibold text-on-surface-variant">3 days ago</p>
+                          <p className="text-xs font-semibold text-content-secondary">3 days ago</p>
                           <span className="text-primary text-xs font-bold hover:underline cursor-pointer">Audit</span>
                         </div>
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center py-16 animate-pulse-slow">
-                      <div className="w-36 h-36 mb-6 bg-primary-container/10 rounded-full flex items-center justify-center text-primary border border-primary/10">
+                      <div className="w-36 h-36 mb-6 bg-primary/10 rounded-full flex items-center justify-center text-primary border border-primary/10">
                         <Sparkles size={64} className="opacity-40 animate-float" />
                       </div>
-                      <h4 className="font-headline-md text-lg text-on-surface font-bold mb-2">A clean start awaits</h4>
-                      <p className="text-sm text-on-surface-variant max-w-sm">
+                      <h4 className="text-lg text-content-primary font-bold mb-2">A clean start awaits</h4>
+                      <p className="text-sm text-content-secondary max-w-sm">
                         Welcome to the grading system dashboard! Setup your academic terms, sessions, and subjects to begin tracking performance.
                       </p>
                       <Button
                         onClick={() => setActiveTab("sessions")}
-                        className="mt-6 bg-primary text-on-primary px-6 rounded-full stitched-border active:scale-95 transition-all"
+                        className="mt-6 bg-primary text-primary-foreground px-6 rounded-full active:scale-95 transition-all"
                       >
                         Start Setup Wizard
                       </Button>
@@ -349,56 +349,56 @@ export function GradingPageClient({
 
               {/* Right Column: Quick Actions & Tips */}
               <div className="space-y-6">
-                <div className="bg-surface-container-lowest p-8 rounded-3xl tactile-card relative overflow-hidden">
+                <div className="bg-white p-8 rounded-2xl shadow-card border border-border-primary/60 relative overflow-hidden">
                   <div className="linen-texture absolute inset-0"></div>
-                  <h3 className="font-headline-md text-xl text-on-surface font-bold mb-6">Quick Actions</h3>
+                  <h3 className="text-xl text-content-primary font-bold mb-6">Quick Actions</h3>
                   
                   <div className="space-y-4">
                     <Link
                       href="/dashboard/score-entry"
-                      className="w-full text-left p-4 bg-surface-container hover:bg-primary-container/20 rounded-2xl flex items-center gap-4 transition-all group border border-outline-variant/30 active:scale-[0.98]"
+                      className="w-full text-left p-4 bg-surface-secondary hover:bg-primary/10 rounded-2xl flex items-center gap-4 transition-all group border border-border-primary/30 active:scale-[0.98]"
                     >
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary shadow-md group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
                         <FileText size={18} />
                       </div>
                       <div>
-                        <p className="font-bold text-on-surface text-sm">Enter Scores</p>
-                        <p className="text-xs text-on-surface-variant">Access digital mark sheets & enter grades</p>
+                        <p className="font-bold text-content-primary text-sm">Enter Scores</p>
+                        <p className="text-xs text-content-secondary">Access digital mark sheets & enter grades</p>
                       </div>
                     </Link>
 
                     <button
                       onClick={() => setActiveTab("classes")}
-                      className="w-full text-left p-4 bg-surface-container hover:bg-secondary-container/30 rounded-2xl flex items-center gap-4 transition-all group border border-outline-variant/30 active:scale-[0.98]"
+                      className="w-full text-left p-4 bg-surface-secondary hover:bg-primary/10 rounded-2xl flex items-center gap-4 transition-all group border border-border-primary/30 active:scale-[0.98]"
                     >
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-on-secondary shadow-md group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
                         <PlusCircle size={18} />
                       </div>
                       <div>
-                        <p className="font-bold text-on-surface text-sm">Create Classroom</p>
-                        <p className="text-xs text-on-surface-variant">Add new classrooms and assign teachers</p>
+                        <p className="font-bold text-content-primary text-sm">Create Classroom</p>
+                        <p className="text-xs text-content-secondary">Add new classrooms and assign teachers</p>
                       </div>
                     </button>
 
                     <Link
                       href="/dashboard/report-cards"
-                      className="w-full text-left p-4 bg-surface-container hover:bg-tertiary-container/30 rounded-2xl flex items-center gap-4 transition-all group border border-outline-variant/30 active:scale-[0.98]"
+                      className="w-full text-left p-4 bg-surface-secondary hover:bg-primary/10 rounded-2xl flex items-center gap-4 transition-all group border border-border-primary/30 active:scale-[0.98]"
                     >
-                      <div className="w-10 h-10 rounded-full bg-tertiary flex items-center justify-center text-on-tertiary shadow-md group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
                         <Award size={18} />
                       </div>
                       <div>
-                        <p className="font-bold text-on-surface text-sm">Generate Reports</p>
-                        <p className="text-xs text-on-surface-variant">Print or export student report cards</p>
+                        <p className="font-bold text-content-primary text-sm">Generate Reports</p>
+                        <p className="text-xs text-content-secondary">Print or export student report cards</p>
                       </div>
                     </Link>
                   </div>
 
-                  <div className="mt-8 p-6 rounded-2xl bg-[#002114] text-secondary-container relative overflow-hidden stitched-border">
+                  <div className="mt-8 p-6 rounded-2xl bg-dark text-white relative overflow-hidden stitched-border">
                     <div className="absolute top-2 right-2 opacity-20">
                       <Sparkles size={48} />
                     </div>
-                    <p className="font-bold text-sm mb-1 text-white">Grading Tip</p>
+                    <p className="font-bold text-sm mb-1">Grading Tip</p>
                     <p className="text-xs opacity-90 leading-relaxed">
                       Syncing session settings upfront ensures all student lists, term schedules, and class assignments calculate correctly in automated report cards.
                     </p>
