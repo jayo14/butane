@@ -36,6 +36,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@heroui/react"
 
 interface GradingPageClientProps {
   initialSessions: any[]
@@ -167,56 +168,7 @@ export function GradingPageClient({
 
   return (
     <>
-      <style jsx global>{`
-        /* Artisanal Canvas Textures & Effects */
-        .canvas-bg {
-          background-color: #fcfbf7;
-          background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
-          background-blend-mode: multiply;
-        }
-
-        .stitched-border {
-          position: relative;
-        }
-        .stitched-border::after {
-          content: '';
-          position: absolute;
-          inset: 4px;
-          border: 1.5px dashed #00422b;
-          border-radius: inherit;
-          pointer-events: none;
-          opacity: 0.3;
-        }
-
-        .recessed-input {
-          box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
-          background: #ffffff;
-        }
-
-        .tactile-card {
-          box-shadow: 0 12px 24px -2px rgba(55, 65, 81, 0.08);
-          border: 1px solid rgba(187, 202, 191, 0.3);
-        }
-
-        .convex-button {
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.4);
-        }
-        
-        /* Soft Crease Divider */
-        .crease-line {
-          height: 1px;
-          background: linear-gradient(to right, transparent, #bbcabf, transparent);
-          box-shadow: 0 1px 0 #ffffff;
-        }
-
-        .linen-texture {
-          background-image: url("https://www.transparenttextures.com/patterns/linen.png");
-          opacity: 0.03;
-          pointer-events: none;
-        }
-      `}</style>
-
-      <div className="canvas-bg min-h-screen text-on-surface font-body-md relative overflow-x-hidden p-6 md:p-10">
+      <div className="min-h-screen relative overflow-x-hidden p-6 md:p-10">
         
         {/* Top Header Section */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
@@ -234,74 +186,16 @@ export function GradingPageClient({
         </div>
 
         {/* Tab System */}
-        <div className="flex flex-wrap gap-2 mb-8 bg-surface-container-low p-1.5 rounded-2xl w-fit border border-outline-variant/30 shadow-inner">
-          <button
-            onClick={() => setActiveTab("dashboard")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "dashboard"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Dashboard
-          </button>
-          <button
-            onClick={() => setActiveTab("sessions")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "sessions"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Sessions
-          </button>
-          <button
-            onClick={() => setActiveTab("terms")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "terms"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Terms
-          </button>
-          <button
-            onClick={() => setActiveTab("classes")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "classes"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Classes
-          </button>
-          <button
-            onClick={() => setActiveTab("subjects")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "subjects"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Subjects
-          </button>
-          <button
-            onClick={() => setActiveTab("grading")}
-            className={cn(
-              "px-5 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200",
-              activeTab === "grading"
-                ? "bg-primary text-on-primary shadow-md"
-                : "text-on-surface-variant hover:bg-surface-container-high"
-            )}
-          >
-            Grade Scales
-          </button>
-        </div>
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="mb-8">
+          <TabsList className="bg-surface-secondary p-1.5 rounded-2xl w-fit border border-border-primary/30 shadow-inner">
+            <TabsTrigger value="dashboard" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Dashboard</TabsTrigger>
+            <TabsTrigger value="sessions" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Sessions</TabsTrigger>
+            <TabsTrigger value="terms" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Terms</TabsTrigger>
+            <TabsTrigger value="classes" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Classes</TabsTrigger>
+            <TabsTrigger value="subjects" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Subjects</TabsTrigger>
+            <TabsTrigger value="grading" className="px-5 py-2.5 rounded-xl font-semibold text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md">Grade Scales</TabsTrigger>
+          </TabsList>
+        </Tabs>
 
         {/* Tab Contents */}
         {activeTab === "dashboard" && (
@@ -328,43 +222,43 @@ export function GradingPageClient({
 
             {/* KPI Cards Row */}
             <section className="grid grid-cols-2 lg:grid-cols-5 gap-6">
-              <div className="bg-surface-container-lowest p-6 rounded-3xl tactile-card relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-label-sm text-on-surface-variant uppercase mb-2 font-semibold">Sessions</p>
+                <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Sessions</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline-lg text-3xl text-on-surface font-bold">{sessions.length || 1}</span>
-                  <span className="text-secondary text-xs font-bold">Active</span>
+                  <span className="text-3xl text-content-primary font-bold">{sessions.length || 1}</span>
+                  <span className="text-primary text-xs font-bold">Active</span>
                 </div>
               </div>
-              <div className="bg-surface-container-lowest p-6 rounded-3xl tactile-card relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-label-sm text-on-surface-variant uppercase mb-2 font-semibold">Classrooms</p>
+                <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Classrooms</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline-lg text-3xl text-on-surface font-bold">{classrooms.length || 4}</span>
-                  <span className="text-on-surface-variant text-xs font-medium">Assigned</span>
+                  <span className="text-3xl text-content-primary font-bold">{classrooms.length || 4}</span>
+                  <span className="text-content-secondary text-xs font-medium">Assigned</span>
                 </div>
               </div>
-              <div className="bg-surface-container-lowest p-6 rounded-3xl tactile-card relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-label-sm text-on-surface-variant uppercase mb-2 font-semibold">Terms</p>
+                <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Terms</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline-lg text-3xl text-on-surface font-bold">{terms.length || 3}</span>
+                  <span className="text-3xl text-content-primary font-bold">{terms.length || 3}</span>
                   <span className="text-primary text-xs font-bold">Setup</span>
                 </div>
               </div>
-              <div className="bg-surface-container-lowest p-6 rounded-3xl tactile-card relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-label-sm text-on-surface-variant uppercase mb-2 font-semibold">Subjects</p>
+                <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Subjects</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline-lg text-3xl text-on-surface font-bold">{subjects.length || 6}</span>
-                  <span className="text-on-surface-variant text-xs font-medium">Active</span>
+                  <span className="text-3xl text-content-primary font-bold">{subjects.length || 6}</span>
+                  <span className="text-content-secondary text-xs font-medium">Active</span>
                 </div>
               </div>
-              <div className="bg-surface-container-lowest p-6 rounded-3xl tactile-card relative overflow-hidden group hover:-translate-y-1 transition-transform">
+              <div className="bg-white p-6 rounded-2xl shadow-card border border-border-primary relative overflow-hidden group hover:-translate-y-1 transition-transform">
                 <div className="linen-texture absolute inset-0"></div>
-                <p className="text-label-sm text-on-surface-variant uppercase mb-2 font-semibold">Grade Scales</p>
+                <p className="text-xs text-content-secondary uppercase mb-2 font-semibold">Grade Scales</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="font-headline-lg text-3xl text-on-surface font-bold">{gradeScales.length || 4}</span>
+                  <span className="text-3xl text-content-primary font-bold">{gradeScales.length || 4}</span>
                   <span className="text-primary text-xs font-bold">Standard</span>
                 </div>
               </div>
