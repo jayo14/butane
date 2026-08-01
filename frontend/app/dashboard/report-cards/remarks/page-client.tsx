@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Link from "next/link"
 import {
   MessageSquare,
@@ -14,21 +14,13 @@ import {
   Archive,
   ClipboardCheck,
   Settings,
+  Loader2,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
+import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
-
-const MOCK_STUDENTS = [
-  { id: 1, name: "Aisha Okonkwo", initials: "AO", class: "JSS 1A", remark: "Aisha has shown excellent improvement in her academic performance this term. She is diligent and contributes actively in class." },
-  { id: 2, name: "Emeka Nwosu", initials: "EN", class: "JSS 1A", remark: "Emeka is a focused student who consistently meets deadlines. His performance in mathematics is outstanding." },
-  { id: 3, name: "Fatima Abubakar", initials: "FA", class: "JSS 1A", remark: "" },
-  { id: 4, name: "Ibrahim Musa", initials: "IM", class: "JSS 1A", remark: "Ibrahim needs to pay more attention in class. With more effort, he can achieve better results." },
-  { id: 5, name: "Chidinma Eze", initials: "CE", class: "JSS 1A", remark: "" },
-  { id: 6, name: "Yusuf Bello", initials: "YB", class: "JSS 1A", remark: "Yusuf is a well-behaved student. He shows great potential in the sciences." },
-  { id: 7, name: "Ngozi Okafor", initials: "NO", class: "JSS 1A", remark: "" },
-  { id: 8, name: "Tunde Adeyemi", initials: "TA", class: "JSS 1A", remark: "Tunde has been a leader in the classroom. His academic performance is commendable." },
-]
 
 const REMARK_TEMPLATES = [
   "A dedicated and hardworking student who consistently produces excellent work.",
@@ -46,25 +38,66 @@ interface TeacherRemarksClientProps {
 }
 
 export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClientProps) {
-  const [remarks, setRemarks] = useState<Record<number, string>>(
-    Object.fromEntries(MOCK_STUDENTS.map((s) => [s.id, s.remark]))
-  )
-  const [selectedStudent, setSelectedStudent] = useState(MOCK_STUDENTS[0])
+  const { addToast } = useToast()
+  const [classrooms, setClassrooms] = useState(initialClassrooms)
+  const [selectedClassroom, setSelectedClassroom] = useState("")
+  const [reportCards, setReportCards] = useState<any[]>([])
+  const [loading, setLoading] = useState(false)
+  const [remarks, setRemarks] = useState<Record<string, string>>({})
+  const [selectedStudent, setSelectedStudent] = useState<any>(null)
   const [search, setSearch] = useState("")
+  const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
 
-  const filteredStudents = useMemo(() => {
-    if (!search.trim()) return MOCK_STUDENTS
-    const q = search.toLowerCase()
-    return MOCK_STUDENTS.filter((s) => s.name.toLowerCase().includes(q))
-  }, [search])
+  useEffect(() => {
+    if (!selectedClassroom) {
+      setReportCards([])
+      return
+    }
+    setLoading(true)
+    api.academics.reportCardsList({ classroom: selectedClassroom, page_size: 100 })
+      .then((res) => {
+        const results = (res as any)?.results || res || []
+        setReportCards(results)
+        const initialRemarks: Record<string, string> = {}
+        results.forEach((r: any) => {
+          initialRemarks[r.id] = r.teacher_remark || ""
+        })
+        setRemarks(initialRemarks)
+        if (results.length > 0) setSelectedStudent(results[0])
+      })
+      .catch(() => setReportCards([]))
+      .finally(() => setLoading(false))
+  }, [selectedClassroom])
 
-  const handleSave = () => {
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+  const filteredStudents = useMemo(() => {
+    if (!search.trim()) return reportCards
+    const q = search.toLowerCase()
+    return reportCards.filter((s: any) => {
+      const name = `${s.student_first_name || ""} ${s.student_last_name || ""}`.toLowerCase()
+      return name.includes(q)
+    })
+  }, [reportCards, search])
+
+  const handleSave = async () => {
+    if (!selectedStudent) return
+    setSaving(true)
+    try {
+      await api.academics.reportCardUpdate(selectedStudent.id, {
+        teacher_remark: remarks[selectedStudent.id] || "",
+      })
+      setSaved(true)
+      addToast({ message: "Remark saved successfully!", variant: "success" })
+      setTimeout(() => setSaved(false), 2000)
+    } catch (err) {
+      addToast({ message: "Failed to save remark.", variant: "error" })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const insertTemplate = (template: string) => {
+    if (!selectedStudent) return
     setRemarks((prev) => ({
       ...prev,
       [selectedStudent.id]: prev[selectedStudent.id]
@@ -96,6 +129,18 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
             <div className="linen-texture absolute inset-0"></div>
             <div className="relative z-10 flex flex-col flex-1">
               <div className="p-4 border-b border-border-primary/30">
+                <div className="recessed-well bg-white border border-border-primary/40 rounded-xl mb-3">
+                  <select
+                    value={selectedClassroom}
+                    onChange={(e) => { setSelectedClassroom(e.target.value); setSelectedStudent(null) }}
+                    className="w-full bg-transparent border-none px-4 py-2 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
+                  >
+                    <option value="">Select a class...</option>
+                    {classrooms.map((c: any) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
                 <div className="relative">
                   <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-content-secondary" />
                   <input
@@ -108,19 +153,33 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
                 </div>
                 <div className="flex items-center justify-between mt-3 px-1">
                   <span className="text-xs text-content-secondary">
-                    {filledCount}/{MOCK_STUDENTS.length} remarks written
+                    {filledCount}/{reportCards.length} remarks written
                   </span>
                   <div className="w-24 h-2 bg-surface-secondary rounded-full overflow-hidden">
                     <div
                       className="h-full bg-primary rounded-full transition-all"
-                      style={{ width: `${(filledCount / MOCK_STUDENTS.length) * 100}%` }}
+                      style={{ width: `${reportCards.length > 0 ? (filledCount / reportCards.length) * 100 : 0}%` }}
                     />
                   </div>
                 </div>
               </div>
 
               <div className="flex-1 overflow-y-auto max-h-[500px] p-2">
-                {filteredStudents.map((student) => {
+                {loading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 size={20} className="animate-spin text-primary" />
+                  </div>
+                ) : filteredStudents.length === 0 ? (
+                  <div className="text-center py-12">
+                    <MessageSquare size={24} className="text-content-secondary/40 mx-auto mb-2" />
+                    <p className="text-xs text-content-secondary">
+                      {selectedClassroom ? "No students found" : "Select a class to load students"}
+                    </p>
+                  </div>
+                ) : (
+                filteredStudents.map((student: any) => {
+                  const name = `${student.student_first_name || ""} ${student.student_last_name || ""}`.trim()
+                  const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
                   const hasRemark = (remarks[student.id] || "").trim().length > 0
                   return (
                     <button
@@ -128,24 +187,25 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
                       onClick={() => setSelectedStudent(student)}
                       className={cn(
                         "w-full flex items-center gap-3 p-3 rounded-2xl transition-all text-left hover:scale-[1.01]",
-                        selectedStudent.id === student.id
+                        selectedStudent?.id === student.id
                           ? "bg-primary/5 border border-primary/20 shadow-sm"
                           : "hover:bg-surface-secondary/50 border border-transparent"
                       )}
                     >
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs shrink-0">
-                        {student.initials}
+                        {initials}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-content-primary truncate">{student.name}</p>
-                        <p className="text-xs text-content-secondary">{student.class}</p>
+                        <p className="text-sm font-bold text-content-primary truncate">{name}</p>
+                        <p className="text-xs text-content-secondary">{student.classroom_name || ""}</p>
                       </div>
                       {hasRemark && (
                         <div className="w-3 h-3 rounded-full bg-primary shrink-0" />
                       )}
                     </button>
                   )
-                })}
+                })
+                )}
               </div>
             </div>
           </div>
@@ -159,15 +219,21 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-                    {selectedStudent.initials}
+                    {selectedStudent ? (() => {
+                      const name = `${selectedStudent.student_first_name || ""} ${selectedStudent.student_last_name || ""}`.trim()
+                      return name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)
+                    })() : "?"}
                   </div>
                   <div>
-                    <h2 className="text-xl text-content-primary font-bold">{selectedStudent.name}</h2>
-                    <p className="text-sm text-content-secondary">{selectedStudent.class}</p>
+                    <h2 className="text-xl text-content-primary font-bold">
+                      {selectedStudent ? `${selectedStudent.student_first_name || ""} ${selectedStudent.student_last_name || ""}`.trim() : "Select a student"}
+                    </h2>
+                    <p className="text-sm text-content-secondary">{selectedStudent?.classroom_name || ""}</p>
                   </div>
                 </div>
                 <button
                   onClick={handleSave}
+                  disabled={!selectedStudent || saving}
                   className={cn(
                     "flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-bold transition-all",
                     saved
@@ -175,23 +241,27 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
                       : "bg-primary text-primary-foreground hover:brightness-110 active:scale-95 shadow-md"
                   )}
                 >
-                  {saved ? <><Check size={16} /> Saved</> : <><Save size={16} /> Save Remark</>}
+                  {saving ? <Loader2 size={16} className="animate-spin" /> : saved ? <Check size={16} /> : <Save size={16} />}
+                  {saving ? "Saving..." : saved ? "Saved" : "Save Remark"}
                 </button>
               </div>
 
               <div className="flex-1">
                 <label className="text-xs font-bold text-content-secondary uppercase tracking-wider block mb-2 px-1">Teacher Remark</label>
                 <textarea
-                  value={remarks[selectedStudent.id] || ""}
-                  onChange={(e) =>
-                    setRemarks((prev) => ({ ...prev, [selectedStudent.id]: e.target.value }))
-                  }
-                  placeholder="Write a personalized remark for this student..."
-                  className="w-full min-h-[200px] p-4 rounded-2xl border border-border-primary/40 text-sm text-content-primary bg-white focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all resize-y outline-none"
+                  value={selectedStudent ? (remarks[selectedStudent.id] || "") : ""}
+                  onChange={(e) => {
+                    if (selectedStudent) {
+                      setRemarks((prev) => ({ ...prev, [selectedStudent.id]: e.target.value }))
+                    }
+                  }}
+                  placeholder={selectedStudent ? "Write a personalized remark for this student..." : "Select a student to write a remark"}
+                  disabled={!selectedStudent}
+                  className="w-full min-h-[200px] p-4 rounded-2xl border border-border-primary/40 text-sm text-content-primary bg-white focus:border-primary/40 focus:ring-2 focus:ring-primary/10 transition-all resize-y outline-none disabled:opacity-50"
                 />
                 <div className="flex items-center justify-between mt-2 px-1">
                   <span className="text-xs text-content-secondary">
-                    {(remarks[selectedStudent.id] || "").length} characters
+                    {selectedStudent ? (remarks[selectedStudent.id] || "").length : 0} characters
                   </span>
                 </div>
               </div>
