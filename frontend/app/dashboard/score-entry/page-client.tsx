@@ -82,12 +82,21 @@ export function ScoreEntryPageClient({
   // Students list
   const [students, setStudents] = useState<any[]>([])
   
-  // Assessment components state
-  const [components, setComponents] = useState<any[]>([
-    { id: "c1", name: "CA Test 1", max_score: 20 },
-    { id: "c2", name: "CA Test 2", max_score: 20 },
-    { id: "c3", name: "Final Exam", max_score: 60 }
-  ])
+  // Assessment components state — derived from selected subject
+  const selectedSubjectData = initialSubjects.find((s: any) => s.id === selectedSubject)
+  const subjectComponents = selectedSubjectData?.components || selectedSubjectData?.assessment_components || []
+  const [components, setComponents] = useState<any[]>(subjectComponents)
+
+  // Update components when subject changes
+  useEffect(() => {
+    const sub = initialSubjects.find((s: any) => s.id === selectedSubject)
+    const comps = sub?.components || sub?.assessment_components || []
+    setComponents(comps.length > 0 ? comps : [
+      { id: "c1", name: "CA Test 1", max_score: 20 },
+      { id: "c2", name: "CA Test 2", max_score: 20 },
+      { id: "c3", name: "Final Exam", max_score: 60 }
+    ])
+  }, [selectedSubject, initialSubjects])
 
   // Scores entered: studentId -> componentId -> number
   const [scores, setScores] = useState<Record<string, Record<string, number | "">>>({})
@@ -116,18 +125,18 @@ export function ScoreEntryPageClient({
     }
   }, [selectedClassroom, initialEnrollments])
 
-  // Populate initial scores
+  // Populate initial scores from existing data or leave blank
   useEffect(() => {
     const initialScores: Record<string, Record<string, number | "">> = {}
     students.forEach((s) => {
-      initialScores[s.id] = {
-        c1: s.id === "s1" || s.id === "s2" ? "" : Math.floor(Math.random() * 6) + 14, // leave some empty for MOCK
-        c2: s.id === "s1" || s.id === "s2" ? "" : Math.floor(Math.random() * 6) + 14,
-        c3: s.id === "s1" || s.id === "s2" ? "" : Math.floor(Math.random() * 20) + 38
-      }
+      initialScores[s.id] = {}
+      components.forEach((c) => {
+        // Leave blank for new entries — teacher will fill in
+        initialScores[s.id][c.id] = ""
+      })
     })
     setScores(initialScores)
-  }, [students])
+  }, [students, components])
 
   // Grading calculation on score sum
   function calculateGradeAndRemark(total: number): { grade: string; remark: string } {
@@ -222,27 +231,63 @@ export function ScoreEntryPageClient({
   async function handleSaveProgress() {
     setLoading(true)
     try {
-      // Map score entry values into API payload
-      // In real scenario, we save each component individually or in bulk.
-      // We will mock calling scoresBulk for components.
-      addToast({ message: "Scores progress saved successfully on server.", variant: "success" })
+      // Save scores for each component
+      for (const component of components) {
+        const componentScores = Object.entries(scores)
+          .filter(([_, compScores]) => compScores[component.id] !== "" && compScores[component.id] !== undefined)
+          .map(([studentId, compScores]) => ({
+            student_id: studentId,
+            score: Number(compScores[component.id]),
+          }))
+        
+        if (componentScores.length > 0) {
+          await api.academics.scoresBulk({
+            component_id: component.id,
+            scores: componentScores,
+          })
+        }
+      }
+      addToast({ message: "Scores saved successfully!", variant: "success" })
     } catch (err) {
       console.error(err)
-      addToast({ message: "Failed to save scores.", variant: "error" })
+      addToast({ message: "Failed to save scores. Please try again.", variant: "error" })
     } finally {
       setLoading(false)
     }
   }
 
   // Lock scores finalisation
-  function handleFinalizeLock() {
+  async function handleFinalizeLock() {
     if (stats.pendingCount > 0) {
       if (!confirm(`Warning: You still have ${stats.pendingCount} student(s) with pending scores. Are you sure you want to lock?`)) {
         return
       }
     }
-    addToast({ message: "Scores locked and approved! Syncing report card grades...", variant: "success" })
-    setCompleted(true)
+    setLoading(true)
+    try {
+      // Save all scores first
+      for (const component of components) {
+        const componentScores = Object.entries(scores)
+          .filter(([_, compScores]) => compScores[component.id] !== "" && compScores[component.id] !== undefined)
+          .map(([studentId, compScores]) => ({
+            student_id: studentId,
+            score: Number(compScores[component.id]),
+          }))
+        
+        if (componentScores.length > 0) {
+          await api.academics.scoresBulk({
+            component_id: component.id,
+            scores: componentScores,
+          })
+        }
+      }
+      addToast({ message: "Scores locked and saved! Report card grades will be synced.", variant: "success" })
+      setCompleted(true)
+    } catch (err) {
+      addToast({ message: "Failed to lock scores. Please try again.", variant: "error" })
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
