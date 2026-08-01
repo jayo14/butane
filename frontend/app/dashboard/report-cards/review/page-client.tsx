@@ -1,62 +1,70 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import {
   CheckCircle,
   Clock,
   AlertTriangle,
-  FileText,
   Users,
   BarChart3,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  Eye,
-  Sparkles,
-  Archive,
-  ClipboardCheck,
-  MessageSquare,
-  Settings,
-  BookOpen,
+  Loader2,
 } from "lucide-react"
 import { Container } from "@/components/layout/container"
+import { api } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
-const KPI_DATA = [
-  { label: "Total Students", value: "247", change: "+12", trend: "up", icon: Users, color: "primary" },
-  { label: "Reports Generated", value: "189", change: "+45", trend: "up", icon: FileText, color: "success" },
-  { label: "Pending Approval", value: "38", change: "-8", trend: "down", icon: Clock, color: "warning" },
-  { label: "Approved", value: "151", change: "+53", trend: "up", icon: CheckCircle, color: "success" },
-]
-
-const UNFINISHED_BUSINESS = [
-  { id: 1, task: "Generate reports for SS 2A", status: "not_started", priority: "high" },
-  { id: 2, task: "Write remarks for JSS 1B (12 students)", status: "in_progress", priority: "high" },
-  { id: 3, task: "Approve JSS 2A reports", status: "pending_review", priority: "medium" },
-  { id: 4, task: "Review rejected SS 1B reports", status: "rejected", priority: "high" },
-  { id: 5, task: "Customize report card template", status: "in_progress", priority: "low" },
-]
-
-const SCORE_DISTRIBUTION = [
-  { range: "70-100", label: "Excellent", count: 45, percentage: 18, color: "bg-success" },
-  { range: "60-69", label: "Very Good", count: 62, percentage: 25, color: "bg-primary" },
-  { range: "50-59", label: "Good", count: 78, percentage: 32, color: "bg-primary/70" },
-  { range: "40-49", label: "Pass", count: 41, percentage: 17, color: "bg-warning" },
-  { range: "0-39", label: "Fail", count: 21, percentage: 8, color: "bg-danger" },
-]
-
-const RECENT_ACTIVITY = [
-  { id: 1, action: "Reports approved", detail: "JSS 1B - 38 reports", time: "10 min ago", icon: CheckCircle, color: "success" },
-  { id: 2, action: "Remarks written", detail: "Mrs. Okonkwo completed JSS 2A", time: "25 min ago", icon: MessageSquare, color: "primary" },
-  { id: 3, action: "Report rejected", detail: "SS 1B - Missing CA scores", time: "1 hour ago", icon: AlertTriangle, color: "danger" },
-  { id: 4, action: "Reports generated", detail: "JSS 1A - 42 reports", time: "2 hours ago", icon: FileText, color: "primary" },
-]
-
 export function FinalReviewDashboardClient() {
+  const [loading, setLoading] = useState(true)
+  const [reportCards, setReportCards] = useState<any[]>([])
+  const [classrooms, setClassrooms] = useState<any[]>([])
   const [activeFilter, setActiveFilter] = useState<"all" | "high" | "medium" | "low">("all")
 
-  const filteredTasks = UNFINISHED_BUSINESS.filter(
+  useEffect(() => {
+    Promise.all([
+      api.academics.reportCardsList({ page_size: 500 }).catch(() => ({ results: [] })),
+      api.academics.classrooms().catch(() => ({ results: [] })),
+    ]).then(([reportsRes, classRes]) => {
+      setReportCards((reportsRes as any)?.results || reportsRes || [])
+      setClassrooms((classRes as any)?.results || classRes || [])
+    }).finally(() => setLoading(false))
+  }, [])
+
+  const totalStudents = reportCards.length
+  const approvedCount = reportCards.filter((r: any) => r.status === "approved").length
+  const pendingCount = reportCards.filter((r: any) => r.status === "submitted" || r.status === "draft").length
+  const draftCount = reportCards.filter((r: any) => r.status === "draft").length
+
+  const avgScore = reportCards.length > 0
+    ? reportCards.reduce((sum: number, r: any) => sum + (r.average_score || 0), 0) / reportCards.length
+    : 0
+
+  const scoreDistribution = [
+    { range: "70-100", label: "Excellent", color: "bg-success", count: reportCards.filter((r: any) => r.average_score >= 70).length },
+    { range: "60-69", label: "Very Good", color: "bg-primary", count: reportCards.filter((r: any) => r.average_score >= 60 && r.average_score < 70).length },
+    { range: "50-59", label: "Good", color: "bg-primary/70", count: reportCards.filter((r: any) => r.average_score >= 50 && r.average_score < 60).length },
+    { range: "40-49", label: "Pass", color: "bg-warning", count: reportCards.filter((r: any) => r.average_score >= 40 && r.average_score < 50).length },
+    { range: "0-39", label: "Fail", color: "bg-danger", count: reportCards.filter((r: any) => r.average_score < 40).length },
+  ].map((d) => ({
+    ...d,
+    percentage: totalStudents > 0 ? Math.round((d.count / totalStudents) * 100) : 0,
+  }))
+
+  const unfinishedBusiness = [
+    draftCount > 0 && { id: 1, task: `${draftCount} report cards need generation`, status: "not_started", priority: "high" },
+    pendingCount > 0 && { id: 2, task: `${pendingCount} reports pending approval`, status: "pending_review", priority: "medium" },
+    classrooms.length > 0 && { id: 3, task: `${classrooms.length} active classrooms`, status: "in_progress", priority: "low" },
+  ].filter(Boolean) as any[]
+
+  const kpiData = [
+    { label: "Total Reports", value: totalStudents.toString(), trend: "up" as const, icon: Users, color: "primary" },
+    { label: "Approved", value: approvedCount.toString(), trend: "up" as const, icon: CheckCircle, color: "success" },
+    { label: "Pending Review", value: pendingCount.toString(), trend: "down" as const, icon: Clock, color: "warning" },
+    { label: "Avg Score", value: `${avgScore.toFixed(1)}%`, trend: "up" as const, icon: BarChart3, color: "primary" },
+  ]
+
+  const filteredTasks = unfinishedBusiness.filter(
     (t) => activeFilter === "all" || t.priority === activeFilter
   )
 
@@ -75,8 +83,14 @@ export function FinalReviewDashboardClient() {
       </div>
 
       {/* KPI Cards */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 size={24} className="animate-spin text-primary" />
+          <span className="ml-3 text-content-secondary">Loading dashboard data...</span>
+        </div>
+      ) : (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {KPI_DATA.map((kpi) => (
+        {kpiData.map((kpi) => (
           <div
             key={kpi.label}
             className="bg-white p-6 rounded-3xl shadow-card border border-border-primary/60 hover:shadow-dropdown hover:scale-[1.02] transition-all relative overflow-hidden group"
@@ -92,13 +106,6 @@ export function FinalReviewDashboardClient() {
                 )}>
                   <kpi.icon size={20} />
                 </div>
-                <div className={cn(
-                  "flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-full",
-                  kpi.trend === "up" ? "bg-success/10 text-success" : "bg-danger/10 text-danger"
-                )}>
-                  {kpi.trend === "up" ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
-                  {kpi.change}
-                </div>
               </div>
               <p className="text-3xl text-content-primary font-bold mb-1">{kpi.value}</p>
               <p className="text-xs text-content-secondary">{kpi.label}</p>
@@ -106,6 +113,7 @@ export function FinalReviewDashboardClient() {
           </div>
         ))}
       </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Left Column */}
@@ -187,7 +195,7 @@ export function FinalReviewDashboardClient() {
               </div>
 
               <div className="space-y-4">
-                {SCORE_DISTRIBUTION.map((dist) => (
+                {scoreDistribution.map((dist) => (
                   <div key={dist.range} className="flex items-center gap-4">
                     <div className="w-20 text-right">
                       <p className="text-xs font-bold text-content-primary">{dist.range}</p>
@@ -212,29 +220,22 @@ export function FinalReviewDashboardClient() {
 
         {/* Right Column */}
         <section className="lg:col-span-4 flex flex-col gap-6">
-          {/* Recent Activity */}
+          {/* Summary Stats */}
           <div className="bg-white p-8 rounded-3xl shadow-card border border-border-primary/60 relative overflow-hidden">
             <div className="linen-texture absolute inset-0"></div>
             <div className="relative z-10">
-              <h2 className="text-xl text-content-primary font-bold mb-6">Recent Activity</h2>
-              <div className="space-y-4">
-                {RECENT_ACTIVITY.map((activity) => (
-                  <div key={activity.id} className="flex items-start gap-3 group">
-                    <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                      activity.color === "success" && "bg-success/10 text-success",
-                      activity.color === "primary" && "bg-primary/10 text-primary",
-                      activity.color === "danger" && "bg-danger/10 text-danger",
-                    )}>
-                      <activity.icon size={14} />
+              <h2 className="text-xl text-content-primary font-bold mb-6">Classroom Summary</h2>
+              <div className="space-y-3">
+                {classrooms.slice(0, 6).map((classroom: any) => {
+                  const classReports = reportCards.filter((r: any) => r.classroom === classroom.id)
+                  const approved = classReports.filter((r: any) => r.status === "approved").length
+                  return (
+                    <div key={classroom.id} className="flex items-center justify-between p-3 bg-surface-secondary/30 rounded-xl">
+                      <span className="text-sm font-bold text-content-primary">{classroom.name}</span>
+                      <span className="text-xs text-content-secondary">{approved}/{classReports.length} approved</span>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold text-content-primary">{activity.action}</p>
-                      <p className="text-xs text-content-secondary truncate">{activity.detail}</p>
-                    </div>
-                    <span className="text-[10px] text-content-secondary shrink-0">{activity.time}</span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
