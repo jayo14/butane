@@ -15,11 +15,14 @@ import {
   Users,
   BookOpen,
   ClipboardList,
+  ClipboardCheck,
   BarChart3,
   FileText,
   User,
   Settings,
   GraduationCap,
+  PenTool,
+  Star,
   X,
   PanelLeftClose,
   PanelLeft,
@@ -30,10 +33,13 @@ const iconMap: Record<string, React.ReactNode> = {
   users: <Users size={20} />,
   "book-open": <BookOpen size={20} />,
   "clipboard-list": <ClipboardList size={20} />,
+  "clipboard-check": <ClipboardCheck size={20} />,
   "bar-chart-3": <BarChart3 size={20} />,
   "file-text": <FileText size={20} />,
   user: <User size={20} />,
   settings: <Settings size={20} />,
+  "pen-tool": <PenTool size={20} />,
+  star: <Star size={20} />,
 }
 
 export function Sidebar() {
@@ -87,7 +93,7 @@ export function Sidebar() {
               onClick={() => isMobile && onClose()}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "group flex items-center rounded-xl transition-all duration-200",
+                "group relative flex items-center rounded-xl transition-all duration-200",
                 collapsed ? "justify-center px-2 py-3" : "gap-3 px-4 py-3",
                 isActive
                   ? "bg-primary/10 text-primary shadow-sm shadow-primary/10 font-semibold"
@@ -178,10 +184,11 @@ export function Sidebar() {
           "flex flex-col border-r border-border-primary bg-white transition-all duration-300",
           isMobile
             ? cn(
-                "fixed inset-y-0 left-0 z-50 w-72 shadow-xl transition-all duration-300 ease-out",
+                "fixed inset-y-0 left-0 z-50 shadow-xl transition-all duration-300 ease-out",
                 isOpen ? "translate-x-0" : "-translate-x-full",
+                "w-[var(--sidebar-width)]",
               )
-            : collapsed ? "w-16 shrink-0" : "w-64 shrink-0",
+            : collapsed ? "w-[var(--sidebar-collapsed-width)] shrink-0" : "w-[var(--sidebar-width)] shrink-0",
         )}
       >
         {sidebarContent}
