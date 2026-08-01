@@ -28,7 +28,7 @@ export function Header() {
             autoFocus
             type="text"
             placeholder="Search pages..."
-            className="h-10 w-full rounded-xl border border-border-primary bg-surface-secondary pl-10 pr-4 text-sm text-content-primary placeholder:text-content-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+            className="h-10 w-full recessed-well bg-surface-secondary pl-10 pr-4 text-sm text-content-primary placeholder:text-content-secondary focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             onBlur={() => setShowMobileSearch(false)}
           />
         </div>
@@ -46,7 +46,8 @@ export function Header() {
   return (
     <header
       className={cn(
-        "flex h-16 shrink-0 items-center gap-3 border-b border-border-primary/80 bg-white/95 backdrop-blur-sm px-4 md:px-5",
+        "flex shrink-0 items-center gap-3 border-b border-border-primary/80 bg-white/95 backdrop-blur-sm px-4 md:px-5",
+        "h-[var(--header-height)]",
         isMobile && "pl-16",
       )}
     >
@@ -79,7 +80,7 @@ export function Header() {
               })
               document.dispatchEvent(event)
             }}
-            className="hidden h-10 items-center gap-2 rounded-xl border-2 border-border-primary/60 bg-surface-secondary/80 px-4 text-sm text-content-muted transition-all duration-200 hover:border-primary/30 hover:text-content-secondary lg:flex"
+            className="hidden h-10 items-center gap-2 recessed-well bg-surface-secondary/80 px-4 text-sm text-content-muted transition-all duration-200 hover:border-primary/30 hover:text-content-secondary lg:flex"
             aria-label="Open command palette"
           >
             <Search size={16} />
