@@ -15,9 +15,9 @@ export default async function ReportCardGeneratePage() {
       api.students.list().catch(() => []),
     ])
     sessions = sessionsRes || []
-    terms = termsRes?.results || termsRes || []
-    classrooms = classroomsRes?.results || classroomsRes || []
-    students = studentsRes?.results || studentsRes || []
+    terms = (termsRes as any)?.results || termsRes || []
+    classrooms = (classroomsRes as any)?.results || classroomsRes || []
+    students = (studentsRes as any)?.results || studentsRes || []
   } catch {
     // Use empty arrays as fallback
   }

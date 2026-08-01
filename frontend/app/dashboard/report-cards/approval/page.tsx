@@ -10,8 +10,8 @@ export default async function ReportCardApprovalPage() {
       api.terms.list().catch(() => []),
       api.academics.classrooms().catch(() => []),
     ])
-    terms = termsRes?.results || termsRes || []
-    classrooms = classroomsRes?.results || classroomsRes || []
+    terms = (termsRes as any)?.results || termsRes || []
+    classrooms = (classroomsRes as any)?.results || classroomsRes || []
   } catch {
     // Use empty arrays as fallback
   }
