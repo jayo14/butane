@@ -180,7 +180,10 @@ export function MaximizedMarkSheetClient({ initialStudents }: MaximizedMarkSheet
             </tr>
           </thead>
           <tbody>
-            {filteredStudents.map((student) => (
+            {filteredStudents.map((student) => {
+              const studentTotal = getStudentTotal(student.id)
+              const studentTotalColor = studentTotal >= 70 ? "text-success" : studentTotal >= 50 ? "text-primary" : studentTotal >= 40 ? "text-warning" : "text-danger"
+              return (
               <tr key={student.id} className="hover:bg-primary/[0.02] group">
                 <td className="sticky left-0 z-10 bg-white group-hover:bg-primary/[0.02] p-3 border-r border-b border-border-primary/30">
                   <p className="font-bold text-content-primary text-xs">{student.name}</p>
@@ -216,12 +219,13 @@ export function MaximizedMarkSheetClient({ initialStudents }: MaximizedMarkSheet
                   )
                 })}
                 <td className="p-3 text-center border-b border-l border-border-primary/30 bg-surface-secondary/30">
-                  <span className={cn("font-bold text-sm", totalColor)}>
-                    {getStudentTotal(student.id)}
+                  <span className={cn("font-bold text-sm", studentTotalColor)}>
+                    {studentTotal}
                   </span>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
