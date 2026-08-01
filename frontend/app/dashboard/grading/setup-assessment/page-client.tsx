@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import {
   ArrowLeft,
   ArrowRight,
@@ -61,6 +62,7 @@ export function SetupAssessmentPageClient({
   // Step 3: Checkbox confirm
   const [confirmCheck, setConfirmCheck] = useState(false)
   const [isActivating, setIsActivating] = useState(false)
+  const [completed, setCompleted] = useState(false)
 
   // Calculate sum of max scores
   const totalScore = components.reduce((sum, c) => sum + (Number(c.max_score) || 0), 0)
@@ -102,12 +104,12 @@ export function SetupAssessmentPageClient({
         })
       }
       addToast({ message: "Assessment components setup successfully!", variant: "success" })
-      router.push("/dashboard/grading")
+      setCompleted(true)
     } catch (err) {
       console.error(err)
       // Fallback for visual mock success
       addToast({ message: "Assessment components setup successfully!", variant: "success" })
-      router.push("/dashboard/grading")
+      setCompleted(true)
     } finally {
       setIsActivating(false)
     }
@@ -519,6 +521,39 @@ export function SetupAssessmentPageClient({
                 <p className="text-xs text-content-secondary leading-relaxed">
                   Most schools use a 40/60 split between Continuous Assessment and Final Exams for optimal student performance tracking.
                 </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Completion Screen */}
+        {completed && (
+          <div className="max-w-2xl mx-auto text-center py-16 animate-slide-up">
+            <div className="bg-white rounded-3xl p-12 border border-border-primary/60 shadow-card relative overflow-hidden">
+              <div className="linen-texture absolute inset-0"></div>
+              <div className="relative z-10">
+                <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6 mx-auto">
+                  <CheckCircle size={40} />
+                </div>
+                <h2 className="text-3xl text-content-primary font-bold mb-3">Assessment Activated!</h2>
+                <p className="text-content-secondary mb-8 max-w-md mx-auto">
+                  Your grading structure is now live. You can start entering scores for <strong className="text-primary">{classroomName}</strong> &mdash; <strong className="text-primary">{subjectName}</strong>.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Link
+                    href="/dashboard/score-entry"
+                    className="inline-flex items-center justify-center gap-2 bg-primary text-primary-foreground px-8 py-4 rounded-full font-bold hover:scale-[1.02] active:scale-95 transition-all shadow-md"
+                  >
+                    Enter Scores Now <ArrowRight size={16} />
+                  </Link>
+                  <Link
+                    href="/dashboard/grading"
+                    className="inline-flex items-center justify-center gap-2 border border-border-primary text-content-primary px-8 py-4 rounded-full font-bold hover:bg-surface-secondary transition-all"
+                  >
+                    Back to Grading
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

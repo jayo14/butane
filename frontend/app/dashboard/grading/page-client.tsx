@@ -8,6 +8,7 @@ import {
   Layers,
   BookOpen,
   Clipboard,
+  ClipboardCheck,
   Award,
   Plus,
   Search,
@@ -354,6 +355,19 @@ export function GradingPageClient({
                   <h3 className="text-xl text-content-primary font-bold mb-6">Quick Actions</h3>
                   
                   <div className="space-y-4">
+                    <Link
+                      href="/dashboard/grading/setup-assessment"
+                      className="w-full text-left p-4 bg-surface-secondary hover:bg-primary/10 rounded-2xl flex items-center gap-4 transition-all group border border-border-primary/30 active:scale-[0.98]"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-white shadow-md group-hover:scale-110 transition-transform">
+                        <ClipboardCheck size={18} />
+                      </div>
+                      <div>
+                        <p className="font-bold text-content-primary text-sm">Set Up Assessment</p>
+                        <p className="text-xs text-content-secondary">Configure grading components and weights</p>
+                      </div>
+                    </Link>
+
                     <Link
                       href="/dashboard/score-entry"
                       className="w-full text-left p-4 bg-surface-secondary hover:bg-primary/10 rounded-2xl flex items-center gap-4 transition-all group border border-border-primary/30 active:scale-[0.98]"
