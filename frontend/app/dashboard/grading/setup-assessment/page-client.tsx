@@ -115,67 +115,19 @@ export function SetupAssessmentPageClient({
 
   return (
     <>
-      <style jsx global>{`
-        /* Artisanal Canvas Textures & Effects */
-        .canvas-bg {
-          background-color: #fcfbf7;
-          background-image: url("https://www.transparenttextures.com/patterns/natural-paper.png");
-          background-blend-mode: multiply;
-        }
-
-        .stitched-border {
-          position: relative;
-        }
-        .stitched-border::after {
-          content: '';
-          position: absolute;
-          inset: 4px;
-          border: 1.5px dashed #00422b;
-          border-radius: inherit;
-          pointer-events: none;
-          opacity: 0.3;
-        }
-
-        .recessed-input {
-          box-shadow: inset 2px 2px 5px rgba(0,0,0,0.05);
-          background: #ffffff;
-        }
-
-        .tactile-card {
-          box-shadow: 0 12px 24px -2px rgba(55, 65, 81, 0.08);
-          border: 1px solid rgba(187, 202, 191, 0.3);
-        }
-
-        .convex-button {
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255,255,255,0.4);
-        }
-        
-        .crease-line {
-          height: 1px;
-          background: linear-gradient(to right, transparent, #bbcabf, transparent);
-          box-shadow: 0 1px 0 #ffffff;
-        }
-
-        .linen-texture {
-          background-image: url("https://www.transparenttextures.com/patterns/linen.png");
-          opacity: 0.03;
-          pointer-events: none;
-        }
-      `}</style>
-
-      <div className="canvas-bg min-h-screen text-on-surface font-body-md relative overflow-x-hidden p-6 md:p-10">
+      <div className="min-h-screen relative overflow-x-hidden p-6 md:p-10">
         
         {/* Top bar wizard title */}
-        <div className="flex justify-between items-center mb-8 border-b border-outline-variant/20 pb-4">
+        <div className="flex justify-between items-center mb-8 border-b border-border-primary/30 pb-4">
           <div className="flex items-center gap-3">
-            <h1 className="font-headline-lg text-2xl text-primary font-bold">Configuration Wizard</h1>
-            <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold uppercase stitched-border">
+            <h1 className="text-2xl text-primary font-bold">Configuration Wizard</h1>
+            <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase">
               STEP {step} OF 3
             </span>
           </div>
           <button
             onClick={() => router.push("/dashboard/grading")}
-            className="text-sm font-semibold text-outline hover:text-primary transition-colors"
+            className="text-sm font-semibold text-content-secondary hover:text-primary transition-colors"
           >
             Cancel & Exit
           </button>
@@ -187,35 +139,35 @@ export function SetupAssessmentPageClient({
             <div className="flex flex-col items-center gap-2 group">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all",
-                step >= 1 ? "bg-primary text-on-primary shadow-md" : "bg-surface-container text-outline"
+                step >= 1 ? "bg-primary text-primary-foreground shadow-md" : "bg-surface-secondary text-content-secondary"
               )}>
                 1
               </div>
-              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 1 ? "text-primary" : "text-outline")}>Details</span>
+              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 1 ? "text-primary" : "text-content-secondary")}>Details</span>
             </div>
             
-            <div className={cn("h-[2px] flex-1 mx-4 transition-all duration-300", step >= 2 ? "bg-primary" : "bg-outline-variant/30")}></div>
+            <div className={cn("h-[2px] flex-1 mx-4 transition-all duration-300", step >= 2 ? "bg-primary" : "bg-border-primary/30")}></div>
 
             <div className="flex flex-col items-center gap-2 group">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all",
-                step >= 2 ? "bg-primary text-on-primary shadow-md" : "bg-surface-container text-outline"
+                step >= 2 ? "bg-primary text-primary-foreground shadow-md" : "bg-surface-secondary text-content-secondary"
               )}>
                 2
               </div>
-              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 2 ? "text-primary" : "text-outline")}>Criteria</span>
+              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 2 ? "text-primary" : "text-content-secondary")}>Criteria</span>
             </div>
 
-            <div className={cn("h-[2px] flex-1 mx-4 transition-all duration-300", step >= 3 ? "bg-primary" : "bg-outline-variant/30")}></div>
+            <div className={cn("h-[2px] flex-1 mx-4 transition-all duration-300", step >= 3 ? "bg-primary" : "bg-border-primary/30")}></div>
 
             <div className="flex flex-col items-center gap-2 group">
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-all",
-                step >= 3 ? "bg-primary text-on-primary shadow-md" : "bg-surface-container text-outline"
+                step >= 3 ? "bg-primary text-primary-foreground shadow-md" : "bg-surface-secondary text-content-secondary"
               )}>
                 3
               </div>
-              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 3 ? "text-primary" : "text-outline")}>Review</span>
+              <span className={cn("text-[10px] font-bold uppercase tracking-wider", step >= 3 ? "text-primary" : "text-content-secondary")}>Review</span>
             </div>
           </div>
         </div>
@@ -224,24 +176,24 @@ export function SetupAssessmentPageClient({
         {step === 1 && (
           <div className="max-w-2xl mx-auto space-y-8 animate-slide-right">
             <div className="text-center">
-              <h2 className="font-headline-xl text-3xl text-on-surface mb-2 font-bold">Choose Class and Subject</h2>
-              <p className="text-sm text-tertiary max-w-md mx-auto">
+              <h2 className="text-3xl text-content-primary mb-2 font-bold">Choose Class and Subject</h2>
+              <p className="text-sm text-content-secondary max-w-md mx-auto">
                 Begin defining your grading structure. The selections below serve as the foundation for this assessment components configuration.
               </p>
             </div>
 
-            <div className="bg-white rounded-3xl p-10 border border-outline-variant/30 shadow-sm relative">
+            <div className="bg-white rounded-2xl p-10 border border-border-primary/60 shadow-card relative">
               <div className="linen-texture absolute inset-0"></div>
               
               <div className="space-y-6 relative z-10">
                 {/* Class Selection Dropdown */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant ml-1">Select Class</label>
-                  <div className="recessed-input rounded-xl border border-outline-variant/40 focus-within:border-primary flex items-center px-4 py-3">
+                  <label className="text-xs font-bold text-content-secondary ml-1">Select Class</label>
+                  <div className="recessed-well bg-white flex items-center px-4 py-3">
                     <select
                       value={selectedClassroom}
                       onChange={(e) => setSelectedClassroom(e.target.value)}
-                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-on-surface w-full outline-none"
+                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a classroom...</option>
                       {classrooms.map((c) => (
@@ -253,12 +205,12 @@ export function SetupAssessmentPageClient({
 
                 {/* Subject Selection Dropdown */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant ml-1">Select Subject</label>
-                  <div className="recessed-input rounded-xl border border-outline-variant/40 focus-within:border-primary flex items-center px-4 py-3">
+                  <label className="text-xs font-bold text-content-secondary ml-1">Select Subject</label>
+                  <div className="recessed-well bg-white flex items-center px-4 py-3">
                     <select
                       value={selectedSubject}
                       onChange={(e) => setSelectedSubject(e.target.value)}
-                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-on-surface w-full outline-none"
+                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a subject...</option>
                       {subjects.map((s) => (
@@ -270,12 +222,12 @@ export function SetupAssessmentPageClient({
 
                 {/* Term Selection Dropdown */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-on-surface-variant ml-1">Select Term</label>
-                  <div className="recessed-input rounded-xl border border-outline-variant/40 focus-within:border-primary flex items-center px-4 py-3">
+                  <label className="text-xs font-bold text-content-secondary ml-1">Select Term</label>
+                  <div className="recessed-well bg-white flex items-center px-4 py-3">
                     <select
                       value={selectedTerm}
                       onChange={(e) => setSelectedTerm(e.target.value)}
-                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-on-surface w-full outline-none"
+                      className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a term...</option>
                       {terms.map((t) => (
@@ -289,7 +241,7 @@ export function SetupAssessmentPageClient({
                   <Button
                     onClick={() => setStep(2)}
                     disabled={!selectedClassroom || !selectedSubject || !selectedTerm}
-                    className="bg-primary text-on-primary px-10 py-6 rounded-full font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2 stitched-border"
+                    className="bg-primary text-primary-foreground px-10 py-6 rounded-full font-bold text-base shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-2"
                   >
                     <span>Next Step</span>
                     <ArrowRight size={16} />
@@ -300,25 +252,25 @@ export function SetupAssessmentPageClient({
 
             {/* Informative Helper Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-surface-container-low rounded-2xl p-5 border border-white flex gap-4 items-start shadow-sm">
-                <div className="bg-white p-2 rounded-full shadow-inner text-primary">
+              <div className="bg-surface-secondary rounded-2xl p-5 border border-border-primary/30 flex gap-4 items-start shadow-card">
+                <div className="bg-white p-2 rounded-full text-primary">
                   <Info size={16} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-on-surface">Did you know?</h4>
-                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
+                  <h4 className="text-xs font-bold text-content-primary">Did you know?</h4>
+                  <p className="text-xs text-content-secondary mt-1 leading-relaxed">
                     Selecting the correct class ensures all enrolled students are automatically synchronized with this new grading schema.
                   </p>
                 </div>
               </div>
-              <div className="bg-surface-container-low rounded-2xl p-5 border border-white flex gap-4 items-start shadow-sm">
-                <div className="bg-white p-2 rounded-full shadow-inner text-primary">
+              <div className="bg-surface-secondary rounded-2xl p-5 border border-border-primary/30 flex gap-4 items-start shadow-card">
+                <div className="bg-white p-2 rounded-full text-primary">
                   <HelpCircle size={16} />
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-on-surface">Need Help?</h4>
-                  <p className="text-xs text-on-surface-variant mt-1 leading-relaxed">
-                    You can configure standard default templates for components in the system settings settings area.
+                  <h4 className="text-xs font-bold text-content-primary">Need Help?</h4>
+                  <p className="text-xs text-content-secondary mt-1 leading-relaxed">
+                    You can configure standard default templates for components in the system settings area.
                   </p>
                 </div>
               </div>
@@ -330,23 +282,24 @@ export function SetupAssessmentPageClient({
         {step === 2 && (
           <div className="max-w-3xl mx-auto space-y-8 animate-slide-right">
             <div>
-              <h2 className="font-headline-xl text-3xl text-on-surface mb-2 font-bold">Assessment Design</h2>
-              <p className="text-sm text-tertiary">
-                Define the grading components for this term. Ensure the maximum marks total accurately matches your institution's weighting system.
+              <h2 className="text-3xl text-content-primary mb-2 font-bold">Assessment Design</h2>
+              <p className="text-sm text-content-secondary">
+                Define the grading components for this term. Ensure the maximum marks total accurately matches your institution&apos;s weighting system.
               </p>
             </div>
 
-            <div className="bg-white rounded-3xl p-8 border border-outline-variant/30 shadow-sm relative">
+            <div className="bg-white rounded-2xl p-8 border border-border-primary/60 shadow-card relative">
               <div className="linen-texture absolute inset-0"></div>
               
               <div className="relative z-10 space-y-6">
-                <div className="flex items-center justify-between pb-4 border-b border-outline-variant/10">
-                  <h3 className="font-headline-md text-lg text-on-surface font-bold flex items-center gap-1.5">
+                <div className="flex items-center justify-between pb-4 border-b border-border-primary/30">
+                  <h3 className="text-lg text-content-primary font-bold flex items-center gap-1.5">
                     <Settings size={18} className="text-primary" /> Grade Components
                   </h3>
                   <Button
                     onClick={addComponentRow}
-                    className="bg-secondary text-on-secondary px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1 stitched-border"
+                    variant="secondary"
+                    className="px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1"
                   >
                     <Plus size={14} /> Add Component
                   </Button>
@@ -354,29 +307,29 @@ export function SetupAssessmentPageClient({
 
                 <div className="space-y-4 max-h-[400px] overflow-y-auto pr-1">
                   {components.map((c, idx) => (
-                    <div key={idx} className="group flex items-center gap-4 p-4 bg-surface-container-low/50 rounded-2xl border border-transparent hover:border-outline-variant/40 transition-all duration-300">
+                    <div key={idx} className="group flex items-center gap-4 p-4 bg-surface-secondary/50 rounded-2xl border border-transparent hover:border-border-primary/60 transition-all duration-300">
                       <div className="flex-1 space-y-1">
-                        <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Component Name</label>
-                        <div className="recessed-input rounded-xl border border-outline-variant/40 px-3 py-1">
+                        <label className="text-[10px] font-bold text-content-secondary uppercase tracking-wide">Component Name</label>
+                        <div className="recessed-well bg-white px-3 py-1">
                           <input
                             value={c.name}
                             onChange={(e) => handleComponentChange(idx, "name", e.target.value)}
                             placeholder="e.g. CA Test 1, Midterm"
-                            className="bg-transparent border-none w-full text-sm font-semibold text-on-surface py-1 outline-none focus:ring-0"
+                            className="bg-transparent border-none w-full text-sm font-semibold text-content-primary py-1 outline-none focus:ring-0"
                           />
                         </div>
                       </div>
                       
                       <div className="w-36 space-y-1">
-                        <label className="text-[10px] font-bold text-on-surface-variant uppercase tracking-wide">Max Marks</label>
-                        <div className="recessed-input rounded-xl border border-outline-variant/40 px-3 py-1">
+                        <label className="text-[10px] font-bold text-content-secondary uppercase tracking-wide">Max Marks</label>
+                        <div className="recessed-well bg-white px-3 py-1">
                           <input
                             value={c.max_score}
                             type="number"
                             min="1"
                             max="100"
                             onChange={(e) => handleComponentChange(idx, "max_score", parseInt(e.target.value) || 0)}
-                            className="bg-transparent border-none w-full text-sm font-bold text-on-surface py-1 text-right outline-none focus:ring-0"
+                            className="bg-transparent border-none w-full text-sm font-bold text-content-primary py-1 text-right outline-none focus:ring-0"
                           />
                         </div>
                       </div>
@@ -384,7 +337,7 @@ export function SetupAssessmentPageClient({
                       <div className="pt-6">
                         <button
                           onClick={() => removeComponentRow(idx)}
-                          className="p-2 text-outline-variant hover:text-danger hover:bg-danger-light/10 rounded-full transition-colors"
+                          className="p-2 text-content-secondary hover:text-danger hover:bg-danger-light/10 rounded-full transition-colors"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -393,14 +346,14 @@ export function SetupAssessmentPageClient({
                   ))}
                 </div>
 
-                <div className="pt-6 border-t border-outline-variant/20 flex flex-col items-end">
-                  <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Total Weighting Calculation</p>
+                <div className="pt-6 border-t border-border-primary/30 flex flex-col items-end">
+                  <p className="text-[10px] font-bold text-content-secondary uppercase tracking-wider">Total Weighting Calculation</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs italic text-on-surface-variant">
+                    <span className="text-xs italic text-content-secondary">
                       {components.map(c => c.max_score || 0).join(" + ")}
                     </span>
                     <span className={cn(
-                      "text-3xl font-bold font-headline-xl",
+                      "text-3xl font-bold",
                       isWeightValid ? "text-primary" : "text-danger"
                     )}>
                       = {totalScore}
@@ -418,14 +371,15 @@ export function SetupAssessmentPageClient({
             <div className="flex justify-between items-center">
               <Button
                 onClick={() => setStep(1)}
-                className="bg-transparent hover:bg-surface-container-high text-on-surface-variant rounded-full px-6 font-bold text-xs"
+                variant="ghost"
+                className="rounded-full px-6 font-bold text-xs"
               >
                 <ArrowLeft size={14} className="mr-1" /> Back
               </Button>
               <Button
                 onClick={() => setStep(3)}
                 disabled={!isWeightValid || components.some(c => !c.name)}
-                className="bg-primary text-on-primary px-8 py-3.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110 stitched-border active:scale-95 transition-all flex items-center gap-1.5"
+                className="bg-primary text-primary-foreground px-8 py-3.5 rounded-full font-bold text-xs shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center gap-1.5"
               >
                 <span>Next Step</span>
                 <ArrowRight size={14} />
@@ -439,50 +393,50 @@ export function SetupAssessmentPageClient({
           <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-8 animate-slide-right">
             {/* Left Card Summary */}
             <div className="md:col-span-8 space-y-6">
-              <div className="bg-white rounded-3xl p-8 border border-outline-variant/30 shadow-sm relative overflow-hidden">
+              <div className="bg-white rounded-2xl p-8 border border-border-primary/60 shadow-card relative overflow-hidden">
                 <div className="linen-texture absolute inset-0"></div>
 
                 <div className="relative z-10">
                   <div className="flex justify-between items-start mb-6">
                     <div>
-                      <h3 className="font-headline-lg text-2xl text-on-surface font-bold">Final Review</h3>
-                      <p className="text-xs text-outline italic">Please verify the configuration before activation.</p>
+                      <h3 className="text-2xl text-content-primary font-bold">Final Review</h3>
+                      <p className="text-xs text-content-secondary italic">Please verify the configuration before activation.</p>
                     </div>
-                    <span className="bg-secondary-container text-on-secondary-container px-3 py-1 rounded-full text-xs font-bold uppercase stitched-border">
+                    <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase">
                       CONFIRMATION
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
-                    <div className="p-4 rounded-xl border border-outline-variant/30 bg-surface-bright shadow-sm">
-                      <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Target Class</p>
-                      <p className="font-headline-md text-lg text-primary font-bold mt-1">{classroomName}</p>
+                    <div className="p-4 rounded-xl border border-border-primary/30 bg-surface-secondary shadow-card">
+                      <p className="text-[10px] font-bold text-content-secondary uppercase tracking-wider">Target Class</p>
+                      <p className="text-lg text-primary font-bold mt-1">{classroomName}</p>
                     </div>
-                    <div className="p-4 rounded-xl border border-outline-variant/30 bg-surface-bright shadow-sm">
-                      <p className="text-[10px] font-bold text-outline uppercase tracking-wider">Active Subject</p>
-                      <p className="font-headline-md text-lg text-primary font-bold mt-1">{subjectName}</p>
+                    <div className="p-4 rounded-xl border border-border-primary/30 bg-surface-secondary shadow-card">
+                      <p className="text-[10px] font-bold text-content-secondary uppercase tracking-wider">Active Subject</p>
+                      <p className="text-lg text-primary font-bold mt-1">{subjectName}</p>
                     </div>
                   </div>
 
                   {/* Components Weighting table */}
-                  <div className="border border-outline-variant/20 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="border border-border-primary/30 rounded-2xl overflow-hidden shadow-card">
                     <table className="w-full text-left">
                       <thead>
-                        <tr className="bg-surface-container-low text-xs font-bold text-on-surface-variant border-b border-outline-variant/20">
+                        <tr className="bg-surface-secondary text-xs font-bold text-content-secondary border-b border-border-primary/30">
                           <th className="px-5 py-3">Assessment Component</th>
                           <th className="px-5 py-3 text-right">Max Score</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-outline-variant/10 text-sm">
+                      <tbody className="divide-y divide-border-primary/30 text-sm">
                         {components.map((c, idx) => (
-                          <tr key={idx} className="hover:bg-surface-bright/50 transition-colors">
+                          <tr key={idx} className="hover:bg-surface-secondary/50 transition-colors">
                             <td className="px-5 py-3.5 font-medium">{c.name}</td>
                             <td className="px-5 py-3.5 text-right font-bold text-primary">{c.max_score}</td>
                           </tr>
                         ))}
                       </tbody>
                       <tfoot>
-                        <tr className="bg-secondary-container/10 font-bold border-t-2 border-primary text-sm">
+                        <tr className="bg-primary/5 font-bold border-t-2 border-primary text-sm">
                           <td className="px-5 py-4">Total Weightage</td>
                           <td className="px-5 py-4 text-right text-primary">{totalScore}%</td>
                         </tr>
@@ -493,9 +447,9 @@ export function SetupAssessmentPageClient({
               </div>
 
               {/* Warning box */}
-              <div className="flex gap-4 p-5 bg-error-container/20 rounded-2xl border border-danger/10 items-start">
+              <div className="flex gap-4 p-5 bg-danger-light/20 rounded-2xl border border-danger/10 items-start">
                 <AlertTriangle className="text-danger shrink-0 mt-0.5" />
-                <p className="text-xs leading-relaxed text-on-error-container">
+                <p className="text-xs leading-relaxed text-danger">
                   <strong className="block mb-1">Critical Warning:</strong>
                   Once activated, score entries can begin and structure changes will be restricted. Please ensure all component weights and labels are correct.
                 </p>
@@ -504,27 +458,27 @@ export function SetupAssessmentPageClient({
 
             {/* Right Card Action panel */}
             <div className="md:col-span-4 space-y-6">
-              <div className="bg-white rounded-3xl p-8 border border-outline-variant/30 shadow-sm relative overflow-hidden flex flex-col items-center text-center">
+              <div className="bg-white rounded-2xl p-8 border border-border-primary/60 shadow-card relative overflow-hidden flex flex-col items-center text-center">
                 <div className="linen-texture absolute inset-0"></div>
 
                 <div className="relative z-10 w-full">
-                  <div className="w-16 h-16 bg-primary-container/20 text-primary rounded-full flex items-center justify-center mb-4 mx-auto shadow-inner">
+                  <div className="w-16 h-16 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-4 mx-auto">
                     <CheckCircle size={32} />
                   </div>
-                  <h4 className="font-headline-md text-lg text-on-surface font-bold mb-2">Confirm Setup</h4>
-                  <p className="text-xs text-outline mb-6 leading-relaxed">
+                  <h4 className="text-lg text-content-primary font-bold mb-2">Confirm Setup</h4>
+                  <p className="text-xs text-content-secondary mb-6 leading-relaxed">
                     Finalize your assessment framework for the current term session.
                   </p>
 
                   <div className="mb-6 text-left">
-                    <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl hover:bg-surface-container-low transition-all">
+                    <label className="flex items-start gap-3 cursor-pointer group p-3 rounded-xl hover:bg-surface-secondary transition-all">
                       <input
                         checked={confirmCheck}
                         onChange={(e) => setConfirmCheck(e.target.checked)}
                         type="checkbox"
                         className="rounded text-primary focus:ring-primary h-4 w-4 mt-0.5"
                       />
-                      <span className="text-xs text-on-surface-variant font-medium group-hover:text-primary transition-colors">
+                      <span className="text-xs text-content-secondary font-medium group-hover:text-primary transition-colors">
                         I confirm this grading structure is correct
                       </span>
                     </label>
@@ -534,10 +488,10 @@ export function SetupAssessmentPageClient({
                     onClick={handleActivate}
                     disabled={!confirmCheck || isActivating}
                     className={cn(
-                      "w-full py-6 rounded-full font-bold flex flex-col items-center justify-center stitched-border transition-all",
+                      "w-full py-6 rounded-full font-bold flex flex-col items-center justify-center transition-all",
                       confirmCheck
-                        ? "bg-primary text-on-primary hover:scale-[1.02] active:scale-95 shadow-md"
-                        : "bg-primary/40 text-on-primary opacity-60 cursor-not-allowed"
+                        ? "bg-primary text-primary-foreground hover:scale-[1.02] active:scale-95 shadow-md"
+                        : "bg-primary/40 text-primary-foreground opacity-60 cursor-not-allowed"
                     )}
                   >
                     <span className="text-[9px] uppercase tracking-widest opacity-80 mb-0.5">Final Step</span>
@@ -549,7 +503,7 @@ export function SetupAssessmentPageClient({
 
                   <button
                     onClick={() => setStep(2)}
-                    className="w-full mt-4 text-xs font-semibold text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center gap-1"
+                    className="w-full mt-4 text-xs font-semibold text-content-secondary hover:text-primary transition-colors flex items-center justify-center gap-1"
                   >
                     <ArrowLeft size={12} /> Go Back &amp; Edit
                   </button>
@@ -557,12 +511,12 @@ export function SetupAssessmentPageClient({
               </div>
 
               {/* Bento decoration info */}
-              <div className="bg-secondary-container/10 p-5 rounded-2xl border border-secondary/10">
-                <div className="flex items-center gap-1.5 text-secondary mb-2">
+              <div className="bg-primary/5 p-5 rounded-2xl border border-primary/10">
+                <div className="flex items-center gap-1.5 text-primary mb-2">
                   <Bookmark size={14} />
                   <span className="font-bold text-xs uppercase tracking-wider">Did you know?</span>
                 </div>
-                <p className="text-xs text-on-secondary-container leading-relaxed">
+                <p className="text-xs text-content-secondary leading-relaxed">
                   Most schools use a 40/60 split between Continuous Assessment and Final Exams for optimal student performance tracking.
                 </p>
               </div>
