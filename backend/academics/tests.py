@@ -1838,3 +1838,337 @@ class TeachingAssignmentAPITests(APITestCase):
         resp = self.client.post("/api/academics/teaching-assignments/", {}, format="json")
         self.assertIn(resp.status_code, (401, 403))
 
+
+class RosterEntryImportTests(APITestCase):
+    """CSV import with soft-key duplicate detection."""
+
+    def _make_school(self):
+        from schools.models import School
+        return School.objects.create(name="School A", slug="school-a")
+
+    def _make_classroom(self, school):
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1, "school": school})[0]
+        return ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+
+    def _make_admin(self, school):
+        user = User.objects.create_user(
+            email="admin@example.com", password="pwd", role="admin"
+        )
+        from accounts.models import Teacher
+        Teacher.objects.create(user=user, school=school)
+        return user
+
+    def _csv(self, rows):
+        """Build a CSV string from a list of dicts."""
+        import io, csv
+        buf = io.StringIO()
+        writer = csv.DictWriter(buf, fieldnames=["full_name", "guardian_phone", "guardian_email"])
+        writer.writeheader()
+        for row in rows:
+            writer.writerow(row)
+        return buf.getvalue().encode("utf-8")
+
+    def test_new_rows_returned_as_new(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "08012345678", "guardian_email": ""},
+            {"full_name": "Bob Jones", "guardian_phone": "08098765432", "guardian_email": ""},
+        ])
+        resp = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["new_rows"]), 2)
+        self.assertEqual(len(resp.data["duplicate_rows"]), 0)
+
+    def test_exact_duplicate_detected(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        from academics.models import RosterEntry
+        RosterEntry.objects.create(
+            school=school, classroom=classroom,
+            full_name="Alice Smith", guardian_phone="08012345678",
+        )
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "08012345678", "guardian_email": ""},
+        ])
+        resp = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["new_rows"]), 0)
+        self.assertEqual(len(resp.data["duplicate_rows"]), 1)
+
+    def test_near_identical_name_detected(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        from academics.models import RosterEntry
+        RosterEntry.objects.create(
+            school=school, classroom=classroom,
+            full_name="alice smith", guardian_phone="",
+        )
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice  Smith", "guardian_phone": "", "guardian_email": ""},
+        ])
+        resp = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["duplicate_rows"]), 1)
+        self.assertIn("existing_id", resp.data["duplicate_rows"][0])
+
+    def test_near_identical_phone_detected(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        from academics.models import RosterEntry
+        RosterEntry.objects.create(
+            school=school, classroom=classroom,
+            full_name="Alice Smith", guardian_phone="08012345678",
+        )
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "+234 801 234 5678", "guardian_email": ""},
+        ])
+        resp = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["duplicate_rows"]), 1)
+
+    def test_different_classroom_not_duplicate(self):
+        school = self._make_school()
+        classroom_a = self._make_classroom(school)
+        grade = GradeLevel.objects.get_or_create(name="JSS2", defaults={"display_order": 2, "school": school})[0]
+        classroom_b = ClassRoom.objects.create(name="JSS2A", grade_level=grade, school=school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        from academics.models import RosterEntry
+        RosterEntry.objects.create(
+            school=school, classroom=classroom_a,
+            full_name="Alice Smith", guardian_phone="08012345678",
+        )
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "08012345678", "guardian_email": ""},
+        ])
+        resp = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom_b.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(len(resp.data["new_rows"]), 1)
+        self.assertEqual(len(resp.data["duplicate_rows"]), 0)
+
+    def test_idempotency_reupload_same_csv(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        csv_bytes = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "08012345678", "guardian_email": ""},
+        ])
+
+        # First upload
+        resp1 = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp1.status_code, 200)
+        self.assertEqual(len(resp1.data["new_rows"]), 1)
+
+        # Commit
+        resp_commit = self.client.post(
+            "/api/academics/roster-entries/confirm-import/",
+            {"rows": resp1.data["new_rows"], "classroom_id": str(classroom.id)},
+            format="json",
+        )
+        self.assertEqual(resp_commit.status_code, 201)
+
+        # Second upload — same CSV
+        csv_bytes2 = self._csv([
+            {"full_name": "Alice Smith", "guardian_phone": "08012345678", "guardian_email": ""},
+        ])
+        resp2 = self.client.post(
+            "/api/academics/roster-entries/import-csv/",
+            {"file": csv_bytes2, "classroom_id": str(classroom.id)},
+            format="multipart",
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(len(resp2.data["new_rows"]), 0)
+        self.assertEqual(len(resp2.data["duplicate_rows"]), 1)
+
+
+class RosterEntryPromoteTests(APITestCase):
+    """Promote RosterEntry to Student — idempotent and correct."""
+
+    def _make_school(self):
+        from schools.models import School
+        return School.objects.create(name="School A", slug="school-a")
+
+    def _make_classroom(self, school):
+        grade = GradeLevel.objects.get_or_create(name="JSS1", defaults={"display_order": 1, "school": school})[0]
+        return ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=school)
+
+    def _make_admin(self, school):
+        user = User.objects.create_user(
+            email="admin@example.com", password="pwd", role="admin"
+        )
+        from accounts.models import Teacher
+        Teacher.objects.create(user=user, school=school)
+        return user
+
+    def _make_roster(self, school, classroom, name="Alice Smith", email="alice@example.com"):
+        from academics.models import RosterEntry
+        return RosterEntry.objects.create(
+            school=school, classroom=classroom,
+            full_name=name, guardian_phone="08012345678", guardian_email=email,
+        )
+
+    def test_promote_creates_student(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        roster = self._make_roster(school, classroom)
+        resp = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        self.assertIn("student_id", resp.data)
+        self.assertIn("user_id", resp.data)
+
+        roster.refresh_from_db()
+        self.assertEqual(roster.status, "claimed")
+        self.assertIsNotNone(roster.promoted_student)
+
+    def test_promote_idempotent(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        roster = self._make_roster(school, classroom)
+        resp1 = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp1.status_code, 201)
+        student_id_1 = resp1.data["student_id"]
+
+        resp2 = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp2.status_code, 200)
+        self.assertEqual(resp2.data["student_id"], student_id_1)
+        self.assertIn("Already promoted", resp2.data["detail"])
+
+        # Verify only one Student was created
+        from accounts.models import Student
+        self.assertEqual(Student.objects.count(), 1)
+
+    def test_promote_unique_email_on_collision(self):
+        from accounts.models import User
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        # Pre-create a user with the same email
+        User.objects.create_user(email="alice@example.com", password="pwd", role="student")
+
+        roster = self._make_roster(school, classroom, email="alice@example.com")
+        resp = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+        # Email should have been suffixed
+        user = User.objects.get(id=resp.data["user_id"])
+        self.assertNotEqual(user.email, "alice@example.com")
+        self.assertIn("+", user.email)
+
+    def test_promote_sets_student_fields(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        roster = self._make_roster(school, classroom, name="Bob Jones", email="bob@example.com")
+        resp = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+
+        from accounts.models import Student
+        student = Student.objects.get(id=resp.data["student_id"])
+        self.assertEqual(student.user.first_name, "Bob")
+        self.assertEqual(student.user.last_name, "Jones")
+        self.assertEqual(student.phone, "08012345678")
+        self.assertEqual(student.grade, "JSS1")
+        self.assertEqual(student.school, school)
+
+    def test_promote_inactive_user(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        roster = self._make_roster(school, classroom)
+        resp = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+
+        from accounts.models import User
+        user = User.objects.get(id=resp.data["user_id"])
+        self.assertFalse(user.is_active)
+
+    def test_promote_pending_email_generates_placeholder(self):
+        school = self._make_school()
+        classroom = self._make_classroom(school)
+        admin = self._make_admin(school)
+        self.client.force_authenticate(user=admin)
+
+        roster = self._make_roster(school, classroom, name="Charlie Brown", email="")
+        resp = self.client.post(
+            f"/api/academics/roster-entries/{roster.id}/promote/",
+            format="json",
+        )
+        self.assertEqual(resp.status_code, 201)
+
+        from accounts.models import User
+        user = User.objects.get(id=resp.data["user_id"])
+        self.assertIn("@pending.local", user.email)
+
