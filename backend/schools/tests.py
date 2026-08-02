@@ -97,3 +97,46 @@ class SchoolScopingAPITests(APITestCase):
         self.assertEqual(resp.status_code, 200)
         data = resp.data.get("results", resp.data if isinstance(resp.data, list) else [])
         self.assertEqual(len(data), 2)
+
+
+class SchoolRegistrationSeedingTests(APITestCase):
+    """Registering a school auto-seeds session, terms, and grade levels."""
+
+    def _create_admin(self, email="admin@example.com", password="password123"):
+        user = User.objects.create_user(
+            email=email, password=password, first_name="A", last_name="Dmin", role="admin"
+        )
+        return user
+
+    def test_registration_creates_academic_data(self):
+        admin_user = self._create_admin(email="reg-admin@example.com")
+        self.client.force_authenticate(user=admin_user)
+
+        resp = self.client.post("/api/schools/register/", {
+            "name": "New School",
+            "slug": "new-school",
+            "admin_email": "admin@newschool.com",
+            "admin_password": "securepass123",
+            "admin_first_name": "Admin",
+            "admin_last_name": "User",
+        }, format="json")
+        self.assertEqual(resp.status_code, 201)
+
+        school = School.objects.get(slug="new-school")
+
+        # Current academic session exists
+        session = AcademicSession.objects.get(school=school, is_current=True)
+        self.assertIsNotNone(session)
+
+        # Three terms exist under the session
+        terms = Term.objects.filter(session=session)
+        self.assertEqual(terms.count(), 3)
+        self.assertEqual(set(terms.values_list("name", flat=True)), {"First Term", "Second Term", "Third Term"})
+
+        # Six grade levels exist for the school
+        grades = GradeLevel.objects.filter(school=school)
+        self.assertEqual(grades.count(), 6)
+        self.assertEqual(
+            set(grades.values_list("name", flat=True)),
+            {"JSS1", "JSS2", "JSS3", "SSS1", "SSS2", "SSS3"},
+        )

@@ -2,12 +2,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from datetime import date
 from math import ceil
 
 from django.db import transaction
 
 from accounts.models import Student
-from exams.models import Result
+from exams.models import _DEFAULT_TERMS, GradeLevel, Result, Term
 from .models import (
     AcademicSession,
     AssessmentComponent,
@@ -211,3 +212,56 @@ def promote_students(
             promoted.append(student_id)
 
     return {"promoted": promoted, "skipped": skipped}
+
+
+_DEFAULT_GRADE_LEVELS = [
+    ("JSS1", 1),
+    ("JSS2", 2),
+    ("JSS3", 3),
+    ("SSS1", 4),
+    ("SSS2", 5),
+    ("SSS3", 6),
+]
+
+
+def seed_default_academic_setup(school) -> dict:
+    """Create a default academic session, 3 terms, and 6 grade levels for a school.
+
+    Idempotent — safe to call on a school that already has some data; only
+    missing objects are created.  Returns a summary dict:
+    {"session": AcademicSession, "terms": [Term, ...], "grade_levels": [GradeLevel, ...]}.
+    """
+    today = date.today()
+    session_start = today.replace(month=9, day=1)
+    session_end = today.replace(year=today.year + 1, month=8, day=31)
+    session_name = f"{today.year}/{today.year + 1}"
+
+    session, _ = AcademicSession.objects.get_or_create(
+        name=session_name,
+        school=school,
+        defaults={
+            "start_date": session_start,
+            "end_date": session_end,
+            "is_current": True,
+        },
+    )
+
+    terms = []
+    for name, order in _DEFAULT_TERMS:
+        term, _ = Term.objects.get_or_create(
+            name=name,
+            session=session,
+            defaults={"display_order": order},
+        )
+        terms.append(term)
+
+    grade_levels = []
+    for name, order in _DEFAULT_GRADE_LEVELS:
+        gl, _ = GradeLevel.objects.get_or_create(
+            name=name,
+            school=school,
+            defaults={"display_order": order},
+        )
+        grade_levels.append(gl)
+
+    return {"session": session, "terms": terms, "grade_levels": grade_levels}

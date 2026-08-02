@@ -5,12 +5,14 @@ from datetime import timedelta
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from accounts.models import Invitation, Teacher
 from accounts.permissions import IsAdmin
+from academics.services import seed_default_academic_setup
 from django.conf import settings
 
 from core.email import EmailService
@@ -55,6 +57,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             )
 
         school = School.objects.create(name=name, slug=slug, status="pending_verification")
+        seed_default_academic_setup(school)
         user = User.objects.create_user(
             email=admin_email,
             password=admin_password,
@@ -71,7 +74,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
             email=admin_email,
             role="admin",
             token_hash=token_hash,
-            expires_at=__import__("django.utils").timezone.now() + timedelta(days=7),
+            expires_at=timezone.now() + timedelta(days=7),
             invited_by=user,
         )
 
@@ -110,7 +113,7 @@ class SchoolViewSet(viewsets.ModelViewSet):
         if not invitation:
             return Response({"detail": "Invalid or expired invitation token."}, status=status.HTTP_404_NOT_FOUND)
 
-        if invitation.expires_at < __import__("django.utils").timezone.now():
+        if invitation.expires_at < timezone.now():
             invitation.status = "expired"
             invitation.save(update_fields=["status"])
             return Response({"detail": "Invitation token has expired."}, status=status.HTTP_410_GONE)
