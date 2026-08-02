@@ -90,6 +90,84 @@ class User(AbstractBaseUser, PermissionsMixin):
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}".strip() or self.email
 
+    def primary_role_for_school(self, school) -> Role | None:
+        """Return the primary Role for this user in the given school, or None."""
+        membership = (
+            self.school_memberships.select_related("role")
+            .filter(school=school, is_primary=True)
+            .first()
+        )
+        return membership.role if membership else None
+
+
+class Role(TimestampedModel):
+    """Named role with capability flags for RBAC.
+
+    Capabilities are boolean flags that grant broad permission categories.
+    Permission classes should check these flags rather than matching on role
+    name strings, so new roles can be added without code changes.
+    """
+
+    name = models.CharField(max_length=64, unique=True)
+    slug = models.SlugField(max_length=64, unique=True)
+
+    # Capability flags — True grants the capability.
+    can_manage_school = models.BooleanField(default=False)
+    can_manage_users = models.BooleanField(default=False)
+    can_manage_teachers = models.BooleanField(default=False)
+    can_manage_students = models.BooleanField(default=False)
+    can_manage_academics = models.BooleanField(default=False)
+    can_manage_exams = models.BooleanField(default=False)
+    can_enter_scores = models.BooleanField(default=False)
+    can_view_reports = models.BooleanField(default=False)
+    can_manage_fees = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "accounts_role"
+        ordering = ["name"]
+
+    def __str__(self) -> str:
+        return self.name
+
+
+class SchoolMembership(TimestampedModel):
+    """Links a User to a School with a Role.
+
+    A user may belong to multiple schools (e.g. a teacher at two schools).
+    ``is_primary`` marks which membership is the default for a given school.
+    """
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="school_memberships",
+    )
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="user_memberships",
+    )
+    role = models.ForeignKey(
+        Role,
+        on_delete=models.PROTECT,
+        related_name="memberships",
+    )
+    is_primary = models.BooleanField(default=False)
+
+    class Meta:
+        db_table = "accounts_school_membership"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "school", "role"],
+                name="uq_membership_user_school_role",
+            ),
+        ]
+        ordering = ["-is_primary", "role__name"]
+
+    def __str__(self) -> str:
+        primary = " (primary)" if self.is_primary else ""
+        return f"{self.user} → {self.school} [{self.role}]{primary}"
+
 
 class Teacher(SoftDeleteModel):
     """Teacher profile linked one-to-one to a user account.

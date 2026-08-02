@@ -5,7 +5,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
 
-from accounts.models import Teacher
+from accounts.models import Role, SchoolMembership, Teacher
 
 User = get_user_model()
 
@@ -101,3 +101,78 @@ class AuthFlowTests(TestCase):
             content_type="application/json",
         )
         self.assertEqual(refresh.status_code, 401)
+
+
+class RoleMigrationTests(TestCase):
+    """Assert default roles exist after the data migration runs."""
+
+    def test_default_roles_seeded(self):
+        expected_slugs = [
+            "proprietor",
+            "principal",
+            "vice-principal",
+            "exam-officer",
+            "teacher",
+            "admin-staff",
+        ]
+        roles = Role.objects.filter(slug__in=expected_slugs)
+        self.assertEqual(roles.count(), len(expected_slugs))
+
+    def test_propriator_has_all_capabilities(self):
+        proprietor = Role.objects.get(slug="proprietor")
+        self.assertTrue(proprietor.can_manage_school)
+        self.assertTrue(proprietor.can_manage_users)
+        self.assertTrue(proprietor.can_manage_teachers)
+        self.assertTrue(proprietor.can_manage_students)
+        self.assertTrue(proprietor.can_manage_academics)
+        self.assertTrue(proprietor.can_manage_exams)
+        self.assertTrue(proprietor.can_enter_scores)
+        self.assertTrue(proprietor.can_view_reports)
+        self.assertTrue(proprietor.can_manage_fees)
+
+    def test_teacher_limited_capabilities(self):
+        teacher = Role.objects.get(slug="teacher")
+        self.assertFalse(teacher.can_manage_school)
+        self.assertFalse(teacher.can_manage_users)
+        self.assertTrue(teacher.can_enter_scores)
+        self.assertTrue(teacher.can_view_reports)
+        self.assertFalse(teacher.can_manage_fees)
+
+
+class SchoolMembershipTests(TestCase):
+    def setUp(self):
+        from schools.models import School
+
+        self.school = School.objects.create(name="Test School", slug="test-school")
+        self.user = User.objects.create_user(
+            email="member@example.com", password="password123"
+        )
+        self.teacher_role = Role.objects.get(slug="teacher")
+        self.principal_role = Role.objects.get(slug="principal")
+
+    def test_membership_creation(self):
+        membership = SchoolMembership.objects.create(
+            user=self.user, school=self.school, role=self.teacher_role, is_primary=True
+        )
+        self.assertTrue(membership.is_primary)
+        self.assertEqual(str(membership), f"{self.user} → {self.school} [{self.teacher_role}] (primary)")
+
+    def test_primary_role_for_school_returns_role(self):
+        SchoolMembership.objects.create(
+            user=self.user, school=self.school, role=self.principal_role, is_primary=True
+        )
+        role = self.user.primary_role_for_school(self.school)
+        self.assertEqual(role, self.principal_role)
+
+    def test_primary_role_for_school_returns_none_when_no_membership(self):
+        role = self.user.primary_role_for_school(self.school)
+        self.assertIsNone(role)
+
+    def test_unique_constraint_prevents_duplicate_membership(self):
+        SchoolMembership.objects.create(
+            user=self.user, school=self.school, role=self.teacher_role
+        )
+        with self.assertRaises(Exception):
+            SchoolMembership.objects.create(
+                user=self.user, school=self.school, role=self.teacher_role
+            )
