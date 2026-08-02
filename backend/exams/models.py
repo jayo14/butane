@@ -23,8 +23,8 @@ def _hash_token(raw: str) -> str:
 class Subject(TimestampedModel):
     """A subject/course that exams can be categorised under."""
 
-    name = models.CharField(max_length=160, unique=True)
-    code = models.CharField(max_length=32, unique=True, blank=True, help_text="e.g. MATH")
+    name = models.CharField(max_length=160)
+    code = models.CharField(max_length=32, blank=True, help_text="e.g. MATH")
     description = models.TextField(blank=True)
     school = models.ForeignKey(
         "schools.School",
@@ -39,6 +39,10 @@ class Subject(TimestampedModel):
         ordering = ["name"]
         verbose_name = "subject"
         verbose_name_plural = "subjects"
+        constraints = [
+            UniqueConstraint(fields=["name", "school"], name="uq_subject_name_per_school"),
+            UniqueConstraint(fields=["code", "school"], name="uq_subject_code_per_school"),
+        ]
 
     def __str__(self) -> str:
         return self.name
@@ -47,7 +51,7 @@ class Subject(TimestampedModel):
 class GradeLevel(TimestampedModel):
     """A grade/class level (e.g. JSS1, JSS2, SSS3)."""
 
-    name = models.CharField(max_length=40, unique=True, help_text="e.g. JSS1")
+    name = models.CharField(max_length=40, help_text="e.g. JSS1")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Sort order")
     school = models.ForeignKey(
         "schools.School",
@@ -62,6 +66,9 @@ class GradeLevel(TimestampedModel):
         ordering = ["display_order", "name"]
         verbose_name = "grade level"
         verbose_name_plural = "grade levels"
+        constraints = [
+            UniqueConstraint(fields=["name", "school"], name="uq_gradelevel_name_per_school"),
+        ]
 
     def __str__(self) -> str:
         return self.name

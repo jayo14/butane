@@ -350,3 +350,41 @@ class TenantIsolationTeachingAssignmentSerializerTests(APITestCase):
         errors = resp.data.get("non_field_errors", [])
         error_text = " ".join(errors) if isinstance(errors, list) else str(errors)
         self.assertIn("same school", error_text.lower())
+
+
+class TenantSubjectGradeLevelUniquenessTests(TestCase):
+    """Subject and GradeLevel names are unique per school, not globally."""
+
+    def test_two_schools_can_have_same_subject_name(self):
+        school_a = _make_school("School A", "school-a")
+        school_b = _make_school("School B", "school-b")
+        Subject.objects.create(name="Mathematics", code="MATH", school=school_a)
+        Subject.objects.create(name="Mathematics", code="MATH", school=school_b)
+        self.assertEqual(Subject.objects.filter(name="Mathematics").count(), 2)
+
+    def test_two_schools_can_have_same_subject_code(self):
+        school_a = _make_school("School A", "school-a")
+        school_b = _make_school("School B", "school-b")
+        Subject.objects.create(name="Mathematics", code="MATH", school=school_a)
+        Subject.objects.create(name="Further Maths", code="MATH", school=school_b)
+        self.assertEqual(Subject.objects.filter(code="MATH").count(), 2)
+
+    def test_two_schools_can_have_same_grade_level_name(self):
+        school_a = _make_school("School A", "school-a")
+        school_b = _make_school("School B", "school-b")
+        GradeLevel.objects.create(name="JSS1", display_order=1, school=school_a)
+        GradeLevel.objects.create(name="JSS1", display_order=1, school=school_b)
+        self.assertEqual(GradeLevel.objects.filter(name="JSS1", school=school_a).count(), 1)
+        self.assertEqual(GradeLevel.objects.filter(name="JSS1", school=school_b).count(), 1)
+
+    def test_same_school_rejects_duplicate_subject_name(self):
+        school = _make_school("School A", "school-a")
+        Subject.objects.create(name="Mathematics", code="MATH", school=school)
+        with self.assertRaises(Exception):
+            Subject.objects.create(name="Mathematics", code="MATH2", school=school)
+
+    def test_same_school_rejects_duplicate_grade_level_name(self):
+        school = _make_school("School A", "school-a")
+        GradeLevel.objects.create(name="JSS1", display_order=1, school=school)
+        with self.assertRaises(Exception):
+            GradeLevel.objects.create(name="JSS1", display_order=2, school=school)
