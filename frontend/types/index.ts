@@ -149,3 +149,31 @@ export interface NavItem {
   roles?: ("admin" | "teacher")[]
   children?: NavItem[]
 }
+
+export interface RosterRow {
+  index: number
+  full_name: string
+  guardian_phone: string
+  guardian_email: string
+  existing_id?: string
+}
+
+export interface RosterImportResponse {
+  classroom: string
+  new_rows: RosterRow[]
+  duplicate_rows: RosterRow[]
+}
+
+export interface RosterEntry {
+  id: string
+  school: string
+  classroom: string
+  classroom_name: string
+  full_name: string
+  guardian_phone: string
+  guardian_email: string
+  status: "draft" | "invited" | "claimed"
+  promoted_student: string | null
+  created_at: string
+  updated_at: string
+}

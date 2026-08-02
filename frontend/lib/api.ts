@@ -461,6 +461,36 @@ export interface AttemptSummary {
   studentGrade?: string
 }
 
+// ---- Roster types ----
+
+export interface RosterRow {
+  index: number
+  full_name: string
+  guardian_phone: string
+  guardian_email: string
+  existing_id?: string
+}
+
+export interface RosterImportResponse {
+  classroom: string
+  new_rows: RosterRow[]
+  duplicate_rows: RosterRow[]
+}
+
+export interface RosterEntry {
+  id: string
+  school: string
+  classroom: string
+  classroom_name: string
+  full_name: string
+  guardian_phone: string
+  guardian_email: string
+  status: "draft" | "invited" | "claimed"
+  promoted_student: string | null
+  created_at: string
+  updated_at: string
+}
+
 // ---- Transform functions ----
 
 export function transformExam(api: ApiExam): ExamSummary {
@@ -678,6 +708,37 @@ export const api = {
     gradeScales: () => apiFetch<any[]>("academics/grade-scales/"),
     gradeScalesUpdate: (data: any) =>
       apiFetch<any>("academics/grade-scales/", { method: "POST", body: JSON.stringify(data) }),
+    rosterImport: (file: File, classroomId: string) => {
+      const token = typeof window !== "undefined" ? localStorage.getItem("access_token") : null
+      const formData = new FormData()
+      formData.append("file", file)
+      formData.append("classroom_id", classroomId)
+      const headers: Record<string, string> = {}
+      if (token) headers["Authorization"] = `Bearer ${token}`
+      return fetch(`${BASE_URL}/api/academics/roster-entries/import-csv/`, {
+        method: "POST",
+        headers,
+        body: formData,
+      }).then(async (res) => {
+        const body = await res.json().catch(() => ({}))
+        if (!res.ok) throw new ApiError(res.status, body.detail || "Import failed")
+        return body as RosterImportResponse
+      })
+    },
+    rosterConfirm: (payload: { rows: RosterRow[]; classroom_id: string }) =>
+      apiFetch<{ created: number; errors: any[] }>(
+        "academics/roster-entries/confirm-import/",
+        { method: "POST", body: JSON.stringify(payload) },
+      ),
+    rosterEntries: (params?: { classroom?: string; status?: string }) =>
+      apiFetch<PaginatedResponse<RosterEntry>>(
+        `academics/roster-entries/${buildQuery(params || {})}`,
+      ),
+    rosterPromote: (id: string) =>
+      apiFetch<{ detail: string; student_id: string; user_id: string; email: string }>(
+        `academics/roster-entries/${id}/promote/`,
+        { method: "POST" },
+      ),
   },
 
   upload: {
