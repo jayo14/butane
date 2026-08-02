@@ -27,6 +27,7 @@ from .models import (
     Enrollment,
     GradeScale,
     ReportCard,
+    RosterEntry,
     SchoolProfile,
     TeachingAssignment,
 )
@@ -41,6 +42,7 @@ from .serializers import (
     EnrollmentSerializer,
     GradeScaleSerializer,
     ReportCardSerializer,
+    RosterEntrySerializer,
     TeachingAssignmentSerializer,
 )
 from .services import generate_class_report_cards, promote_students, subject_grade
@@ -707,4 +709,213 @@ class SchoolProfileViewSet(viewsets.ViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data)
+
+
+class RosterEntryViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
+    queryset = RosterEntry.objects.select_related("classroom")
+    serializer_class = RosterEntrySerializer
+
+    def get_permissions(self):
+        if self.action in {"list", "retrieve"}:
+            return [permissions.IsAuthenticated()]
+        return [IsAdmin()]
+
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="import-csv")
+    def import_csv(self, request):
+        """Upload a CSV and return a review payload (new vs. likely-duplicate rows).
+
+        Expected CSV columns: full_name, guardian_phone, guardian_email, classroom_id.
+        Returns ``new_rows`` and ``duplicate_rows`` without committing.
+        Client must POST to ``/roster-entries/confirm-import/`` to commit.
+        """
+        csv_file = request.FILES.get("file")
+        classroom_id = request.data.get("classroom_id")
+        if not csv_file or not classroom_id:
+            return Response(
+                {"detail": "file and classroom_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+        except ClassRoom.DoesNotExist:
+            return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            decoded = csv_file.read().decode("utf-8")
+            reader = io.DictReader(io.StringIO(decoded))
+        except Exception:
+            return Response({"detail": "Invalid CSV file."}, status=status.HTTP_400_BAD_REQUEST)
+
+        school = request.school
+        new_rows = []
+        duplicate_rows = []
+
+        for idx, row in enumerate(reader):
+            full_name = (row.get("full_name") or "").strip()
+            guardian_phone = (row.get("guardian_phone") or "").strip()
+            guardian_email = (row.get("guardian_email") or "").strip()
+
+            if not full_name:
+                duplicate_rows.append({"index": idx, "full_name": full_name, "reason": "empty name"})
+                continue
+
+            # Soft-key duplicate detection: match on normalised name + phone
+            # within the same classroom.
+            norm_name = _normalize_name(full_name)
+            norm_phone = _normalize_phone(guardian_phone)
+            existing = RosterEntry.objects.filter(
+                classroom=classroom,
+                school=school,
+            )
+            matched = False
+            for entry in existing:
+                if _normalize_name(entry.full_name) == norm_name and (
+                    not norm_phone or _normalize_phone(entry.guardian_phone) == norm_phone
+                ):
+                    duplicate_rows.append({
+                        "index": idx,
+                        "full_name": full_name,
+                        "guardian_phone": guardian_phone,
+                        "existing_id": str(entry.id),
+                    })
+                    matched = True
+                    break
+            if not matched:
+                new_rows.append({
+                    "index": idx,
+                    "full_name": full_name,
+                    "guardian_phone": guardian_phone,
+                    "guardian_email": guardian_email,
+                })
+
+        return Response(
+            {
+                "classroom": str(classroom),
+                "new_rows": new_rows,
+                "duplicate_rows": duplicate_rows,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @transaction.atomic
+    @action(detail=False, methods=["post"], url_path="confirm-import")
+    def confirm_import(self, request):
+        """Commit rows previously returned by ``import-csv``.
+
+        Expects ``rows`` (list of dicts with full_name, guardian_phone, guardian_email)
+        and ``classroom_id``.
+        """
+        rows = request.data.get("rows", [])
+        classroom_id = request.data.get("classroom_id")
+        if not isinstance(rows, list) or not classroom_id:
+            return Response(
+                {"detail": "rows (list) and classroom_id are required."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+        except ClassRoom.DoesNotExist:
+            return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        school = request.school
+        created = 0
+        errors = []
+
+        for idx, row in enumerate(rows):
+            full_name = (row.get("full_name") or "").strip()
+            if not full_name:
+                errors.append({"index": idx, "detail": "full_name is required."})
+                continue
+            try:
+                RosterEntry.objects.create(
+                    school=school,
+                    classroom=classroom,
+                    full_name=full_name,
+                    guardian_phone=(row.get("guardian_phone") or "").strip(),
+                    guardian_email=(row.get("guardian_email") or "").strip(),
+                )
+                created += 1
+            except Exception as exc:
+                errors.append({"index": idx, "detail": str(exc)})
+
+        return Response({"created": created, "errors": errors}, status=status.HTTP_201_CREATED)
+
+    @transaction.atomic
+    @action(detail=True, methods=["post"], url_path="promote")
+    def promote(self, request, pk=None):
+        """Promote a RosterEntry to a full Student account.
+
+        Creates a User + Student, links ``promoted_student``, and marks the
+        entry as claimed.  Idempotent — calling twice returns the same Student.
+        """
+        roster = self.get_object()
+
+        if roster.promoted_student_id:
+            return Response(
+                {
+                    "detail": "Already promoted.",
+                    "student_id": str(roster.promoted_student_id),
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # Build a unique email for the new student account.
+        # Prefer guardian_email if provided, otherwise generate one.
+        base_email = roster.guardian_email or f"{roster.full_name.lower().replace(' ', '.')}@pending.local"
+        email = base_email
+        counter = 1
+        from accounts.models import User
+        while User.objects.filter(email=email).exists():
+            email = f"{base_email.split('@')[0]}+{counter}@{base_email.split('@')[1]}"
+            counter += 1
+
+        # Split full_name into first/last — first word is first_name, rest is last_name.
+        name_parts = roster.full_name.strip().split(None, 1)
+        first_name = name_parts[0] if name_parts else ""
+        last_name = name_parts[1] if len(name_parts) > 1 else ""
+
+        user = User.objects.create_user(
+            email=email,
+            first_name=first_name,
+            last_name=last_name,
+            role="student",
+            is_active=False,  # inactive until they set a password / verify
+        )
+
+        from accounts.models import Student
+        student = Student.objects.create(
+            user=user,
+            phone=roster.guardian_phone,
+            grade=roster.classroom.grade_level.name if roster.classroom.grade_level else "",
+            school=roster.school,
+        )
+
+        roster.promoted_student = student
+        roster.status = "claimed"
+        roster.save(update_fields=["promoted_student", "status", "updated_at"])
+
+        return Response(
+            {
+                "detail": "Student created.",
+                "student_id": str(student.id),
+                "user_id": str(user.id),
+                "email": user.email,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+def _normalize_name(name: str) -> str:
+    """Lower-case, collapse whitespace, strip accents for fuzzy matching."""
+    import unicodedata
+    nfkd = unicodedata.normalize("NFKD", name.lower())
+    return " ".join(nfkd.split())
+
+
+def _normalize_phone(phone: str) -> str:
+    """Strip non-digit characters for phone matching."""
+    return "".join(c for c in phone if c.isdigit())
 

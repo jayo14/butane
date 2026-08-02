@@ -13,6 +13,7 @@ from .models import (
     Enrollment,
     GradeScale,
     ReportCard,
+    RosterEntry,
     SchoolProfile,
     TeachingAssignment,
 )
@@ -134,3 +135,16 @@ class TeachingAssignmentSerializer(serializers.ModelSerializer):
                 "Teacher and classroom must belong to the same school."
             )
         return attrs
+
+
+class RosterEntrySerializer(serializers.ModelSerializer):
+    classroom_name = serializers.CharField(source="classroom.name", read_only=True)
+
+    class Meta:
+        model = RosterEntry
+        fields = [
+            "id", "school", "classroom", "classroom_name",
+            "full_name", "guardian_phone", "guardian_email",
+            "status", "promoted_student", "created_at", "updated_at",
+        ]
+        read_only_fields = ["id", "created_at", "updated_at"]

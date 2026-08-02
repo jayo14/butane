@@ -436,3 +436,47 @@ class SchoolProfile(TimestampedModel):
             return profile
         return cls.objects.first() or cls()
 
+
+class RosterEntry(TimestampedModel):
+    """A pending student row imported via CSV, awaiting dedup and claim."""
+
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("invited", "Invited"),
+        ("claimed", "Claimed"),
+    ]
+
+    school = models.ForeignKey(
+        "schools.School",
+        on_delete=models.CASCADE,
+        related_name="roster_entries",
+    )
+    classroom = models.ForeignKey(
+        ClassRoom,
+        on_delete=models.PROTECT,
+        related_name="roster_entries",
+    )
+    full_name = models.CharField(max_length=160, help_text="Student's full name.")
+    guardian_phone = models.CharField(max_length=32, blank=True)
+    guardian_email = models.EmailField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    promoted_student = models.ForeignKey(
+        "accounts.Student",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="roster_entries",
+        help_text="Linked student after claim.",
+    )
+
+    class Meta:
+        db_table = "academics_roster_entry"
+        ordering = ["full_name"]
+        indexes = [
+            models.Index(fields=["school", "classroom"], name="roster_school_classroom_idx"),
+            models.Index(fields=["full_name"], name="roster_full_name_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.full_name} ({self.classroom})"
+
