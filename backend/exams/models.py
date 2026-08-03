@@ -172,6 +172,29 @@ class Exam(SoftDeleteModel):
     class_group = models.CharField(max_length=40, blank=True, help_text="e.g. Grade 10")
     term = models.CharField(max_length=40, blank=True, help_text="e.g. First Term")
 
+    # Relational FK fields — nullable, populated by data migration 0023.
+    subject_fk = models.ForeignKey(
+        "exams.Subject",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exams",
+    )
+    classroom_fk = models.ForeignKey(
+        "academics.ClassRoom",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exams",
+    )
+    term_fk = models.ForeignKey(
+        "exams.Term",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="exams",
+    )
+
     created_by = models.ForeignKey(
         Teacher,
         on_delete=models.PROTECT,

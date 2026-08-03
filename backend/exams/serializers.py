@@ -57,6 +57,7 @@ class ExamListSerializer(serializers.ModelSerializer):
         model = Exam
         fields = [
             "id", "title", "course", "course_code", "subject", "class_group", "term",
+            "subject_fk", "classroom_fk", "term_fk",
             "status", "duration_minutes", "total_marks", "passing_marks",
             "passing_percentage", "is_public", "created_by", "question_count",
             "short_code", "short_url", "published_at", "created_at",
@@ -75,7 +76,9 @@ class ExamDetailSerializer(serializers.ModelSerializer):
         model = Exam
         fields = [
             "id", "title", "description", "instructions", "course", "course_code",
-            "subject", "class_group", "term", "created_by", "status",
+            "subject", "class_group", "term",
+            "subject_fk", "classroom_fk", "term_fk",
+            "created_by", "status",
             "duration_minutes", "total_marks", "passing_marks", "passing_percentage",
             "available_from", "available_to", "shuffle_questions", "shuffle_answers",
             "show_result", "allow_review", "is_public", "public_url",
@@ -115,33 +118,6 @@ class ExamDetailSerializer(serializers.ModelSerializer):
             question.setdefault("order", index)
             question_serializer.create({**question, "exam": exam})
         return exam
-
-    def update(self, instance, validated_data):
-        questions = validated_data.pop("questions", None)
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        if questions is not None:
-            existing = {str(q.id): q for q in instance.questions.all()}
-            seen = set()
-            qs = QuestionSerializer()
-            for index, question in enumerate(questions, start=1):
-                qid = question.pop("id", None) or question.pop("uuid", None)
-                question.setdefault("order", index)
-                if qid and qid in existing:
-                    qs.update(existing[qid], {**question, "exam": instance})
-                    seen.add(qid)
-                else:
-                    qs.create({**question, "exam": instance})
-            for qid, q in existing.items():
-                if qid not in seen:
-                    if q.answers.exists():
-                        q.order = 9999
-                        q.save(update_fields=["order", "updated_at"])
-                    else:
-                        q.choices.all().delete()
-                        q.delete()
-        return instance
 
     def update(self, instance, validated_data):
         questions = validated_data.pop("questions", None)

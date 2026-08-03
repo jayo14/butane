@@ -31,7 +31,7 @@ from .models import (
     SchoolProfile,
     TeachingAssignment,
 )
-from .permissions import CanEnterScoresForComponent, IsClassTeacherOrAdmin
+from .permissions import CanApproveReportCards, CanEnterScoresForComponent, IsClassTeacherOrAdmin
 from .serializers import (
     AcademicSessionSerializer,
     AssessmentComponentSerializer,
@@ -315,7 +315,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         if self.action in {"list", "retrieve"}:
             return [permissions.IsAuthenticated()]
         if self.action in {"approve", "bulk_approve"}:
-            return [IsAdmin()]
+            return [CanApproveReportCards()]
         return [IsTeacher()]
 
     @transaction.atomic
@@ -686,6 +686,56 @@ class TeachingAssignmentViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet)
         if mine == "true" and self.request.user.role == "teacher":
             return qs.filter(teacher=self.request.user.teacher_profile)
         return qs
+
+    @action(detail=False, methods=["get"], url_path="grading-tasks")
+    def grading_tasks(self, request):
+        """Return pending grading tasks for the current teacher.
+
+        Each task is an assessment component (from TeachingAssignment) that has
+        fewer completed scores than enrolled students.
+        """
+        teacher = getattr(request, "teacher_profile", None) or getattr(request.user, "teacher_profile", None)
+        if not teacher:
+            return Response([], status=status.HTTP_200_OK)
+
+        from .models import AssessmentComponent, Score
+        assignments = TeachingAssignment.objects.filter(
+            teacher=teacher,
+        ).select_related("classroom", "subject", "session")
+
+        tasks = []
+        for assignment in assignments:
+            components = AssessmentComponent.objects.filter(
+                classroom=assignment.classroom,
+                subject=assignment.subject,
+                term__session=assignment.session,
+            )
+            enrolled_count = Score.objects.filter(
+                classroom=assignment.classroom,
+                term__session=assignment.session,
+            ).values("student").distinct().count() or assignment.classroom.enrollments.count()
+
+            for comp in components:
+                scored_count = Score.objects.filter(
+                    component=comp,
+                    classroom=assignment.classroom,
+                ).count()
+                if scored_count < enrolled_count:
+                    tasks.append({
+                        "id": str(comp.id),
+                        "component_name": comp.name,
+                        "component_type": comp.component_type,
+                        "max_score": comp.max_score,
+                        "classroom_id": str(assignment.classroom.id),
+                        "classroom_name": assignment.classroom.name,
+                        "subject_id": str(assignment.subject.id),
+                        "subject_name": assignment.subject.name,
+                        "scored_count": scored_count,
+                        "enrolled_count": enrolled_count,
+                        "missing_count": enrolled_count - scored_count,
+                    })
+
+        return Response(tasks, status=status.HTTP_200_OK)
 
 
 class SchoolProfileViewSet(viewsets.ViewSet):
