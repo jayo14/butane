@@ -6,6 +6,7 @@ services:
     branch: main
     rootDir: backend
     dockerfilePath: ./Dockerfile
+    healthCheckPath: /health/
     envVars:
       - key: DJANGO_SETTINGS_MODULE
         value: core.settings

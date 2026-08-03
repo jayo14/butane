@@ -15,10 +15,11 @@ with connection.cursor() as c:
     print(f'DB keepalive: {c.fetchone()[0]}')
 " 2>&1
 
-# Start gunicorn
+# Start gunicorn — honour WEB_CONCURRENCY from Render (default 1 on starter)
+WEB_CONCURRENCY="${WEB_CONCURRENCY:-1}"
 exec gunicorn core.wsgi:application \
     --bind 0.0.0.0:8000 \
-    --workers 3 \
+    --workers "$WEB_CONCURRENCY" \
     --threads 2 \
     --timeout 120 \
     --keep-alive 300
