@@ -43,6 +43,16 @@ const nextConfig: NextConfig = {
         destination: "/dashboard/report-cards?tab=broadsheet",
         permanent: false,
       },
+      {
+        source: "/dashboard/grading/setup-assessment",
+        destination: "/dashboard/grading?tab=assessment-setup",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/score-entry",
+        destination: "/dashboard/grading?tab=score-entry",
+        permanent: false,
+      },
     ];
   },
 };

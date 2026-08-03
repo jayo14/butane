@@ -32,12 +32,12 @@ import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
 
 interface ScoreEntryPageClientProps {
-  initialSessions: any[]
-  initialClassrooms: any[]
-  initialTerms: any[]
-  initialSubjects: any[]
-  initialEnrollments: any[]
-  profile: any
+  initialSessions?: any[]
+  initialClassrooms?: any[]
+  initialTerms?: any[]
+  initialSubjects?: any[]
+  initialEnrollments?: any[]
+  profile?: any
 }
 
 // Student mock data to use if enrollment is empty
@@ -53,14 +53,21 @@ const MOCK_STUDENTS = [
 ]
 
 export function ScoreEntryPageClient({
-  initialSessions,
-  initialClassrooms,
-  initialTerms,
-  initialSubjects,
-  initialEnrollments,
-  profile
-}: ScoreEntryPageClientProps) {
+  initialSessions = [],
+  initialClassrooms = [],
+  initialTerms = [],
+  initialSubjects = [],
+  initialEnrollments = [],
+  profile = null
+}: ScoreEntryPageClientProps = {}) {
   const { addToast } = useToast()
+
+  const [sessions, setSessions] = useState(initialSessions)
+  const [classrooms, setClassrooms] = useState(initialClassrooms)
+  const [terms, setTerms] = useState(initialTerms)
+  const [subjects, setSubjects] = useState(initialSubjects)
+  const [enrollments, setEnrollments] = useState(initialEnrollments)
+
   // Wizard state: "select" | "mark_sheet" | "review"
   const [step, setStep] = useState<"select" | "mark_sheet" | "review">("select")
 
@@ -74,29 +81,29 @@ export function ScoreEntryPageClient({
   const [assessmentType, setAssessmentType] = useState<"ca" | "exam">("ca")
 
   // Active Context Name references
-  const currentSessionName = initialSessions.find(s => s.id === selectedSession)?.name || "2026/2027 Session"
-  const currentTermName = initialTerms.find(t => t.id === selectedTerm)?.name || "First Term"
-  const currentSubjectName = initialSubjects.find(s => s.id === selectedSubject)?.name || "Chemistry"
-  const currentClassroomName = initialClassrooms.find(c => c.id === selectedClassroom)?.name || "SS2A"
+  const currentSessionName = sessions.find(s => s.id === selectedSession)?.name || "2026/2027 Session"
+  const currentTermName = terms.find(t => t.id === selectedTerm)?.name || "First Term"
+  const currentSubjectName = subjects.find(s => s.id === selectedSubject)?.name || "Chemistry"
+  const currentClassroomName = classrooms.find(c => c.id === selectedClassroom)?.name || "SS2A"
 
   // Students list
   const [students, setStudents] = useState<any[]>([])
   
   // Assessment components state — derived from selected subject
-  const selectedSubjectData = initialSubjects.find((s: any) => s.id === selectedSubject)
+  const selectedSubjectData = subjects.find((s: any) => s.id === selectedSubject)
   const subjectComponents = selectedSubjectData?.components || selectedSubjectData?.assessment_components || []
   const [components, setComponents] = useState<any[]>(subjectComponents)
 
   // Update components when subject changes
   useEffect(() => {
-    const sub = initialSubjects.find((s: any) => s.id === selectedSubject)
+    const sub = subjects.find((s: any) => s.id === selectedSubject)
     const comps = sub?.components || sub?.assessment_components || []
     setComponents(comps.length > 0 ? comps : [
       { id: "c1", name: "CA Test 1", max_score: 20 },
       { id: "c2", name: "CA Test 2", max_score: 20 },
       { id: "c3", name: "Final Exam", max_score: 60 }
     ])
-  }, [selectedSubject, initialSubjects])
+  }, [selectedSubject, subjects])
 
   // Scores entered: studentId -> componentId -> number
   const [scores, setScores] = useState<Record<string, Record<string, number | "">>>({})
@@ -105,10 +112,27 @@ export function ScoreEntryPageClient({
   const [loading, setLoading] = useState(false)
   const [completed, setCompleted] = useState(false)
 
+  useEffect(() => {
+    if (sessions.length > 0 && classrooms.length > 0 && terms.length > 0 && subjects.length > 0) return
+    Promise.all([
+      api.academics.sessions().catch(() => ({ results: [] })),
+      api.academics.classrooms().catch(() => ({ results: [] })),
+      api.terms.list().catch(() => []),
+      api.subjects.list().catch(() => []),
+      api.academics.enrollments().catch(() => ({ results: [] })),
+    ]).then(([sessRes, classRes, termRes, subjRes, enrollRes]) => {
+      if (sessions.length === 0) setSessions((sessRes as any)?.results || [])
+      if (classrooms.length === 0) setClassrooms((classRes as any)?.results || [])
+      if (terms.length === 0) setTerms(Array.isArray(termRes) ? termRes : (termRes as any)?.results || [])
+      if (subjects.length === 0) setSubjects(Array.isArray(subjRes) ? subjRes : (subjRes as any)?.results || [])
+      if (enrollments.length === 0) setEnrollments((enrollRes as any)?.results || [])
+    })
+  }, [sessions.length, classrooms.length, terms.length, subjects.length, enrollments.length])
+
   // Fetch or mock students when classroom changes
   useEffect(() => {
     if (selectedClassroom) {
-      const classEnrollments = initialEnrollments.filter(
+      const classEnrollments = enrollments.filter(
         (e: any) => e.classroom?.id === selectedClassroom || e.classroom === selectedClassroom
       )
       if (classEnrollments.length > 0) {
@@ -123,7 +147,7 @@ export function ScoreEntryPageClient({
         setStudents(MOCK_STUDENTS)
       }
     }
-  }, [selectedClassroom, initialEnrollments])
+  }, [selectedClassroom, enrollments])
 
   // Populate initial scores from existing data or leave blank
   useEffect(() => {
@@ -322,7 +346,7 @@ export function ScoreEntryPageClient({
                         onChange={(e) => setSelectedSession(e.target.value)}
                         className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
-                        {initialSessions.map((s) => (
+                        {sessions.map((s) => (
                           <option key={s.id} value={s.id}>{s.name} Session</option>
                         ))}
                       </select>
@@ -334,7 +358,7 @@ export function ScoreEntryPageClient({
                         onChange={(e) => setSelectedTerm(e.target.value)}
                         className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
-                        {initialTerms.map((t) => (
+                        {terms.map((t) => (
                           <option key={t.id} value={t.id}>{t.name}</option>
                         ))}
                       </select>
@@ -356,7 +380,7 @@ export function ScoreEntryPageClient({
                         onChange={(e) => setSelectedSubject(e.target.value)}
                         className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
-                        {initialSubjects.map((s) => (
+                        {subjects.map((s) => (
                           <option key={s.id} value={s.id}>{s.name}</option>
                         ))}
                       </select>
@@ -368,7 +392,7 @@ export function ScoreEntryPageClient({
                         onChange={(e) => setSelectedClassroom(e.target.value)}
                         className="bg-transparent border-none p-0 focus:ring-0 text-sm font-bold text-content-primary w-full"
                       >
-                        {initialClassrooms.map((c) => (
+                        {classrooms.map((c) => (
                           <option key={c.id} value={c.id}>{c.name}</option>
                         ))}
                       </select>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import {
@@ -27,30 +27,47 @@ import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
 
 interface SetupAssessmentPageClientProps {
-  classrooms: any[]
-  terms: any[]
-  subjects: any[]
+  classrooms?: any[]
+  terms?: any[]
+  subjects?: any[]
 }
 
 export function SetupAssessmentPageClient({
-  classrooms,
-  terms,
-  subjects
-}: SetupAssessmentPageClientProps) {
+  classrooms = [],
+  terms = [],
+  subjects = []
+}: SetupAssessmentPageClientProps = {}) {
   const router = useRouter()
   const { addToast } = useToast()
+
+  const [classroomsList, setClassroomsList] = useState(classrooms)
+  const [termsList, setTermsList] = useState(terms)
+  const [subjectsList, setSubjectsList] = useState(subjects)
+
+  useEffect(() => {
+    if (classroomsList.length > 0 && termsList.length > 0 && subjectsList.length > 0) return
+    Promise.all([
+      api.academics.classrooms().catch(() => ({ results: [] })),
+      api.terms.list().catch(() => []),
+      api.subjects.list().catch(() => []),
+    ]).then(([classRes, termRes, subjRes]) => {
+      if (classroomsList.length === 0) setClassroomsList((classRes as any)?.results || [])
+      if (termsList.length === 0) setTermsList(Array.isArray(termRes) ? termRes : (termRes as any)?.results || [])
+      if (subjectsList.length === 0) setSubjectsList(Array.isArray(subjRes) ? subjRes : (subjRes as any)?.results || [])
+    })
+  }, [classroomsList.length, termsList.length, subjectsList.length])
 
   // Wizard step state: 1, 2, 3
   const [step, setStep] = useState(1)
 
   // Step 1: Details selections
-  const [selectedClassroom, setSelectedClassroom] = useState(classrooms[0]?.id || "")
-  const [selectedSubject, setSelectedSubject] = useState(subjects[0]?.id || "")
-  const [selectedTerm, setSelectedTerm] = useState(terms[0]?.id || "")
+  const [selectedClassroom, setSelectedClassroom] = useState(classroomsList[0]?.id || "")
+  const [selectedSubject, setSelectedSubject] = useState(subjectsList[0]?.id || "")
+  const [selectedTerm, setSelectedTerm] = useState(termsList[0]?.id || "")
 
-  const classroomName = classrooms.find(c => c.id === selectedClassroom)?.name || "SS1 Alpha"
-  const subjectName = subjects.find(s => s.id === selectedSubject)?.name || "Chemistry"
-  const termName = terms.find(t => t.id === selectedTerm)?.name || "First Term"
+  const classroomName = classroomsList.find(c => c.id === selectedClassroom)?.name || "SS1 Alpha"
+  const subjectName = subjectsList.find(s => s.id === selectedSubject)?.name || "Chemistry"
+  const termName = termsList.find(t => t.id === selectedTerm)?.name || "First Term"
 
   // Step 2: Component weights
   const [components, setComponents] = useState<any[]>([
@@ -198,7 +215,7 @@ export function SetupAssessmentPageClient({
                       className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a classroom...</option>
-                      {classrooms.map((c) => (
+                      {classroomsList.map((c) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -215,7 +232,7 @@ export function SetupAssessmentPageClient({
                       className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a subject...</option>
-                      {subjects.map((s) => (
+                      {subjectsList.map((s) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -232,7 +249,7 @@ export function SetupAssessmentPageClient({
                       className="bg-transparent border-none p-0 focus:ring-0 text-sm font-semibold text-content-primary w-full outline-none"
                     >
                       <option value="" disabled>Choose a term...</option>
-                      {terms.map((t) => (
+                      {termsList.map((t) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>

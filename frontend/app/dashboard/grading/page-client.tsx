@@ -39,24 +39,24 @@ import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
 
 interface GradingPageClientProps {
-  initialSessions: any[]
-  initialClassrooms: any[]
-  initialTerms: any[]
-  initialSubjects: any[]
-  initialGradeScales: any[]
-  initialAssignments: any[]
-  profile: any
+  initialSessions?: any[]
+  initialClassrooms?: any[]
+  initialTerms?: any[]
+  initialSubjects?: any[]
+  initialGradeScales?: any[]
+  initialAssignments?: any[]
+  profile?: any
 }
 
 export function GradingPageClient({
-  initialSessions,
-  initialClassrooms,
-  initialTerms,
-  initialSubjects,
-  initialGradeScales,
-  initialAssignments,
-  profile
-}: GradingPageClientProps) {
+  initialSessions = [],
+  initialClassrooms = [],
+  initialTerms = [],
+  initialSubjects = [],
+  initialGradeScales = [],
+  initialAssignments = [],
+  profile = null
+}: GradingPageClientProps = {}) {
   const { addToast } = useToast()
   const [activeTab, setActiveTab] = useState<"dashboard" | "sessions" | "terms" | "classes" | "subjects" | "grading">("dashboard")
   const [sessions, setSessions] = useState(initialSessions)
