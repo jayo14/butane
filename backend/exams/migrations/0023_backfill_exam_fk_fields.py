@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 
 
 def normalize(s):
-    """Strip and lowercase for comparison."""
-    return (s or "").strip().lower()
+    """Strip, lowercase, and normalize separators for comparison."""
+    return (s or "").strip().lower().replace("-", " ").replace("_", " ")
 
 
 def backfill_exam_fks(apps, schema_editor):
