@@ -11,7 +11,10 @@ class CanEnterScoresForComponent(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.is_superuser or user.role == "admin":
+        if not (user and user.is_authenticated):
+            return False
+        school = getattr(request, "school", None)
+        if user.has_capability("can_manage_school", school=school):
             return True
         component = getattr(obj, "component", obj)
         return TeachingAssignment.objects.filter(
@@ -27,7 +30,10 @@ class IsClassTeacherOrAdmin(permissions.BasePermission):
 
     def has_object_permission(self, request, view, obj):
         user = request.user
-        if user.is_superuser or user.role == "admin":
+        if not (user and user.is_authenticated):
+            return False
+        school = getattr(request, "school", None)
+        if user.has_capability("can_manage_school", school=school):
             return True
         classroom = getattr(obj, "classroom", obj)
         return classroom.class_teacher_id == user.teacher_profile.id

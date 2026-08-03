@@ -10,27 +10,50 @@ from rest_framework import permissions
 
 
 class IsTeacher(permissions.BasePermission):
-    """Allows access only to users whose role is ``teacher`` or ``admin``."""
+    """Allows access only to users with teacher-level capabilities.
+
+    Checks the ``can_enter_scores`` capability, falling back to legacy
+    ``user.role in {"teacher", "admin"}`` for backward compatibility.
+    """
 
     def has_permission(self, request, view) -> bool:
         user = request.user
-        return bool(user and user.is_authenticated and user.role in {"teacher", "admin"})
+        if not (user and user.is_authenticated):
+            return False
+        school = getattr(request, "school", None)
+        return user.has_capability("can_enter_scores", school=school)
 
 
 class IsStudent(permissions.BasePermission):
-    """Allows access only to users whose role is ``student`` or ``admin``."""
+    """Allows access only to student users.
+
+    Checks for a student profile (new system) or legacy ``user.role == "student"``.
+    Admin users are also allowed.
+    """
 
     def has_permission(self, request, view) -> bool:
         user = request.user
-        return bool(user and user.is_authenticated and user.role in {"student", "admin"})
+        if not (user and user.is_authenticated):
+            return False
+        if hasattr(user, "student_profile"):
+            return True
+        school = getattr(request, "school", None)
+        return user.has_capability("can_manage_students", school=school)
 
 
 class IsAdmin(permissions.BasePermission):
-    """Allows access only to admin users."""
+    """Allows access only to admin users.
+
+    Checks the ``can_manage_school`` capability, falling back to legacy
+    ``user.role == "admin"`` for backward compatibility.
+    """
 
     def has_permission(self, request, view) -> bool:
         user = request.user
-        return bool(user and user.is_authenticated and user.role == "admin")
+        if not (user and user.is_authenticated):
+            return False
+        school = getattr(request, "school", None)
+        return user.has_capability("can_manage_school", school=school)
 
 
 class IsOwnerOrTeacher(permissions.BasePermission):
@@ -48,9 +71,10 @@ class IsOwnerOrTeacher(permissions.BasePermission):
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        if user.role == "admin":
+        school = getattr(request, "school", None)
+        if user.has_capability("can_manage_school", school=school):
             return True
-        if user.role == "teacher":
+        if user.has_capability("can_enter_scores", school=school):
             return True
 
         owner = getattr(obj, "user", None)

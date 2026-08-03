@@ -99,6 +99,39 @@ class User(AbstractBaseUser, PermissionsMixin):
         )
         return membership.role if membership else None
 
+    def has_capability(self, cap_name: str, school=None) -> bool:
+        """Check if user has a capability flag on their role for a school.
+
+        Resolution order:
+        1. Primary membership role for the given school (or any school if None).
+        2. Any membership role that has the capability.
+        3. Legacy ``user.role`` field (backward compat during migration).
+        """
+        # 1. Try primary membership for the given school
+        if school:
+            role = self.primary_role_for_school(school)
+            if role and getattr(role, cap_name, False):
+                return True
+        # 2. Try any membership role
+        for m in self.school_memberships.select_related("role").all():
+            if getattr(m.role, cap_name, False):
+                return True
+        # 3. Legacy fallback: map user.role to capability checks
+        legacy_map = {
+            "can_manage_school": {"admin"},
+            "can_manage_users": {"admin"},
+            "can_manage_teachers": {"admin"},
+            "can_manage_students": {"admin"},
+            "can_manage_academics": {"admin"},
+            "can_manage_exams": {"admin", "teacher"},
+            "can_enter_scores": {"admin", "teacher"},
+            "can_view_reports": {"admin", "teacher", "student"},
+            "can_manage_fees": {"admin"},
+            "can_approve_report_cards": {"admin"},
+        }
+        allowed_roles = legacy_map.get(cap_name, set())
+        return self.role in allowed_roles
+
 
 class Role(TimestampedModel):
     """Named role with capability flags for RBAC.
