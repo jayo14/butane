@@ -121,6 +121,7 @@ class Role(TimestampedModel):
     can_enter_scores = models.BooleanField(default=False)
     can_view_reports = models.BooleanField(default=False)
     can_manage_fees = models.BooleanField(default=False)
+    can_approve_report_cards = models.BooleanField(default=False)
 
     class Meta:
         db_table = "accounts_role"

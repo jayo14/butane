@@ -1352,6 +1352,135 @@ class BulkApproveTests(APITestCase):
         return teacher, user
 
 
+class ReportCardApprovalCapabilityTests(APITestCase):
+    """Test that report-card approval requires can_approve_report_cards capability."""
+
+    def setUp(self):
+        from accounts.models import Role, SchoolMembership
+        from schools.models import School
+
+        self.school = School.objects.create(name="Approval Test School", slug="approval-test")
+        self.teacher_role = Role.objects.get(slug="teacher")
+        self.principal_role = Role.objects.get(slug="principal")
+
+        self.teacher_user = User.objects.create_user(
+            email="noteacher@example.com", password="password123", role="teacher"
+        )
+        self.teacher_profile = Teacher.objects.create(
+            user=self.teacher_user, department="Math", school=self.school,
+        )
+        SchoolMembership.objects.create(
+            user=self.teacher_user, school=self.school, role=self.teacher_role, is_primary=True
+        )
+
+        self.principal_user = User.objects.create_user(
+            email="principal@example.com", password="password123", role="teacher"
+        )
+        self.principal_profile = Teacher.objects.create(
+            user=self.principal_user, department="Math", school=self.school,
+        )
+        SchoolMembership.objects.create(
+            user=self.principal_user, school=self.school, role=self.principal_role, is_primary=True
+        )
+
+    def _create_submitted_report(self):
+        from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment
+        from exams.models import Term, GradeLevel
+
+        self.client.force_authenticate(user=self.teacher_user)
+        subject = _create_subject()
+        grade = GradeLevel.objects.get_or_create(
+            name="JSS1", defaults={"display_order": 1, "school": self.school},
+        )[0]
+        classroom = ClassRoom.objects.create(name="JSS1A", grade_level=grade, school=self.school, class_teacher=self.teacher_profile)
+        session = AcademicSession.objects.create(
+            name="2025/2026", start_date="2025-09-01", end_date="2026-07-31",
+            is_current=True, school=self.school,
+        )
+        term = Term.objects.create(name="First Term", display_order=1, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam",
+            component_type="exam", max_score=100,
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s_app2@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=session)
+        AssessmentScore.objects.create(component=component, student=student, score=80.0, entered_by=self.teacher_profile)
+
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+        report_id = generate_resp.data[0]["id"]
+        submit_resp = self.client.post(f"/api/academics/report-cards/{report_id}/submit/")
+        self.assertEqual(submit_resp.status_code, 200)
+        return report_id
+
+    def test_teacher_without_capability_gets_403_on_approve(self):
+        report_id = self._create_submitted_report()
+        self.client.force_authenticate(user=self.teacher_user)
+        resp = self.client.post(f"/api/academics/report-cards/{report_id}/approve/")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_principal_with_capability_succeeds_on_approve(self):
+        report_id = self._create_submitted_report()
+        self.client.force_authenticate(user=self.principal_user)
+        resp = self.client.post(f"/api/academics/report-cards/{report_id}/approve/")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["status"], "approved")
+
+    def test_teacher_without_capability_gets_403_on_bulk_approve(self):
+        self.client.force_authenticate(user=self.teacher_user)
+        resp = self.client.post("/api/academics/report-cards/bulk-approve/", {}, format="json")
+        self.assertEqual(resp.status_code, 403)
+
+    def test_principal_with_capability_succeeds_on_bulk_approve(self):
+        from academics.models import AcademicSession, AssessmentComponent, AssessmentScore, ClassRoom, Enrollment
+        from exams.models import Term, GradeLevel
+
+        self.client.force_authenticate(user=self.teacher_user)
+        subject = _create_subject("Physics")
+        grade = GradeLevel.objects.get_or_create(
+            name="JSS1", defaults={"display_order": 1, "school": self.school},
+        )[0]
+        classroom = ClassRoom.objects.create(name="JSS1B", grade_level=grade, school=self.school, class_teacher=self.teacher_profile)
+        session = AcademicSession.objects.create(
+            name="2025/2027", start_date="2025-09-01", end_date="2027-07-31",
+            is_current=True, school=self.school,
+        )
+        term = Term.objects.create(name="Second Term", display_order=2, session=session)
+        component = AssessmentComponent.objects.create(
+            subject=subject, classroom=classroom, term=term, name="Exam",
+            component_type="exam", max_score=100,
+        )
+        student = Student.objects.create(
+            user=User.objects.create_user(email="s2_app2@example.com", password="pwd", role="student"),
+            grade="JSS1",
+        )
+        Enrollment.objects.create(student=student, classroom=classroom, session=session)
+        AssessmentScore.objects.create(component=component, student=student, score=90.0, entered_by=self.teacher_profile)
+
+        generate_resp = self.client.post("/api/academics/report-cards/generate/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(generate_resp.status_code, 200)
+        report_id = generate_resp.data[0]["id"]
+        submit_resp = self.client.post(f"/api/academics/report-cards/{report_id}/submit/")
+        self.assertEqual(submit_resp.status_code, 200)
+
+        self.client.force_authenticate(user=self.principal_user)
+        resp = self.client.post("/api/academics/report-cards/bulk-approve/", {
+            "classroom_id": str(classroom.id),
+            "term_id": str(term.id),
+        }, format="json")
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.data["approved"], 1)
+
+
 class BulkPdfTests(APITestCase):
     def test_bulk_pdf_returns_404_when_no_approved(self):
         teacher, user = self._create_teacher()

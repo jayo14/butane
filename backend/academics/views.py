@@ -11,11 +11,12 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from django.template.loader import render_to_string
+from django.utils import timezone
 from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.views import SchoolScopedViewSetMixin
+from core.views import SchoolScopedViewSetMixin, _resolve_school
 from accounts.permissions import IsAdmin, IsTeacher
 from .models import (
     AcademicSession,
@@ -142,7 +143,7 @@ class AssessmentScoreViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "scores must be a list."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            component = AssessmentComponent.objects.get(pk=component_id, school=request.school)
+            component = AssessmentComponent.objects.get(pk=component_id, school=_resolve_school(request))
         except AssessmentComponent.DoesNotExist:
             return Response({"detail": "AssessmentComponent not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -245,19 +246,19 @@ class BehaviouralRatingViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             )
 
         try:
-            trait = BehaviouralTrait.objects.get(pk=trait_id, school=request.school)
+            trait = BehaviouralTrait.objects.get(pk=trait_id, school=_resolve_school(request))
         except BehaviouralTrait.DoesNotExist:
             return Response({"detail": "BehaviouralTrait not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
             from exams.models import Term as TermModel
 
-            term = TermModel.objects.get(pk=term_id, session__school=request.school)
+            term = TermModel.objects.get(pk=term_id, session__school=_resolve_school(request))
         except TermModel.DoesNotExist:
             return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=_resolve_school(request))
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -327,13 +328,13 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=_resolve_school(request))
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
         from exams.models import Term as TermModel
         try:
-            term = TermModel.objects.get(pk=term_id, session__school=request.school)
+            term = TermModel.objects.get(pk=term_id, session__school=_resolve_school(request))
         except TermModel.DoesNotExist:
             return Response({"detail": "Term not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -375,7 +376,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "Only submitted report cards can be approved."}, status=status.HTTP_400_BAD_REQUEST)
         report.status = "approved"
         report.approved_by = request.user.teacher_profile
-        report.approved_at = __import__("django.utils").timezone.now()
+        report.approved_at = timezone.now()
         report.save(update_fields=["status", "approved_by", "approved_at", "updated_at"])
 
         from notifications.tasks import notify_report_card_approved
@@ -393,7 +394,6 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         qs = self.get_queryset().filter(classroom_id=classroom_id, term_id=term_id, status="submitted")
-        from django.utils import timezone
         count = qs.update(status="approved", approved_by=request.user.teacher_profile, approved_at=timezone.now())
 
         from notifications.tasks import notify_report_card_approved
@@ -608,7 +608,7 @@ class ReportCardViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             return Response({"detail": "classroom_id and term_id are required."}, status=status.HTTP_400_BAD_REQUEST)
 
         components = AssessmentComponent.objects.filter(
-            school=request.school, classroom_id=classroom_id, term_id=term_id
+            school=_resolve_school(request), classroom_id=classroom_id, term_id=term_id
         ).select_related("subject")
         subjects = sorted({c.subject for c in components}, key=lambda s: s.name)
         reports = self.get_queryset().filter(
@@ -788,7 +788,7 @@ class RosterEntryViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             )
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=_resolve_school(request))
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
@@ -798,7 +798,7 @@ class RosterEntryViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
         except Exception:
             return Response({"detail": "Invalid CSV file."}, status=status.HTTP_400_BAD_REQUEST)
 
-        school = request.school
+        school = _resolve_school(request)
         new_rows = []
         duplicate_rows = []
 
@@ -866,11 +866,11 @@ class RosterEntryViewSet(SchoolScopedViewSetMixin, viewsets.ModelViewSet):
             )
 
         try:
-            classroom = ClassRoom.objects.get(pk=classroom_id, school=request.school)
+            classroom = ClassRoom.objects.get(pk=classroom_id, school=_resolve_school(request))
         except ClassRoom.DoesNotExist:
             return Response({"detail": "ClassRoom not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        school = request.school
+        school = _resolve_school(request)
         created = 0
         errors = []
 
