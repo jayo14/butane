@@ -8,12 +8,13 @@ import type { BasicInfoValues } from "../create-exam-wizard"
 export interface SubjectOption {
   label: string
   value: string
+  id?: string
 }
 
 interface BasicInfoStepProps {
   subjects: SubjectOption[]
-  classes: { label: string; value: string }[]
-  terms: { label: string; value: string }[]
+  classes: { label: string; value: string; id?: string }[]
+  terms: { label: string; value: string; id?: string }[]
 }
 
 export function BasicInfoStep({ subjects, classes, terms }: BasicInfoStepProps) {

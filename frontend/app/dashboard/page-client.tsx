@@ -28,6 +28,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card } from "@/components/ui/card"
+import { TeacherTodayClient } from "./teacher-today-client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Container } from "@/components/layout/container"
@@ -392,78 +393,9 @@ export function DashboardPageClient({ data }: { data: DashboardData | null }) {
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column (2/3) */}
         <div className="space-y-8 lg:col-span-2">
-          {/* Teacher Section: Enter Scores Tiles */}
+          {/* Teacher Today Dashboard */}
           {isTeacher && (
-            <Card padding="lg" gradient>
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-content-primary">Enter Scores</h2>
-                <p className="mt-1 text-sm text-content-secondary">Tap a class to jump straight to score entry</p>
-              </div>
-              {assignmentsLoading ? (
-                <div className="flex items-center justify-center py-10">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-                </div>
-              ) : distinctAssignments.length === 0 ? (
-                <div className="rounded-2xl bg-surface-secondary/50 p-10 text-center">
-                  <div className="mx-auto mb-3 flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                    <ClipboardCheck size={28} />
-                  </div>
-                  <p className="text-base font-semibold text-content-primary">You haven&apos;t been assigned any classes yet</p>
-                  <p className="mt-1 text-sm text-content-secondary">Ask your school admin to assign you.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {distinctAssignments.map((a, i) => (
-                    <Link
-                      key={`${a.classroom_id}-${a.subject_id}`}
-                      href={`/dashboard/report-cards?classroom=${a.classroom_id}&subject=${a.subject_id}&term=${currentTermId}`}
-                      className={cn(
-                        "group flex flex-col justify-between rounded-2xl border-2 border-border-primary/60 bg-white p-5 transition-all duration-300",
-                        "hover:border-primary/30 hover:shadow-dropdown hover:-translate-y-0.5",
-                      )}
-                      style={{ animationDelay: `${i * 60}ms` }}
-                    >
-                      <div>
-                        <p className="text-base font-semibold text-content-primary group-hover:text-primary transition-colors">{a.classroom_name}</p>
-                        <p className="mt-1 text-sm text-content-secondary">{a.subject_name}</p>
-                      </div>
-                      <Button variant="primary" size="md" className="mt-4 w-full" rightIcon={<ArrowRight size={16} />}>
-                        Enter Scores
-                      </Button>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </Card>
-          )}
-
-          {/* Teacher Section: Homeroom */}
-          {isTeacher && homerooms.length > 0 && (
-            <Card padding="lg" gradient className="border-primary/20">
-              <div className="mb-6">
-                <h2 className="text-xl font-bold text-content-primary">Your Homeroom Class</h2>
-                <p className="mt-1 text-sm text-content-secondary">Class-teacher actions for your homeroom</p>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                {homerooms.map((room) => (
-                  <div key={room.id} className="rounded-2xl border-2 border-border-primary/60 bg-white p-5">
-                    <p className="text-base font-semibold text-content-primary">{room.name}</p>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link href={`/dashboard/behavioural-ratings?classroom=${room.id}`}>
-                        <Button variant="secondary" size="sm" leftIcon={<ClipboardCheck size={16} />}>
-                          Attendance & Behaviour
-                        </Button>
-                      </Link>
-                      <Link href={`/dashboard/report-cards?classroom=${room.id}&role=class_teacher`}>
-                        <Button variant="secondary" size="sm" leftIcon={<FileText size={16} />}>
-                          Review Report Cards
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </Card>
+            <TeacherTodayClient />
           )}
 
           {/* Upcoming Exams */}

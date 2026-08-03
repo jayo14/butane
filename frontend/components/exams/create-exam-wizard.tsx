@@ -221,6 +221,7 @@ export function CreateExamWizard({ initialExam, editId, onSuccess }: { initialEx
   const [subjectOptions, setSubjectOptions] = useState<SubjectOption[]>([])
   const [classOptions, setClassOptions] = useState<SubjectOption[]>([])
   const [termOptions, setTermOptions] = useState<SubjectOption[]>([])
+  const [classroomOptions, setClassroomOptions] = useState<SubjectOption[]>([])
   const [slideDir, setSlideDir] = useState<"left" | "right">("right")
   const questionBuilderRef = useRef<QuestionBuilderHandle>(null)
   const contentRef = useRef<HTMLDivElement>(null)
@@ -281,10 +282,12 @@ export function CreateExamWizard({ initialExam, editId, onSuccess }: { initialEx
       api.subjects.list(),
       api.gradeLevels.list(),
       api.terms.list(),
-    ]).then(([subjectsRes, gradesRes, termsRes]) => {
-      setSubjectOptions((subjectsRes || []).map((s) => ({ label: s.name, value: s.name })))
-      setClassOptions((gradesRes || []).map((g) => ({ label: g.name, value: g.name.toLowerCase().replace(/\s+/g, "-") })))
-      setTermOptions((termsRes || []).map((t) => ({ label: t.name, value: t.name.toLowerCase().replace(/\s+/g, "-") })))
+      api.academics.classrooms().catch(() => ({ results: [] })),
+    ]).then(([subjectsRes, gradesRes, termsRes, classroomsRes]) => {
+      setSubjectOptions((subjectsRes || []).map((s) => ({ label: s.name, value: s.name, id: s.id })))
+      setClassOptions((gradesRes || []).map((g) => ({ label: g.name, value: g.name.toLowerCase().replace(/\s+/g, "-"), id: g.id })))
+      setTermOptions((termsRes || []).map((t) => ({ label: t.name, value: t.name.toLowerCase().replace(/\s+/g, "-"), id: t.id })))
+      setClassroomOptions(((classroomsRes as any)?.results || []).map((c: any) => ({ label: c.name, value: c.name, id: c.id })))
     }).catch(() => {
       // fallback to defaults on error
     })
@@ -386,6 +389,9 @@ export function CreateExamWizard({ initialExam, editId, onSuccess }: { initialEx
         subject: draft.basicInfo.subject,
         class_group: draft.basicInfo.class,
         term: draft.basicInfo.term,
+        subject_fk: subjectOptions.find((o) => o.value === draft.basicInfo.subject)?.id || null,
+        classroom_fk: classroomOptions.find((o) => o.value === draft.basicInfo.class)?.id || null,
+        term_fk: termOptions.find((o) => o.value === draft.basicInfo.term)?.id || null,
         course: draft.basicInfo.subject,
         course_code: courseCode,
         duration_minutes: draft.basicInfo.duration,
