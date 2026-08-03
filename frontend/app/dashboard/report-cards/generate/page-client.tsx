@@ -23,18 +23,18 @@ import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 interface ReportCardGenerateClientProps {
-  initialSessions: any[]
-  initialTerms: any[]
-  initialClassrooms: any[]
-  initialStudents: any[]
+  initialSessions?: any[]
+  initialTerms?: any[]
+  initialClassrooms?: any[]
+  initialStudents?: any[]
 }
 
 export function ReportCardGenerateClient({
-  initialSessions,
-  initialTerms,
-  initialClassrooms,
-  initialStudents,
-}: ReportCardGenerateClientProps) {
+  initialSessions = [],
+  initialTerms = [],
+  initialClassrooms = [],
+  initialStudents = [],
+}: ReportCardGenerateClientProps = {}) {
   const { addToast } = useToast()
   const [selectedSession, setSelectedSession] = useState("")
   const [selectedTerm, setSelectedTerm] = useState("")
@@ -46,6 +46,23 @@ export function ReportCardGenerateClient({
   const [enrolledStudents, setEnrolledStudents] = useState<any[]>([])
   const [loadingStudents, setLoadingStudents] = useState(false)
   const [generatedCount, setGeneratedCount] = useState(0)
+
+  const [sessions, setSessions] = useState(initialSessions)
+  const [terms, setTerms] = useState(initialTerms)
+  const [classroomsList, setClassroomsList] = useState(initialClassrooms)
+
+  useEffect(() => {
+    if (sessions.length > 0 && terms.length > 0 && classroomsList.length > 0) return
+    Promise.all([
+      api.academics.sessions().catch(() => ({ results: [] })),
+      api.terms.list().catch(() => []),
+      api.academics.classrooms().catch(() => ({ results: [] })),
+    ]).then(([sessRes, termRes, classRes]) => {
+      if (sessions.length === 0) setSessions(((sessRes as any)?.results || []).map((s: any) => ({ id: s.id, name: s.name })))
+      if (terms.length === 0) setTerms((Array.isArray(termRes) ? termRes : (termRes as any)?.results || []).map((t: any) => ({ id: t.id, name: t.name })))
+      if (classroomsList.length === 0) setClassroomsList(((classRes as any)?.results || []).map((c: any) => ({ id: c.id, name: c.name })))
+    })
+  }, [sessions.length, terms.length, classroomsList.length])
 
   useEffect(() => {
     if (!selectedClassroom || !selectedSession) {
@@ -185,7 +202,7 @@ export function ReportCardGenerateClient({
                       className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
                     >
                       <option value="">Select session...</option>
-                      {initialSessions.map((s: any) => (
+                      {sessions.map((s: any) => (
                         <option key={s.id} value={s.id}>{s.name}</option>
                       ))}
                     </select>
@@ -201,7 +218,7 @@ export function ReportCardGenerateClient({
                       className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
                     >
                       <option value="">Select term...</option>
-                      {initialTerms.map((t: any) => (
+                      {terms.map((t: any) => (
                         <option key={t.id} value={t.id}>{t.name}</option>
                       ))}
                     </select>
@@ -217,7 +234,7 @@ export function ReportCardGenerateClient({
                       className="w-full bg-transparent border-none px-4 py-3 text-sm font-semibold text-content-primary focus:ring-0 outline-none"
                     >
                       <option value="">Select class...</option>
-                      {initialClassrooms.map((c: any) => (
+                      {classroomsList.map((c: any) => (
                         <option key={c.id} value={c.id}>{c.name}</option>
                       ))}
                     </select>
@@ -256,31 +273,6 @@ export function ReportCardGenerateClient({
             </div>
           </div>
 
-          {/* Quick Navigation */}
-          <div className="bg-white p-6 rounded-3xl shadow-card border border-border-primary/60 relative overflow-hidden">
-            <div className="linen-texture absolute inset-0"></div>
-            <div className="relative z-10">
-              <p className="text-xs text-content-secondary uppercase tracking-widest font-bold mb-3">Related Pages</p>
-              <div className="space-y-2">
-                <Link href="/dashboard/report-cards/approval" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
-                  <ClipboardCheck size={16} className="text-content-secondary group-hover:text-primary" />
-                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Review & Approve</span>
-                </Link>
-                <Link href="/dashboard/report-cards/archive" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
-                  <Archive size={16} className="text-content-secondary group-hover:text-primary" />
-                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">View Archive</span>
-                </Link>
-                <Link href="/dashboard/report-cards/customize" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
-                  <Settings size={16} className="text-content-secondary group-hover:text-primary" />
-                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Customize Report</span>
-                </Link>
-                <Link href="/dashboard/report-cards/remarks" className="flex items-center gap-3 p-3 rounded-xl hover:bg-primary/5 transition-all group">
-                  <MessageSquare size={16} className="text-content-secondary group-hover:text-primary" />
-                  <span className="text-sm font-bold text-content-primary group-hover:text-primary">Write Remarks</span>
-                </Link>
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Right: Student Selection */}

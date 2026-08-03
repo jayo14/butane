@@ -1,15 +1,12 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { useRouter } from "next/navigation"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Save,
   FileText,
   Loader2,
   Download,
-  Star,
-  Lock,
   Shield,
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -24,35 +21,25 @@ import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
 import { useAuth } from "@/lib/auth-context"
 
-type ReportCardStatus = "draft" | "submitted" | "approved"
-
-interface ScoreEntry {
-  studentId: string
-  studentName: string
-  scores: Record<string, number>
-  [key: string]: unknown
-}
-
-const SUBJECT_GRADE_BANDS = [
-  [70, 100, "A", "EXCELLENT"],
-  [50, 69.99, "C", "CREDIT"],
-  [40, 49.99, "P", "PASS"],
-  [0, 39.99, "F", "FAIL"],
+const REPORT_CARD_TABS = [
+  { label: "Overview", value: "overview" },
+  { label: "Generate", value: "generate" },
+  { label: "Approval", value: "approval" },
+  { label: "Customize", value: "customize" },
+  { label: "Remarks", value: "remarks" },
+  { label: "Mark Sheet", value: "mark-sheet" },
+  { label: "Review", value: "review" },
+  { label: "Archive", value: "archive" },
+  { label: "Broadsheet", value: "broadsheet" },
 ] as const
 
-function subjectGrade(score: number): { grade: string; variant: "success" | "warning" | "danger" } {
-  if (score == null || isNaN(score)) return { grade: "-", variant: "warning" }
-  for (const [minScore, maxScore, grade, _] of SUBJECT_GRADE_BANDS) {
-    if (score >= minScore && score <= maxScore) {
-      if (grade === "A" || grade === "C") return { grade, variant: "success" }
-      if (grade === "P") return { grade, variant: "warning" }
-      return { grade, variant: "danger" }
-    }
-  }
-  return { grade: "-", variant: "warning" }
+type TabValue = (typeof REPORT_CARD_TABS)[number]["value"]
+
+function OverviewTabContent({ onSwitchTab }: { onSwitchTab?: (tab: TabValue) => void }) {
+  return <OverviewTab onSwitchTab={onSwitchTab!} />
 }
 
-export function ReportCardsPageClient() {
+function OverviewTab({ onSwitchTab }: { onSwitchTab: (tab: TabValue) => void }) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const toast = useToast()
@@ -64,7 +51,7 @@ export function ReportCardsPageClient() {
   const [classrooms, setClassrooms] = useState<{ id: string; name: string }[]>([])
   const [components, setComponents] = useState<any[]>([])
   const [students, setStudents] = useState<any[]>([])
-  const [scores, setScores] = useState<ScoreEntry[]>([])
+  const [scores, setScores] = useState<any[]>([])
   const [reportCards, setReportCards] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -189,7 +176,7 @@ export function ReportCardsPageClient() {
         const studentsList = (studentsRes as any).results || studentsRes || []
         setStudents(studentsList)
 
-        const scoreEntries: ScoreEntry[] = (studentsList as any[]).map((s: any) => ({
+        const scoreEntries = (studentsList as any[]).map((s: any) => ({
           studentId: s.student || s.id,
           studentName: `${s.student?.user?.full_name || s.student_name || ""}`,
           scores: {},
@@ -448,13 +435,13 @@ export function ReportCardsPageClient() {
     }
   }, [selectedClassroom, selectedTerm, classrooms, terms])
 
-  const statusBadge = (status: ReportCardStatus) => {
-    const map: Record<ReportCardStatus, { variant: any; label: string }> = {
+  const statusBadge = (status: string) => {
+    const map: Record<string, { variant: any; label: string }> = {
       draft: { variant: "warning", label: "Draft" },
       submitted: { variant: "info", label: "Submitted" },
       approved: { variant: "success", label: "Approved" },
     }
-    const { variant, label } = map[status]
+    const { variant, label } = map[status] || { variant: "warning", label: status }
     return <Badge variant={variant}>{label}</Badge>
   }
 
@@ -482,13 +469,6 @@ export function ReportCardsPageClient() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-xl font-bold text-content-primary md:text-2xl">Report Cards</h1>
-        <p className="mt-0.5 text-sm text-content-secondary">
-          Generate, review, and approve student report cards
-        </p>
-      </div>
-
       {error && (
         <div className="mb-4 rounded-xl border border-danger/40 bg-danger-light p-4 text-sm text-danger">
           {error}
@@ -642,7 +622,7 @@ export function ReportCardsPageClient() {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={handleGenerate}
+                onClick={handleBulkSubmit}
                 disabled={bulkSubmitting || bulkApproving || bulkPdfLoading}
               >
                 {bulkSubmitting ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
@@ -750,4 +730,126 @@ export function ReportCardsPageClient() {
       </Modal>
     </div>
   )
+}
+
+import { ReportCardGenerateClient } from "./generate/page-client"
+import { ReportCardApprovalClient } from "./approval/page-client"
+import { ReportCardCustomizeClient } from "./customize/page-client"
+import { TeacherRemarksClient } from "./remarks/page-client"
+import { MaximizedMarkSheetClient } from "./mark-sheet/page-client"
+import { FinalReviewDashboardClient } from "./review/page-client"
+import { ReportCardArchiveClient } from "./archive/page-client"
+import { BroadsheetPageClient } from "./broadsheet/page-client"
+
+function GenerateTab() {
+  return <ReportCardGenerateClient />
+}
+
+function ApprovalTab() {
+  return <ReportCardApprovalClient />
+}
+
+function CustomizeTab() {
+  return <ReportCardCustomizeClient />
+}
+
+function RemarksTab() {
+  return <TeacherRemarksClient />
+}
+
+function MarkSheetTab() {
+  return <MaximizedMarkSheetClient />
+}
+
+function ReviewTab() {
+  return <FinalReviewDashboardClient />
+}
+
+function ArchiveTab() {
+  return <ReportCardArchiveClient />
+}
+
+function BroadsheetTab() {
+  return <BroadsheetPageClient />
+}
+
+const TAB_COMPONENTS: Record<TabValue, React.ComponentType<{ onSwitchTab?: (tab: TabValue) => void }>> = {
+  overview: OverviewTabContent,
+  generate: GenerateTab,
+  approval: ApprovalTab,
+  customize: CustomizeTab,
+  remarks: RemarksTab,
+  "mark-sheet": MarkSheetTab,
+  review: ReviewTab,
+  archive: ArchiveTab,
+  broadsheet: BroadsheetTab,
+}
+
+export function ReportCardsPageClient() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const initialTab = (searchParams.get("tab") as TabValue) || "overview"
+  const [activeTab, setActiveTab] = useState<TabValue>(initialTab)
+
+  useEffect(() => {
+    const tab = searchParams.get("tab") as TabValue | null
+    if (tab && tab !== activeTab) {
+      setActiveTab(tab)
+    }
+  }, [searchParams])
+
+  const handleTabChange = useCallback((tab: string) => {
+    const value = tab as TabValue
+    setActiveTab(value)
+    const params = new URLSearchParams(window.location.search)
+    if (value === "overview") {
+      params.delete("tab")
+    } else {
+      params.set("tab", value)
+    }
+    const qs = params.toString()
+    router.replace(`/dashboard/report-cards${qs ? `?${qs}` : ""}`, { scroll: false })
+  }, [router])
+
+  const ActiveComponent = TAB_COMPONENTS[activeTab] || TAB_COMPONENTS.overview
+
+  return (
+    <div>
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-content-primary md:text-2xl">Report Cards</h1>
+        <p className="mt-0.5 text-sm text-content-secondary">
+          Generate, review, and approve student report cards
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <Tabs
+          tabs={REPORT_CARD_TABS.map((t) => ({ label: t.label, value: t.value }))}
+          value={activeTab}
+          onChange={handleTabChange}
+        />
+      </div>
+
+      <ActiveComponent onSwitchTab={handleTabChange} />
+    </div>
+  )
+}
+
+const SUBJECT_GRADE_BANDS = [
+  [70, 100, "A", "EXCELLENT"],
+  [50, 69.99, "C", "CREDIT"],
+  [40, 49.99, "P", "PASS"],
+  [0, 39.99, "F", "FAIL"],
+] as const
+
+function subjectGrade(score: number): { grade: string; variant: "success" | "warning" | "danger" } {
+  if (score == null || isNaN(score)) return { grade: "-", variant: "warning" }
+  for (const [minScore, maxScore, grade, _] of SUBJECT_GRADE_BANDS) {
+    if (score >= minScore && score <= maxScore) {
+      if (grade === "A" || grade === "C") return { grade, variant: "success" }
+      if (grade === "P") return { grade, variant: "warning" }
+      return { grade, variant: "danger" }
+    }
+  }
+  return { grade: "-", variant: "warning" }
 }

@@ -23,10 +23,10 @@ import { useToast } from "@/components/ui/toast"
 import { cn } from "@/lib/utils"
 
 interface MaximizedMarkSheetClientProps {
-  initialStudents: any[]
+  initialStudents?: any[]
 }
 
-export function MaximizedMarkSheetClient({ initialStudents }: MaximizedMarkSheetClientProps) {
+export function MaximizedMarkSheetClient({ initialStudents = [] }: MaximizedMarkSheetClientProps = {}) {
   const { addToast } = useToast()
   const [classrooms, setClassrooms] = useState<any[]>([])
   const [terms, setTerms] = useState<any[]>([])

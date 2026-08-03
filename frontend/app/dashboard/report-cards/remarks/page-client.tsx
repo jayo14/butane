@@ -34,10 +34,10 @@ const REMARK_TEMPLATES = [
 ]
 
 interface TeacherRemarksClientProps {
-  initialClassrooms: any[]
+  initialClassrooms?: any[]
 }
 
-export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClientProps) {
+export function TeacherRemarksClient({ initialClassrooms = [] }: TeacherRemarksClientProps = {}) {
   const { addToast } = useToast()
   const [classrooms, setClassrooms] = useState(initialClassrooms)
   const [selectedClassroom, setSelectedClassroom] = useState("")
@@ -48,6 +48,13 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
   const [search, setSearch] = useState("")
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  useEffect(() => {
+    if (classrooms.length > 0) return
+    api.academics.classrooms()
+      .then((res: any) => setClassrooms((res?.results || []).map((c: any) => ({ id: c.id, name: c.name }))))
+      .catch(() => {})
+  }, [classrooms.length])
 
   useEffect(() => {
     if (!selectedClassroom) {
@@ -287,28 +294,6 @@ export function TeacherRemarksClient({ initialClassrooms }: TeacherRemarksClient
             </div>
           </div>
         </section>
-      </div>
-
-      {/* Quick Navigation */}
-      <div className="mt-8 bg-white p-6 rounded-3xl shadow-card border border-border-primary/60 relative overflow-hidden">
-        <div className="linen-texture absolute inset-0"></div>
-        <div className="relative z-10">
-          <p className="text-xs text-content-secondary uppercase tracking-widest font-bold mb-3">Related Pages</p>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/dashboard/report-cards/generate" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
-              <Sparkles size={14} /> Generate Reports
-            </Link>
-            <Link href="/dashboard/report-cards/approval" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
-              <ClipboardCheck size={14} /> Approval Workflow
-            </Link>
-            <Link href="/dashboard/report-cards/archive" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
-              <Archive size={14} /> View Archive
-            </Link>
-            <Link href="/dashboard/report-cards/customize" className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 border border-primary/20 text-primary text-sm font-bold hover:bg-primary/10 transition-all">
-              <Settings size={14} /> Customize
-            </Link>
-          </div>
-        </div>
       </div>
     </Container>
   )

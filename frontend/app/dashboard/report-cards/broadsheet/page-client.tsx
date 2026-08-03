@@ -13,10 +13,15 @@ import { api } from "@/lib/api"
 import { useToast } from "@/components/ui/toast"
 import { Printer } from "lucide-react"
 
-export function BroadsheetPageClient() {
+interface BroadsheetPageClientProps {
+  classroomId?: string
+  termId?: string
+}
+
+export function BroadsheetPageClient({ classroomId: propClassroom, termId: propTerm }: BroadsheetPageClientProps = {}) {
   const searchParams = useSearchParams()
-  const classroomId = searchParams.get("classroom") || ""
-  const termId = searchParams.get("term") || ""
+  const classroomId = propClassroom || searchParams.get("classroom") || ""
+  const termId = propTerm || searchParams.get("term") || ""
   const toast = useToast()
 
   const [loading, setLoading] = useState(true)
